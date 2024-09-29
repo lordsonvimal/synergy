@@ -2,7 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -33,7 +38,7 @@ func main() {
 	r := gin.Default()
 
 	// SAML Service Provider setup
-	rootURL, err := url.Parse("http://localhost:8080") // Base URL for your service provider
+	rootURL, err := url.Parse("http://127.0.0.1:8080") // Base URL for your service provider
 	if err != nil {
 		log.Fatalf("Invalid root URL: %v", err)
 	}
@@ -54,11 +59,43 @@ func main() {
 		log.Fatalf("Error fetching IdP metadata: %v", err)
 	}
 
+	httpsCert := os.Getenv("HTTPS_SERVER_CERT")
+	httpsKey := os.Getenv("HTTPS_SERVER_KEY")
+
+	// Load the X.509 key pair
+	tlsCert, err := tls.LoadX509KeyPair(httpsCert, httpsKey)
+
+	if err != nil {
+		log.Fatalf("failed to load key pair: %v", err)
+	}
+
+	// Perform a type assertion to ensure the private key is *rsa.PrivateKey
+	rsaPrivateKey, ok := tlsCert.PrivateKey.(*rsa.PrivateKey)
+	if !ok {
+		log.Fatalf("Private key is not of type *rsa.PrivateKey")
+	}
+
+	// Parse the PEM-encoded certificate to get an *x509.Certificate
+	certBytes, err := ioutil.ReadFile(httpsCert)
+	if err != nil {
+		log.Fatalf("failed to read certificate file: %v", err)
+	}
+
+	block, _ := pem.Decode(certBytes)
+	if block == nil {
+		log.Fatalf("failed to decode PEM block containing the certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		log.Fatalf("failed to parse certificate: %v", err)
+	}
+
 	// Create the SAML middleware with options
 	samlMiddleware, err := samlsp.New(samlsp.Options{
 		URL:         *rootURL,
-		Key:         mustReadFile("certs/key.pem"),
-		Certificate: mustReadFile("certs/cert.pem"),
+		Key:         rsaPrivateKey,
+		Certificate: cert,
 		IDPMetadata: idpMetadata, // Use the fetched metadata here
 	})
 	if err != nil {
@@ -109,9 +146,6 @@ func main() {
 
 	// Protected route using JWT middleware
 	r.GET("/api/protected", JWTAuthMiddleware(), ProtectedHandler)
-
-	httpsCert := os.Getenv("HTTPS_SERVER_CERT")
-	httpsKey := os.Getenv("HTTPS_SERVER_KEY")
 
 	// Start the server with HTTPS
 	err = r.RunTLS(":8080", httpsCert, httpsKey)
