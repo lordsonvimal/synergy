@@ -1,11 +1,11 @@
 package main
 
 import (
-	"context"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,6 +14,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -43,20 +44,18 @@ func main() {
 		log.Fatalf("Invalid root URL: %v", err)
 	}
 
-	// Fetch IdP metadata (correct way)
-	idpMetadataURL, err := url.Parse(os.Getenv("SAML_IDP_METADATA_URL"))
+	// Get metadata
+	metadataFile := os.Getenv("SAML_GOOGLE_IDP_METADATA_PATH")
+	metadataBytes, err := ioutil.ReadFile(metadataFile)
 	if err != nil {
-		log.Fatalf("Invalid IdP Metadata URL: %v", err)
+		log.Fatalf("Failed to read IdP metadata file: %v", err)
 	}
 
-	// Create a context and HTTP client for fetching metadata
-	ctx := context.Background()
-	httpClient := &http.Client{}
-
-	// Fetch and parse IdP metadata
-	idpMetadata, err := samlsp.FetchMetadata(ctx, httpClient, *idpMetadataURL)
+	// Parse the XML metadata into a saml.EntityDescriptor
+	var idpMetadata saml.EntityDescriptor
+	err = xml.Unmarshal(metadataBytes, &idpMetadata)
 	if err != nil {
-		log.Fatalf("Error fetching IdP metadata: %v", err)
+		log.Fatalf("Failed to parse IdP metadata: %v", err)
 	}
 
 	httpsCert := os.Getenv("HTTPS_SERVER_CERT")
@@ -96,7 +95,7 @@ func main() {
 		URL:         *rootURL,
 		Key:         rsaPrivateKey,
 		Certificate: cert,
-		IDPMetadata: idpMetadata, // Use the fetched metadata here
+		IDPMetadata: &idpMetadata,
 	})
 	if err != nil {
 		log.Fatalf("Error creating SAML Service Provider: %v", err)
@@ -114,7 +113,7 @@ func main() {
 	})
 
 	// SAML callback (after authentication)
-	r.GET("/saml/callback", func(c *gin.Context) {
+	r.GET("/saml/acs", func(c *gin.Context) {
 		samlMiddleware.RequireAccount(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			c.Request = r
 			c.Next()
