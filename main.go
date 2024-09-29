@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"encoding/xml"
 	"fmt"
@@ -20,6 +21,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
+
+var samlSP *samlsp.Middleware // Declare samlSP globally
 
 var jwtSecret []byte
 
@@ -91,7 +94,7 @@ func main() {
 	}
 
 	// Create the SAML middleware with options
-	samlMiddleware, err := samlsp.New(samlsp.Options{
+	samlSP, err := samlsp.New(samlsp.Options{
 		URL:         *rootURL,
 		Key:         rsaPrivateKey,
 		Certificate: cert,
@@ -106,41 +109,70 @@ func main() {
 
 	// SAML Auth route (protect this route using RequireAccount)
 	r.GET("/saml/login", func(c *gin.Context) {
-		samlMiddleware.RequireAccount(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		samlSP.RequireAccount(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			c.Request = r
 			c.Next() // Just call Next, no need to touch c.Writer
 		})).ServeHTTP(c.Writer, c.Request)
 	})
 
 	// SAML callback (after authentication)
-	r.GET("/saml/acs", func(c *gin.Context) {
-		samlMiddleware.RequireAccount(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			c.Request = r
-			c.Next()
-		})).ServeHTTP(c.Writer, c.Request)
+	// ACS route - handles the SAML response
+	r.POST("/saml/acs", func(c *gin.Context) {
+		// Extract the SAML response from the POST request
+		req := c.Request
+		// writer := c.Writer
 
-		// Extract SAML attributes
-		session := samlsp.SessionFromContext(c.Request.Context())
-		if session == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
+		req.ParseForm()
+		samlResponseRaw := req.FormValue("SAMLResponse")
+		if samlResponseRaw == "" {
+			fmt.Println("No SAMLResponse found in request")
 			return
 		}
 
-		// Extract the user's email or any attribute you want to use
-		attributes := session.(samlsp.JWTSessionClaims).StandardClaims
-		userEmail := attributes.Subject
-
-		// Generate JWT for the authenticated user
-		jwtToken, err := generateJWT(userEmail)
+		// Decode the Base64 SAML response for inspection
+		samlResponseDecoded, err := base64.StdEncoding.DecodeString(samlResponseRaw)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate JWT"})
+			fmt.Println("Error decoding SAMLResponse:", err)
 			return
 		}
+		fmt.Println("Decoded SAMLResponse:", string(samlResponseDecoded))
 
-		// Return the JWT token
-		c.JSON(http.StatusOK, gin.H{
-			"token": jwtToken,
-		})
+		// Validate the SAML response
+		// samlResponse, _ := samlSP.ServiceProvider.ParseResponse(req, []string{})
+		// if err != nil {
+		// 	http.Error(writer, err.Error(), http.StatusBadRequest)
+		// 	return
+		// }
+
+		// Get the authenticated user's information from the SAML assertion
+		// userEmail := ""
+		// for _, statement := range samlResponse.AttributeStatements {
+		// 	for _, attr := range statement.Attributes {
+		// 		if attr.Name == "email" {
+		// 			userEmail = attr.Values[0].Value
+		// 			break
+		// 		}
+		// 	}
+		// }
+
+		// Set up a session for the user (simplified)
+		// session, err := samlSP.Session.GetSession(r)
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusBadRequest)
+		// 	return
+		// }
+
+		// if session == nil {
+		// 	// Create a new session
+		// 	session = samlSP.Session.CreateSession(w, r, samlResponse)
+		// }
+
+		// sessionIndex := samlResponse.Subject.SubjectConfirmations[0].SubjectConfirmationData.SessionIndex
+		// sessionID := samlResponse.Subject.NameID.Value
+		// session.Set(r, w, samlSP.ServiceProvider.SessionProvider, samlSP.ServiceProvider.SessionIDPrefix+sessionIndex, sessionID, samlSP.ServiceProvider.SessionLifetime)
+
+		// Redirect to a protected page after login
+		c.JSON(http.StatusOK, gin.H{"message": "SAML Response processed successfully"})
 	})
 
 	// Protected route using JWT middleware
