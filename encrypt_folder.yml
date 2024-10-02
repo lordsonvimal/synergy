@@ -1,0 +1,26 @@
+---
+- name: Encrypt folder and its contents
+  hosts: localhost
+  tasks:
+    - name: Find all files in the specified directory
+      find:
+        paths: certs
+        patterns: "*"
+      register: found_files
+
+    - name: Encrypt each file in the folder
+      command: ansible-vault encrypt {{ item.path }} --vault-password-file vault_pass.txt
+      with_items: "{{ found_files.files }}"
+      ignore_errors: yes
+
+    - name: Encrypt .env
+      command: ansible-vault encrypt .env --vault-password-file vault_pass.txt
+      ignore_errors: yes
+
+    - name: Create encrypted marker file
+      file:
+        path: certs/.encrypted_marker
+        state: touch
+
+    - name: Encrypt encrypted marker file
+      command: ansible-vault encrypt certs/.encrypted_marker --vault-password-file vault_pass.txt

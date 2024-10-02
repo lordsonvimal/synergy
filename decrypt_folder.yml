@@ -1,0 +1,24 @@
+---
+- name: Decrypt folder and its contents
+  hosts: localhost
+  tasks:
+    - name: Find all files in the specified directory
+      find:
+        paths: certs
+        patterns: "*"
+      register: found_files
+
+    - name: Decrypt each file in the folder
+      command: ansible-vault decrypt {{ item.path }} --vault-password-file vault_pass.txt
+      with_items: "{{ found_files.files }}"
+      ignore_errors: yes
+
+    - name: Decrypt .env
+      command: ansible-vault decrypt .env --vault-password-file vault_pass.txt
+      ignore_errors: yes
+
+    - name: Remove the encrypted marker file for the folder
+      file:
+        path: certs/.encrypted_marker
+        state: absent
+      ignore_errors: yes
