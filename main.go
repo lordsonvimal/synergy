@@ -15,11 +15,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/beevik/etree"
 	"github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	dsig "github.com/russellhaering/goxmldsig"
 )
 
 var samlSP *samlsp.Middleware // Declare samlSP globally
@@ -120,7 +122,7 @@ func main() {
 	r.POST("/saml/acs", func(c *gin.Context) {
 		// Extract the SAML response from the POST request
 		req := c.Request
-		// writer := c.Writer
+		writer := c.Writer
 
 		req.ParseForm()
 		samlResponseRaw := req.FormValue("SAMLResponse")
@@ -135,10 +137,64 @@ func main() {
 			fmt.Println("Error decoding SAMLResponse:", err)
 			return
 		}
-		fmt.Println("Decoded SAMLResponse:", string(samlResponseDecoded))
+
+		// Parse the SAML response XML using etree
+		doc := etree.NewDocument()
+		if err := doc.ReadFromBytes(samlResponseDecoded); err != nil {
+			fmt.Errorf("failed to parse XML: %v", err)
+		}
 
 		// Validate the SAML response
-		// samlResponse, _ := samlSP.ServiceProvider.ParseResponse(req, []string{})
+		// Parse the SAML response XML
+		var response saml.Response
+		if err := xml.Unmarshal(samlResponseDecoded, &response); err != nil {
+			fmt.Errorf("failed to unmarshal SAML response: %v", err)
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+		}
+
+		log.Print("Response: ", string(samlResponseDecoded))
+		// Load the certificate to validate the signature
+		certPEM, err := os.ReadFile(httpsCert)
+		if err != nil {
+			fmt.Errorf("failed to read certificate: %v", err)
+		}
+
+		// Parse the certificate
+		certBlock, _ := pem.Decode(certPEM)
+		if certBlock == nil {
+			fmt.Errorf("failed to decode PEM certificate")
+		}
+
+		cert, err := x509.ParseCertificate(certBlock.Bytes)
+		if err != nil {
+			fmt.Errorf("failed to parse certificate: %v", err)
+		}
+
+		// Create a dsig (digital signature) context for signature verification
+		context := dsig.NewDefaultValidationContext(&dsig.MemoryX509CertificateStore{
+			Roots: []*x509.Certificate{cert},
+		})
+
+		// Verify the SAML response signature
+		_, err = context.Validate(doc.Root())
+		if err != nil {
+			fmt.Errorf("SAML response signature validation failed: %v", err)
+		}
+
+		// Check if the assertion is encrypted
+		if response.EncryptedAssertion != nil {
+			// At this point, we have an EncryptedAssertion but no built-in decryption
+			// This is where you would perform custom decryption (not covered in this example)
+			fmt.Errorf("encrypted assertion detected, decryption not implemented")
+		} else if response.Assertion != nil {
+			// If the assertion is not encrypted, validate it directly
+			err := validateAssertion(response.Assertion, "https://127.0.0.1:8080")
+			if err != nil {
+				fmt.Errorf(err.Error())
+			}
+		}
+
+		// samlResponse, err := samlSP.ServiceProvider.ParseResponse(req, []string{})
 		// if err != nil {
 		// 	http.Error(writer, err.Error(), http.StatusBadRequest)
 		// 	return
@@ -183,6 +239,46 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// Validate the assertion's conditions and audience
+func validateAssertion(assertion *saml.Assertion, expectedAudience string) error {
+	// Validate assertion's conditions (like timing and audience)
+	if assertion.Conditions != nil {
+		if err := validateTimeConditions(assertion.Conditions); err != nil {
+			return err
+		}
+
+		// Validate the audience restriction
+		for _, audienceRestriction := range assertion.Conditions.AudienceRestrictions {
+			if audienceRestriction.Audience.Value != expectedAudience {
+				return fmt.Errorf("invalid audience: %s", audienceRestriction.Audience.Value)
+			}
+		}
+	}
+
+	// Extract attributes from the assertion
+	for _, attrStatement := range assertion.AttributeStatements {
+		for _, attr := range attrStatement.Attributes {
+			if len(attr.Values) == 1 {
+				fmt.Printf("Attribute: %s = %s\n", attr.Name, attr.Values[0].Value)
+			}
+		}
+	}
+
+	return nil
+}
+
+// Validate the time-based conditions of the assertion
+func validateTimeConditions(conditions *saml.Conditions) error {
+	now := time.Now()
+	if now.Before(conditions.NotBefore) {
+		return fmt.Errorf("assertion is not yet valid")
+	}
+	if now.After(conditions.NotOnOrAfter) {
+		return fmt.Errorf("assertion has expired")
+	}
+	return nil
 }
 
 // IndexHandler: Public API endpoint
