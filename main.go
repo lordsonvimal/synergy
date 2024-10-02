@@ -8,7 +8,6 @@ import (
 	"encoding/pem"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -51,7 +50,7 @@ func main() {
 
 	// Get metadata
 	metadataFile := os.Getenv("SAML_GOOGLE_IDP_METADATA_PATH")
-	metadataBytes, err := ioutil.ReadFile(metadataFile)
+	metadataBytes, err := os.ReadFile(metadataFile)
 	if err != nil {
 		log.Fatalf("Failed to read IdP metadata file: %v", err)
 	}
@@ -80,7 +79,7 @@ func main() {
 	}
 
 	// Parse the PEM-encoded certificate to get an *x509.Certificate
-	certBytes, err := ioutil.ReadFile(httpsCert)
+	certBytes, err := os.ReadFile(httpsCert)
 	if err != nil {
 		log.Fatalf("failed to read certificate file: %v", err)
 	}
@@ -152,7 +151,6 @@ func main() {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 		}
 
-		log.Print("Response: ", string(samlResponseDecoded))
 		// Load the certificate to validate the signature
 		certPEM, err := os.ReadFile(httpsCert)
 		if err != nil {
