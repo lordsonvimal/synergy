@@ -17,10 +17,14 @@ import (
 	dsig "github.com/russellhaering/goxmldsig"
 )
 
+func Metadata(c *gin.Context) {
+	c.JSON(http.StatusFound, gin.H{"msg": "metadata"})
+}
+
 func Login(c *gin.Context) {
 	samlSP, exists := c.MustGet("samlSP").(*samlsp.Middleware)
 	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "SAML Middleware not found"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "SSO is not configured correctly. Please contact administrator"})
 		return
 	}
 

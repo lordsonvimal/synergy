@@ -41,7 +41,7 @@ func main() {
 	r := gin.Default()
 
 	// SAML Service Provider setup
-	rootURL, err := url.Parse("http://127.0.0.1:8080") // Base URL for your service provider
+	rootURL, err := url.Parse("https://127.0.0.1:8080") // Base URL for your service provider
 	if err != nil {
 		log.Fatalf("Invalid root URL: %v", err)
 	}
@@ -111,6 +111,7 @@ func main() {
 	// SAML Auth route (protect this route using RequireAccount)
 	r.GET("/saml/login", sso.Login)
 
+	r.GET("/saml/metadata", sso.Metadata)
 	// SAML callback (after authentication)
 	// ACS route - handles the SAML response
 	r.POST("/saml/acs", sso.ACS)
