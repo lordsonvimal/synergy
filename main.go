@@ -211,12 +211,3 @@ type Claims struct {
 	Email string `json:"email"`
 	jwt.StandardClaims
 }
-
-// mustReadFile is a utility function to read key/cert files
-func mustReadFile(filePath string) []byte {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		log.Fatalf("Failed to read file %s: %v", filePath, err)
-	}
-	return data
-}
