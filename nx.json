@@ -14,10 +14,36 @@
     "serve": {
       "dependsOn": [
         "^serve"
+      ],
+      "cache": true
+    },
+    "nx": {
+      "cache": true
+    },
+    "lint": {
+      "cache": true
+    },
+    "e2e-ci--**/*": {
+      "dependsOn": [
+        "^build"
       ]
     }
   },
   "plugins": [
-    "@nx-go/nx-go"
+    "@nx-go/nx-go",
+    "@nx/js",
+    "@nx/web",
+    {
+      "plugin": "@nx/playwright/plugin",
+      "options": {
+        "targetName": "e2e"
+      }
+    },
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      }
+    }
   ]
 }
