@@ -3,85 +3,70 @@ package auth
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/coreos/go-oidc"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 )
 
 type OIDCAuthenticator struct {
-	oauth2Config *oauth2.Config
-	verifier     *oidc.IDTokenVerifier
+	provider *oidc.Provider
+	config   *oauth2.Config
 }
 
-func NewOIDCAuthenticator() *OIDCAuthenticator {
-	providerURL := "https://accounts.google.com" // Change for Okta/Auth0/Azure
-	clientID := os.Getenv("OAUTH_CLIENT_ID")
-	clientSecret := os.Getenv("OAUTH_CLIENT_SECRET")
-	redirectURL := "http://localhost:8080/auth/callback"
-
-	provider, err := oidc.NewProvider(context.Background(), providerURL)
+func NewOIDCAuthenticator() (*OIDCAuthenticator, error) {
+	provider, err := oidc.NewProvider(context.Background(), os.Getenv("OIDC_ISSUER"))
 	if err != nil {
-		log.Fatalf("Failed to get OIDC provider: %v", err)
+		return nil, err
 	}
 
 	return &OIDCAuthenticator{
-		oauth2Config: &oauth2.Config{
-			ClientID:     clientID,
-			ClientSecret: clientSecret,
-			RedirectURL:  redirectURL,
-			Endpoint:     google.Endpoint,
+		provider: provider,
+		config: &oauth2.Config{
+			ClientID:     os.Getenv("OIDC_CLIENT_ID"),
+			ClientSecret: os.Getenv("OIDC_CLIENT_SECRET"),
+			Endpoint:     provider.Endpoint(),
+			RedirectURL:  os.Getenv("OIDC_REDIRECT_URL"),
 			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 		},
-		verifier: provider.Verifier(&oidc.Config{ClientID: clientID}),
-	}
+	}, nil
 }
 
 func (o *OIDCAuthenticator) Login(w http.ResponseWriter, r *http.Request) {
-	authURL := o.oauth2Config.AuthCodeURL("random-state", oauth2.AccessTypeOffline)
-	http.Redirect(w, r, authURL, http.StatusFound)
+	url := o.config.AuthCodeURL("state", oauth2.AccessTypeOffline)
+	http.Redirect(w, r, url, http.StatusFound)
 }
 
 func (o *OIDCAuthenticator) Callback(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
 	code := r.URL.Query().Get("code")
-
-	token, err := o.oauth2Config.Exchange(ctx, code)
+	token, err := o.config.Exchange(context.Background(), code)
 	if err != nil {
-		http.Error(w, "Token exchange failed", http.StatusUnauthorized)
+		http.Error(w, "Failed to exchange token", http.StatusInternalServerError)
 		return
 	}
 
-	idToken, ok := token.Extra("id_token").(string)
-	if !ok {
-		http.Error(w, "No ID token found", http.StatusUnauthorized)
-		return
-	}
-
-	verifiedToken, err := o.verifier.Verify(ctx, idToken)
+	idToken, err := o.provider.Verifier(&oidc.Config{ClientID: o.config.ClientID}).Verify(context.Background(), token.Extra("id_token").(string))
 	if err != nil {
 		http.Error(w, "Invalid ID token", http.StatusUnauthorized)
 		return
 	}
 
-	var claims map[string]interface{}
-	if err := verifiedToken.Claims(&claims); err != nil {
+	claims := map[string]interface{}{}
+	if err := idToken.Claims(&claims); err != nil {
 		http.Error(w, "Failed to parse claims", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Login successful",
-		"user":    claims,
-		"token":   token.AccessToken,
-	})
+	json.NewEncoder(w).Encode(claims)
 }
 
 func (o *OIDCAuthenticator) Logout(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "Logged out successfully."}`))
+	w.Write([]byte(`{"message": "OIDC logout handled at the identity provider"}`))
+}
+
+func (o *OIDCAuthenticator) Authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "OIDC authentication not implemented for middleware", http.StatusNotImplemented)
+	})
 }
