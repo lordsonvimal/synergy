@@ -1,0 +1,12 @@
+{
+  "name": "synergy",
+  "packageManager": "yarn@4.7.0",
+  "scripts": {
+    "nx": "nx",
+    "serve": "nx run-many --target=serve --parallel",
+    "lint": "nx run-many --target=lint"
+  },
+  "devDependencies": {
+    "nx": "^20.4.6"
+  }
+}

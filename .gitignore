@@ -5,3 +5,14 @@ vault_pass.txt
 .nx/installation
 .nx/cache
 .nx/workspace-data
+dist/
+
+.pnp/
+.pnp.js
+.pnp.cjs
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.yarnrc.yml
+

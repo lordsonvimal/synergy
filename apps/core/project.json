@@ -1,0 +1,13 @@
+{
+  "name": "core",
+  "root": "apps/core",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "air",
+        "cwd": "apps/core"
+      }
+    }
+  }
+}
