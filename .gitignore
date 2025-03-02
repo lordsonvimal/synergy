@@ -1,3 +1,7 @@
 tmp
 .vscode
 vault_pass.txt
+
+.nx/installation
+.nx/cache
+.nx/workspace-data
