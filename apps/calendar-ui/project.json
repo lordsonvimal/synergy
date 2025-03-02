@@ -2,10 +2,17 @@
   "name": "calendar-ui",
   "root": "apps/calendar-ui",
   "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "yarn dev",
+        "cwd": "apps/calendar-ui"
+      }
+    },
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "serve",
+        "command": "yarn serve",
         "cwd": "apps/calendar-ui"
       }
     }

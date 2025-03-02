@@ -2,10 +2,17 @@
   "name": "core",
   "root": "apps/core",
   "targets": {
-    "serve": {
+    "dev": {
       "executor": "nx:run-commands",
       "options": {
         "command": "air",
+        "cwd": "apps/core"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "./dist/main",
         "cwd": "apps/core"
       }
     }

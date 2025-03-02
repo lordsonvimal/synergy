@@ -3,6 +3,7 @@
   "packageManager": "yarn@4.7.0",
   "scripts": {
     "nx": "nx",
+    "dev": "nx run-many --target=dev --parallel",
     "serve": "nx run-many --target=serve --parallel",
     "lint": "nx run-many --target=lint"
   },

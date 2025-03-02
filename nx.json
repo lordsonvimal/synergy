@@ -11,6 +11,12 @@
     ]
   },
   "targetDefaults": {
+    "dev": {
+      "dependsOn": [
+        "^dev"
+      ],
+      "cache": true
+    },
     "serve": {
       "dependsOn": [
         "^serve"
