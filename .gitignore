@@ -18,6 +18,7 @@ node_modules
 .yarn/install-state.gz
 .yarnrc.yml
 
-
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
+
+.DS_Store
