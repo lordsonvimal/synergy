@@ -7,6 +7,7 @@
     "lint": "nx run-many --target=lint"
   },
   "devDependencies": {
+    "@nx-go/nx-go": "^3.3.1",
     "nx": "^20.4.6"
   }
 }

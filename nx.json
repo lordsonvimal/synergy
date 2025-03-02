@@ -1,5 +1,23 @@
 {
   "installation": {
     "version": "20.4.6"
-  }
+  },
+  "namedInputs": {
+    "default": [
+      "{projectRoot}/**/*"
+    ],
+    "sharedGlobals": [
+      "{workspaceRoot}/go.work"
+    ]
+  },
+  "targetDefaults": {
+    "serve": {
+      "dependsOn": [
+        "^serve"
+      ]
+    }
+  },
+  "plugins": [
+    "@nx-go/nx-go"
+  ]
 }
