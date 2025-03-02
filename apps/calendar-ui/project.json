@@ -1,0 +1,13 @@
+{
+  "name": "calendar-ui",
+  "root": "apps/calendar-ui",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "serve",
+        "cwd": "apps/calendar-ui"
+      }
+    }
+  }
+}
