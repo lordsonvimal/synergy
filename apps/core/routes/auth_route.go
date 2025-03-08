@@ -11,5 +11,6 @@ func RegisterAuthRoutes(router *gin.RouterGroup) {
 	{
 		auth.POST("/login", handlers.LoginHandler)
 		auth.POST("/logout", handlers.LogoutHandler)
+		auth.GET("/callback", handlers.AuthCallbackHandler)
 	}
 }
