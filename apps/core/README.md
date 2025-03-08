@@ -1,10 +1,18 @@
 ## Setup
 
-- Install ansible
-  - pip install ansible
-- Run ./decrypt.sh
-- Run server
-  -  air
+#### Postgres DB
+Install migrate - `brew install golang-migrate`
+
+#### HTTPS Server
+For local development, generate a self signed certificate using OpenSSL
+```
+openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes
+```
+For production, obtain an SSL certificate from Let's Encrypt or another CA.
+
+- Install ansible `pip install ansible`
+- Run `./decrypt.sh`
+- Run server `air`
 
 - NOTE: vault_pass.txt is required in your root directory
   - Get this from administrator to get the app running
