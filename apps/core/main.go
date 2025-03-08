@@ -24,7 +24,17 @@ func main() {
 		log.Fatal("Cannot load config", map[string]interface{}{"error": err.Error()})
 	}
 
-	db.RunMigrations()
+	err = db.ValidateSchema()
+	if err != nil {
+		log.Fatal(fmt.Sprintf("❌ Schema validation failed: %v", err), nil)
+		os.Exit(1)
+	}
+
+	err = db.RunMigrations()
+	if err != nil {
+		log.Fatal(fmt.Sprintf("❌ Migration error: %v", err), nil)
+		os.Exit(1)
+	}
 
 	db.InitPostgresDB()
 	defer db.ClosePostgresDB()

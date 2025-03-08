@@ -3,6 +3,13 @@
 #### Postgres DB
 Install migrate - `brew install golang-migrate`
 
+Example:
+migrate create -ext sql -dir migrations -seq create_users_table
+
+Apply migration
+migrate -database "postgres://user:password@localhost:5432/mydb?sslmode=disable" -path migrations up
+migrate -database "postgres://user:password@localhost:5432/mydb?sslmode=disable" -path migrations down
+
 #### HTTPS Server
 For local development, generate a self signed certificate using OpenSSL
 ```
