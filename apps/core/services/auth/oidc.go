@@ -2,6 +2,9 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -10,6 +13,8 @@ import (
 
 	"github.com/coreos/go-oidc"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/lordsonvimal/synergy/config"
+	"github.com/lordsonvimal/synergy/services/cookie"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -34,11 +39,13 @@ func NewOAuthAuthenticator() (*OAuthAuthenticator, error) {
 		return nil, err
 	}
 
+	c := config.GetConfig()
+
 	config := &oauth2.Config{
-		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		ClientID:     c.GoogleOauthClientId,
+		ClientSecret: c.GoogleOauthClientSecret,
 		Endpoint:     google.Endpoint,
-		RedirectURL:  os.Getenv("REDIRECT_URI"), // e.g., "https://yourapp.com/callback"
+		RedirectURL:  c.GoogleOauthRedirectUrl,
 		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 	}
 
@@ -52,22 +59,45 @@ func (o *OAuthAuthenticator) Login(w http.ResponseWriter, r *http.Request) {
 	codeVerifier := generateCodeVerifier()
 	codeChallenge := generateCodeChallenge(codeVerifier)
 
-	state := "random-state" // Store securely in session or cookie
+	// Generate a secure state value
+	state := generateState()
+
+	// Store state in a cookie (SPA retrieves it later)
+	cookie.SetCookie(w, "oauth_state", state)
+	cookie.SetCookie(w, "code_verifier", codeVerifier)
 
 	authURL := o.config.AuthCodeURL(state, oauth2.AccessTypeOffline,
 		oauth2.SetAuthURLParam("code_challenge", codeChallenge),
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
 	)
 
-	http.Redirect(w, r, authURL, http.StatusFound)
+	// http.Redirect(w, r, authURL, http.StatusFound)
+	json.NewEncoder(w).Encode(map[string]string{"url": authURL})
 }
 
 // Callback handles the OAuth2 callback and issues a JWT
 func (o *OAuthAuthenticator) Callback(w http.ResponseWriter, r *http.Request) {
+	// Retrieve state from request
+	receivedState := r.URL.Query().Get("state")
+
+	// Retrieve state stored in the cookie
+	stateCookie, err := r.Cookie("oauth_state")
+
+	if err != nil || stateCookie.Value != receivedState {
+		http.Error(w, "Invalid state parameter", http.StatusUnauthorized)
+		return
+	}
+
+	codeVerifier, err := r.Cookie("code_verifier")
+	if err != nil {
+		http.Error(w, "Code verifier not found", http.StatusUnauthorized)
+		return
+	}
+
 	ctx := context.Background()
 	code := r.URL.Query().Get("code")
 
-	token, err := o.config.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", "random-verifier"))
+	token, err := o.config.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", codeVerifier.Value))
 	if err != nil {
 		http.Error(w, "Token exchange failed", http.StatusInternalServerError)
 		return
@@ -110,13 +140,7 @@ func (o *OAuthAuthenticator) Callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set JWT in HttpOnly Cookie for web users
-	http.SetCookie(w, &http.Cookie{
-		Name:     "access_token",
-		Value:    jwtToken,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-	})
+	cookie.SetCookie(w, "access_token", jwtToken)
 
 	// Return token for Mobile/SPAs
 	json.NewEncoder(w).Encode(map[string]string{"token": jwtToken})
@@ -170,12 +194,33 @@ func generateJWT(email string, domain string) (string, error) {
 	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 }
 
-// PKCE: Generate code verifier
+// generateCodeVerifier creates a random 32-byte code verifier (URL-safe)
 func generateCodeVerifier() string {
-	return "random-verifier"
+	verifier := make([]byte, 32)
+	_, err := rand.Read(verifier)
+	if err != nil {
+		panic("Failed to generate code verifier")
+	}
+	return base64URLEncode(verifier)
 }
 
-// PKCE: Generate code challenge
+// generateCodeChallenge generates the code challenge (SHA256 of the verifier)
 func generateCodeChallenge(verifier string) string {
-	return "random-challenge"
+	hash := sha256.Sum256([]byte(verifier))
+	return base64URLEncode(hash[:])
+}
+
+// base64URLEncode converts bytes to URL-safe base64 format
+func base64URLEncode(data []byte) string {
+	return base64.RawURLEncoding.EncodeToString(data)
+}
+
+// generateState creates a secure random state string - CSRF
+func generateState() string {
+	b := make([]byte, 16) // 16 bytes = 128-bit random value
+	_, err := rand.Read(b)
+	if err != nil {
+		panic("Failed to generate state")
+	}
+	return base64.URLEncoding.EncodeToString(b)
 }

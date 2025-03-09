@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -11,6 +12,9 @@ import (
 
 // Config holds all configuration values with validation tags
 type Config struct {
+	GoogleOauthClientId     string `validate:"required"`
+	GoogleOauthClientSecret string `validate:"required"`
+	GoogleOauthRedirectUrl  string `validate:"required"`
 	ServerCert              string `validate:"required"`
 	ServerCertKey           string `validate:"required"`
 	ServerPort              string `validate:"required,numeric"`
@@ -25,6 +29,9 @@ type Config struct {
 
 // defaultConfig defines fallback values if environment variables are missing
 var defaultConfig = Config{
+	GoogleOauthClientId:     "",
+	GoogleOauthClientSecret: "",
+	GoogleOauthRedirectUrl:  "http://localhost:3001/callback",
 	ServerCert:              "",
 	ServerCertKey:           "",
 	ServerPort:              "8080",
@@ -37,8 +44,19 @@ var defaultConfig = Config{
 	JWTSecret:               "supersecret",
 }
 
+var instance *Config
+
+// GetConfig returns the config instance
+func GetConfig() *Config {
+	return instance
+}
+
 // LoadConfig loads and validates environment variables
 func LoadConfig() (*Config, error) {
+	if instance != nil {
+		return instance, nil
+	}
+
 	log := logger.GetLogger()
 	log.Info("Loading configuration...", nil)
 
@@ -47,6 +65,9 @@ func LoadConfig() (*Config, error) {
 	}
 
 	config := &Config{
+		GoogleOauthClientId:     getEnv("GOOGLE_OAUTH_CLIENT_ID", defaultConfig.GoogleOauthClientId),
+		GoogleOauthClientSecret: getEnv("GOOGLE_OAUTH_CLIENT_SECRET", defaultConfig.GoogleOauthClientSecret),
+		GoogleOauthRedirectUrl:  getEnv("GOOGLE_OAUTH_REDIRECT_URL", defaultConfig.GoogleOauthRedirectUrl),
 		ServerCert:              getEnv("HTTPS_SERVER_CERT", defaultConfig.ServerCert),
 		ServerCertKey:           getEnv("HTTPS_SERVER_KEY", defaultConfig.ServerCertKey),
 		ServerPort:              getEnv("SERVER_PORT", defaultConfig.ServerPort),
@@ -61,13 +82,24 @@ func LoadConfig() (*Config, error) {
 
 	validate := validator.New()
 	if err := validate.Struct(config); err != nil {
-		for _, e := range err.(validator.ValidationErrors) {
-			log.Error("Invalid configuration field", map[string]interface{}{
-				"field": e.Field(),
-				"error": e.Tag(),
+		log.Info("Has error", map[string]interface{}{})
+		var validationErrors validator.ValidationErrors
+
+		if errors.As(err, &validationErrors) { // Safe type assertion
+			for _, e := range validationErrors {
+				msg := fmt.Sprintf("Invalid field %s", e.Field())
+				log.Error(msg, map[string]interface{}{
+					"field": e.Field(),
+					"error": e.Tag(),
+				})
+			}
+		} else {
+			log.Error("Unexpected validation error", map[string]interface{}{
+				"error": err.Error(),
 			})
 		}
-		return nil, err
+
+		return nil, err // Ensure caller properly handles the error
 	}
 
 	log.Info("Configuration loaded successfully", map[string]interface{}{
@@ -75,6 +107,8 @@ func LoadConfig() (*Config, error) {
 		"PostgresURL": config.PostgresURL,
 		"RedisURL":    config.RedisURL,
 	})
+
+	instance = config
 
 	return config, nil
 }

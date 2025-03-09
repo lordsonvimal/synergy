@@ -1,10 +1,14 @@
 import { defineConfig } from "vite";
-import basicSsl from "@vitejs/plugin-basic-ssl";
+import mkcert from "vite-plugin-mkcert";
 import solidPlugin from "vite-plugin-solid";
 
 export default defineConfig({
-  plugins: [solidPlugin()],
+  plugins: [mkcert(), solidPlugin()],
   server: {
+    https: {
+      cert: "../core/certs/server.crt",
+      key: "../core/certs/server.key"
+    },
     port: 3001
   },
   build: {
