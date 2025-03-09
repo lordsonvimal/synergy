@@ -19,9 +19,19 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
+type GoogleTokenClaims struct {
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	HD            string `json:"hd"` // Hosted domain (Google Workspace users)
+	Name          string `json:"name"`
+	GivenName     string `json:"given_name"`
+	FamilyName    string `json:"family_name"`
+	Picture       string `json:"picture"`
+}
+
 // JWTClaims holds user claims for JWT
 type JWTClaims struct {
-	Email string `json:"email"`
+	GoogleTokenClaims
 	jwt.RegisteredClaims
 }
 
@@ -115,11 +125,7 @@ func (o *OAuthAuthenticator) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var claims struct {
-		Email         string `json:"email"`
-		EmailVerified bool   `json:"email_verified"`
-		HD            string `json:"hd"` // Hosted domain (Google Workspace users)
-	}
+	claims := GoogleTokenClaims{}
 
 	if err := idToken.Claims(&claims); err != nil {
 		http.Error(w, "Failed to parse claims", http.StatusInternalServerError)
@@ -133,7 +139,7 @@ func (o *OAuthAuthenticator) Callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate JWT token
-	jwtToken, err := generateJWT(claims.Email, claims.HD)
+	jwtToken, err := generateJWT(claims)
 	if err != nil {
 		http.Error(w, "Failed to generate JWT", http.StatusInternalServerError)
 		return
@@ -183,9 +189,9 @@ func (o *OAuthAuthenticator) Authenticate(next http.Handler) http.Handler {
 }
 
 // generateJWT creates a JWT token
-func generateJWT(email string, domain string) (string, error) {
+func generateJWT(googleClaims GoogleTokenClaims) (string, error) {
 	claims := JWTClaims{
-		Email: email,
+		GoogleTokenClaims: googleClaims,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 1)), // 1 hour expiry
 		},

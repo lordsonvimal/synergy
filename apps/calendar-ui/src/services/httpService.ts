@@ -25,6 +25,7 @@ async function api<T = any>(
   headers?: Record<string, string>
 ): Promise<T> {
   const fetchOptions: RequestInit = {
+    credentials: "include",
     mode: "cors",
     method: Methods[method], // Access the enum value using index access
     headers: headers
