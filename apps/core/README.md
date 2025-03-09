@@ -1,20 +1,21 @@
 ## Setup
 
 #### Postgres DB
+
 Install migrate - `brew install golang-migrate`
 
-Example:
-migrate create -ext sql -dir migrations -seq create_users_table
+Example: migrate create -ext sql -dir migrations -seq create_users_table
 
-Apply migration
-migrate -database "postgres://user:password@localhost:5432/mydb?sslmode=disable" -path migrations up
-migrate -database "postgres://user:password@localhost:5432/mydb?sslmode=disable" -path migrations down
+Apply migration migrate -database "postgres://user:password@localhost:5432/mydb?sslmode=disable" -path migrations up migrate -database "postgres://user:password@localhost:5432/mydb?sslmode=disable" -path migrations down
 
 #### HTTPS Server
+
 For local development, generate a self signed certificate using OpenSSL
+
 ```
 openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes
 ```
+
 For production, obtain an SSL certificate from Let's Encrypt or another CA.
 
 - Install ansible `pip install ansible`
@@ -23,3 +24,15 @@ For production, obtain an SSL certificate from Let's Encrypt or another CA.
 
 - NOTE: vault_pass.txt is required in your root directory
   - Get this from administrator to get the app running
+
+#### Postgres
+
+`docker pull postgres`
+
+`docker run --name synergy_postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=synergy -p 5433:5432 -d postgres`
+
+Verify using `docker ps`
+
+Login to db `docker exec -it synergy_postgres psql -U postgres -d synergy`
+
+Check tables `\dt`

@@ -35,13 +35,13 @@ func AuthCallbackHandler(c *gin.Context) {
 
 	// Extract query parameters
 	req := TokenRequest{
-		Code:  c.Query("code"),  // Get "code" from URL query
-		State: c.Query("state"), // Get "code_verifier" from URL query
+		Code:  c.Query("code"),
+		State: c.Query("state"),
 	}
 
 	// Validate required fields
 	if req.Code == "" || req.State == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request, missing code or code_verifier"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request, missing code or state"})
 		return
 	}
 

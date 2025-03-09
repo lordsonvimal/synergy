@@ -102,11 +102,7 @@ func LoadConfig() (*Config, error) {
 		return nil, err // Ensure caller properly handles the error
 	}
 
-	log.Info("Configuration loaded successfully", map[string]interface{}{
-		"ServerPort":  config.ServerPort,
-		"PostgresURL": config.PostgresURL,
-		"RedisURL":    config.RedisURL,
-	})
+	log.Info("Configuration loaded successfully", map[string]interface{}{})
 
 	instance = config
 

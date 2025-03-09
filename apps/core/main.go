@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -9,6 +12,7 @@ import (
 	"github.com/lordsonvimal/synergy/config"
 	"github.com/lordsonvimal/synergy/logger"
 	"github.com/lordsonvimal/synergy/routes"
+	"github.com/lordsonvimal/synergy/services/db"
 )
 
 func main() {
@@ -44,18 +48,18 @@ func main() {
 	// 	os.Exit(1)
 	// }
 
-	// db.InitPostgresDB()
-	// defer db.ClosePostgresDB()
+	db.InitPostgresDB()
+	defer db.ClosePostgresDB()
 
-	// // Graceful shutdown handling
-	// stop := make(chan os.Signal, 1)
-	// signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-	// go func() {
-	// 	<-stop
-	// 	logger.GetLogger().Info("Shutting down server gracefully", nil)
-	// 	db.ClosePostgresDB()
-	// 	os.Exit(0)
-	// }()
+	// Graceful shutdown handling
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-stop
+		logger.GetLogger().Info("Shutting down server gracefully", nil)
+		db.ClosePostgresDB()
+		os.Exit(0)
+	}()
 
 	httpsCert := c.ServerCert
 	httpsKey := c.ServerCertKey
