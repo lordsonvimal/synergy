@@ -1,3 +1,15 @@
+export class ApiError extends Error {
+  status: number;
+  json: any; // Can hold any object
+
+  constructor(message: string, status: number, json?: any) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.json = json;
+  }
+}
+
 enum Methods {
   GET = "GET",
   POST = "POST",
@@ -45,11 +57,13 @@ async function api<T = any>(
 
   if (!response.ok) {
     // Handle non-2xx responses (e.g., throw an error)
-    const errorData = await response.json(); // attempt to get json error response.
-    throw new Error(
-      `HTTP error! status: ${response.status}, message: ${JSON.stringify(
-        errorData
-      )}`
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: response.statusText }));
+    throw new ApiError(
+      `HTTP error ${response.status}`,
+      response.status,
+      errorData
     );
   }
 

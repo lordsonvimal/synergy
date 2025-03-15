@@ -1,25 +1,41 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
-	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-// AuthMiddleware checks for valid authentication
-func AuthMiddleware() gin.HandlerFunc {
+// JWTAuthMiddleware validates the JWT token from cookies
+func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-			c.Abort()
+		// Get JWT from HttpOnly Cookie
+		tokenString, err := c.Cookie("access_token")
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			return
 		}
 
-		// Normally, you would validate the token here with `verifier`
-		// For simplicity, we're assuming all Bearer tokens are valid
+		// Parse and validate JWT
+		claims, err := authenticator.Authenticate(tokenString)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			return
+		}
+
+		// Check expiration
+		if claims.ExpiresAt.Time.Before(time.Now()) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
+			return
+		}
+
+		// Attach userID to context for future handlers
+		c.Set("user_id", claims.ID)
+
+		fmt.Println("User token validation successful")
+		// Proceed with request
 		c.Next()
 	}
 }

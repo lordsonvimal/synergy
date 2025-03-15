@@ -10,11 +10,11 @@ import (
 	"github.com/lordsonvimal/synergy/services/db"
 )
 
-type User struct {
-	ID        int       `json:"id"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+type UserAuthProvider struct {
+	ID          int     `json:"id"`
+	Email       string  `json:"email"`
+	DisplayName *string `json:"display_name"`
+	Picture     *string `json:"picture"`
 }
 
 type UserAuthInfo struct {
@@ -103,4 +103,30 @@ func CreateUser(ctx context.Context, userInfo UserAuthInfo) (int, error) {
 	}
 
 	return userID, nil
+}
+
+func GetUserByID(ctx context.Context, userID int) (*UserAuthProvider, error) {
+	pool := db.GetDB()
+
+	query := `
+	SELECT 
+		u.id, u.email, uap.display_name, uap.picture
+	FROM users u
+	LEFT JOIN user_auth_providers uap ON u.id = uap.user_id
+	WHERE u.id = $1;
+	`
+
+	row := pool.QueryRow(context.Background(), query, userID)
+
+	// Scan into struct
+	var user UserAuthProvider
+	err := row.Scan(
+		&user.ID, &user.Email, &user.DisplayName,
+		&user.Picture,
+	)
+	if err != nil {
+		return &user, err
+	}
+
+	return &user, nil
 }

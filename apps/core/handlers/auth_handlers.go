@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/lordsonvimal/synergy/services/auth"
+	"github.com/lordsonvimal/synergy/services/cookie"
 )
 
 type TokenRequest struct {
@@ -12,24 +13,32 @@ type TokenRequest struct {
 	State string `json:"state" binding:"required"`
 }
 
-var authenticator *auth.OAuthAuthenticator
+func AuthRedirectHandler(c *gin.Context) {
+	authenticator := auth.GetAuthenticator()
+	data := authenticator.Redirect(c.Request.Context())
 
-// SetAuthenticator initializes the authenticator (called in main)
-func SetAuthenticator(a *auth.OAuthAuthenticator) {
-	authenticator = a
+	// Store state in a cookie (SPA retrieves it later)
+	cookie.SetCookie(c.Writer, "oauth_state", data.State)
+	cookie.SetCookie(c.Writer, "code_verifier", data.CodeVerifier)
+
+	c.JSON(http.StatusOK, gin.H{"url": data.RedirectUrl})
 }
 
 // Home route
 func LoginHandler(c *gin.Context) {
+	authenticator := auth.GetAuthenticator()
+
 	if authenticator == nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Authenticator is not defined"})
 		return
 	}
 
-	authenticator.Login(c.Writer, c.Request)
+	// authenticator.Login(c.Writer, c.Request)
 }
 
 func AuthCallbackHandler(c *gin.Context) {
+	authenticator := auth.GetAuthenticator()
+
 	if authenticator == nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Authenticator is not defined"})
 		return
@@ -62,7 +71,7 @@ func AuthCallbackHandler(c *gin.Context) {
 
 	// Authenticate user
 	ctx := c.Request.Context()
-	authResult, err := authenticator.Callback(ctx, auth.AuthRequest{
+	authResult, err := authenticator.Callback(ctx, auth.AuthCallbackRequest{
 		Code:         req.Code,
 		State:        req.State,
 		StoredState:  stateCookie,
@@ -74,13 +83,14 @@ func AuthCallbackHandler(c *gin.Context) {
 	}
 
 	// Set JWT in HttpOnly Cookie for web users
-	c.SetCookie("access_token", authResult.JWTToken, 3600, "/", "", false, true)
+	cookie.SetCookie(c.Writer, "access_token", authResult.JWTToken)
 
 	// Return token for Mobile/SPAs
 	c.JSON(http.StatusOK, gin.H{"user_id": authResult.UserID})
 }
 
-// Protected route
 func LogoutHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "You have access to this protected route!"})
+	// Clear cookie
+	cookie.SetCookie(c.Writer, "access_token", "")
+	c.JSON(http.StatusOK, gin.H{"message": "You have been logged out successfully!"})
 }

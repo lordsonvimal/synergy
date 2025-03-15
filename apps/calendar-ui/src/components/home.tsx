@@ -1,17 +1,16 @@
 import { urls } from "../services/apiRoutes";
-import { httpPost } from "../services/httpService";
+import { httpGet } from "../services/httpService";
 
-function login() {
-  httpPost(urls.authLogin, {})
+function redirect() {
+  httpGet(urls.authRedirect)
     .then(data => {
-      console.log(data);
       window.location.href = data.url;
     })
     .catch(e => {
-      console.log(e);
+      console.error(e);
     });
 }
 
 export function Home() {
-  return <button on:click={login}>Login</button>;
+  return <button on:click={redirect}>Login</button>;
 }

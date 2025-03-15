@@ -5,17 +5,13 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/coreos/go-oidc"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lordsonvimal/synergy/config"
-	"github.com/lordsonvimal/synergy/services/cookie"
 	"github.com/lordsonvimal/synergy/src/user"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -37,6 +33,11 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
+// Valid implements jwt.Claims.
+func (*JWTClaims) Valid() error {
+	panic("unimplemented")
+}
+
 // OAuthAuthenticator handles OAuth2 authentication
 type OAuthAuthenticator struct {
 	provider *oidc.Provider
@@ -44,16 +45,22 @@ type OAuthAuthenticator struct {
 	verifier *oidc.IDTokenVerifier
 }
 
-type AuthRequest struct {
+type AuthCallbackRequest struct {
 	State        string
 	Code         string
 	StoredState  string
 	CodeVerifier string
 }
 
-type AuthResult struct {
+type AuthCallbackResult struct {
 	UserID   int
 	JWTToken string
+}
+
+type AuthRedirectResult struct {
+	State        string
+	CodeVerifier string
+	RedirectUrl  string
 }
 
 // NewOAuthAuthenticator initializes Google OIDC authentication
@@ -78,29 +85,30 @@ func NewOAuthAuthenticator() (*OAuthAuthenticator, error) {
 	return &OAuthAuthenticator{provider, config, verifier}, nil
 }
 
-// Login redirects users to Google's OAuth2 authorization URL
-func (o *OAuthAuthenticator) Login(w http.ResponseWriter, r *http.Request) {
+// redirects users to Google's OAuth2 authorization URL
+func (o *OAuthAuthenticator) Redirect(ctx context.Context) *AuthRedirectResult {
 	codeVerifier := generateCodeVerifier()
 	codeChallenge := generateCodeChallenge(codeVerifier)
 
 	// Generate a secure state value
 	state := generateState()
 
-	// Store state in a cookie (SPA retrieves it later)
-	cookie.SetCookie(w, "oauth_state", state)
-	cookie.SetCookie(w, "code_verifier", codeVerifier)
-
 	authURL := o.config.AuthCodeURL(state, oauth2.AccessTypeOffline,
 		oauth2.SetAuthURLParam("code_challenge", codeChallenge),
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
 	)
 
-	// http.Redirect(w, r, authURL, http.StatusFound)
-	json.NewEncoder(w).Encode(map[string]string{"url": authURL})
+	return &AuthRedirectResult{
+		CodeVerifier: codeVerifier,
+		State:        state,
+		RedirectUrl:  authURL,
+	}
 }
 
+func (o *OAuthAuthenticator) Login(ctx context.Context) {}
+
 // Callback handles the OAuth2 callback and issues a JWT
-func (o *OAuthAuthenticator) Callback(ctx context.Context, req AuthRequest) (*AuthResult, error) {
+func (o *OAuthAuthenticator) Callback(ctx context.Context, req AuthCallbackRequest) (*AuthCallbackResult, error) {
 	// Validate state
 	if req.State != req.StoredState {
 		return nil, fmt.Errorf("invalid state parameter")
@@ -162,43 +170,34 @@ func (o *OAuthAuthenticator) Callback(ctx context.Context, req AuthRequest) (*Au
 		return nil, fmt.Errorf("failed to generate JWT: %w", err)
 	}
 
-	return &AuthResult{UserID: userID, JWTToken: jwtToken}, nil
+	return &AuthCallbackResult{UserID: userID, JWTToken: jwtToken}, nil
 }
 
-// Logout clears the authentication cookie
-func (o *OAuthAuthenticator) Logout(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     "access_token",
-		Value:    "",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		Expires:  time.Unix(0, 0),
-	})
-	http.Redirect(w, r, "/", http.StatusSeeOther)
-}
+func (o *OAuthAuthenticator) Logout(ctx context.Context) {}
 
 // Authenticate middleware for protecting routes
-func (o *OAuthAuthenticator) Authenticate(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tokenString := r.Header.Get("Authorization")
-		if tokenString == "" {
-			http.Error(w, "Missing token", http.StatusUnauthorized)
-			return
+func (o *OAuthAuthenticator) Authenticate(tokenString string) (*JWTClaims, error) {
+	secret := []byte(config.GetConfig().JWTSecret) // Load from config
+
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return false, fmt.Errorf("unexpected signing method")
 		}
 
-		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
-		token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("JWT_SECRET")), nil
-		})
-
-		if err != nil || !token.Valid {
-			http.Error(w, "Invalid token", http.StatusUnauthorized)
-			return
-		}
-
-		next.ServeHTTP(w, r)
+		return []byte(secret), nil
 	})
+
+	if err != nil {
+		return &JWTClaims{}, err
+	}
+
+	claims, ok := token.Claims.(*JWTClaims)
+	if !ok || !token.Valid {
+		return &JWTClaims{}, fmt.Errorf("invalid token")
+	}
+
+	return claims, nil
 }
 
 // generateJWT creates a JWT token

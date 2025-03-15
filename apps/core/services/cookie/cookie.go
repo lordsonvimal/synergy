@@ -10,6 +10,7 @@ func SetCookie(w http.ResponseWriter, key string, value string) {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
+		MaxAge:   3600,
 		Path:     "/",
 	})
 }

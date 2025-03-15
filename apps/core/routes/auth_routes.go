@@ -13,9 +13,10 @@ func RegisterAuthRoutes(router *gin.RouterGroup) {
 	if err != nil {
 		logger.GetLogger().Fatal("Cannot set authenticator", map[string]interface{}{"error": err})
 	}
-	handlers.SetAuthenticator(oauthAuthenticator)
+	auth.SetAuthenticator(oauthAuthenticator)
 	auth := router.Group("/auth")
 	{
+		auth.GET("/redirect", handlers.AuthRedirectHandler)
 		auth.POST("/login", handlers.LoginHandler)
 		auth.POST("/logout", handlers.LogoutHandler)
 		auth.GET("/callback", handlers.AuthCallbackHandler)

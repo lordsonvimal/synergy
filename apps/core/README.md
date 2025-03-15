@@ -36,3 +36,5 @@ Verify using `docker ps`
 Login to db `docker exec -it synergy_postgres psql -U postgres -d synergy`
 
 Check tables `\dt`
+
+To open pgAdmin `docker run --rm -p 5050:80 -e PGADMIN_DEFAULT_EMAIL=admin@example.com -e PGADMIN_DEFAULT_PASSWORD=postgres dpage/pgadmin4`
