@@ -35,7 +35,7 @@ var defaultConfig = Config{
 	ServerCert:              "",
 	ServerCertKey:           "",
 	ServerPort:              "8080",
-	PostgresURL:             "postgres://postgres:postgres@localhost:5432/synergy",
+	PostgresURL:             "postgres://postgres:postgres@localhost:5433/synergy",
 	PostgresConnMaxLifetime: 500,
 	PostgresConnMaxIdleTime: 60,
 	PostgresMinConns:        1,

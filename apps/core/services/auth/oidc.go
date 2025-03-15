@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lordsonvimal/synergy/config"
 	"github.com/lordsonvimal/synergy/services/cookie"
+	"github.com/lordsonvimal/synergy/src/user"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -31,7 +33,7 @@ type GoogleTokenClaims struct {
 
 // JWTClaims holds user claims for JWT
 type JWTClaims struct {
-	GoogleTokenClaims
+	ID int `json:"id"`
 	jwt.RegisteredClaims
 }
 
@@ -40,6 +42,18 @@ type OAuthAuthenticator struct {
 	provider *oidc.Provider
 	config   *oauth2.Config
 	verifier *oidc.IDTokenVerifier
+}
+
+type AuthRequest struct {
+	State        string
+	Code         string
+	StoredState  string
+	CodeVerifier string
+}
+
+type AuthResult struct {
+	UserID   int
+	JWTToken string
 }
 
 // NewOAuthAuthenticator initializes Google OIDC authentication
@@ -86,70 +100,69 @@ func (o *OAuthAuthenticator) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // Callback handles the OAuth2 callback and issues a JWT
-func (o *OAuthAuthenticator) Callback(w http.ResponseWriter, r *http.Request) {
-	// Retrieve state from request
-	receivedState := r.URL.Query().Get("state")
-
-	// Retrieve state stored in the cookie
-	stateCookie, err := r.Cookie("oauth_state")
-
-	if err != nil || stateCookie.Value != receivedState {
-		http.Error(w, "Invalid state parameter", http.StatusUnauthorized)
-		return
+func (o *OAuthAuthenticator) Callback(ctx context.Context, req AuthRequest) (*AuthResult, error) {
+	// Validate state
+	if req.State != req.StoredState {
+		return nil, fmt.Errorf("invalid state parameter")
 	}
 
-	codeVerifier, err := r.Cookie("code_verifier")
+	// Exchange code for token
+	token, err := o.config.Exchange(ctx, req.Code, oauth2.SetAuthURLParam("code_verifier", req.CodeVerifier))
 	if err != nil {
-		http.Error(w, "Code verifier not found", http.StatusUnauthorized)
-		return
+		return nil, fmt.Errorf("token exchange failed: %w", err)
 	}
 
-	ctx := context.Background()
-	code := r.URL.Query().Get("code")
-
-	token, err := o.config.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", codeVerifier.Value))
-	if err != nil {
-		http.Error(w, "Token exchange failed", http.StatusInternalServerError)
-		return
-	}
-
+	// Extract ID token
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok {
-		http.Error(w, "No ID token received", http.StatusUnauthorized)
-		return
+		return nil, fmt.Errorf("no ID token received")
 	}
 
 	idToken, err := o.verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		http.Error(w, "Invalid ID token", http.StatusUnauthorized)
-		return
+		return nil, fmt.Errorf("invalid ID token: %w", err)
 	}
 
+	// Parse claims
 	claims := GoogleTokenClaims{}
-
 	if err := idToken.Claims(&claims); err != nil {
-		http.Error(w, "Failed to parse claims", http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("failed to parse claims: %w", err)
 	}
 
-	// Check if email is verified
+	// Check email verification
 	if !claims.EmailVerified {
-		http.Error(w, "Email not verified", http.StatusForbidden)
-		return
+		return nil, fmt.Errorf("email not verified")
 	}
 
-	// Generate JWT token
-	jwtToken, err := generateJWT(claims)
+	// Check if user exists or create new user
+	exists, userID, err := user.GetUserID(ctx, claims.Email, "google")
 	if err != nil {
-		http.Error(w, "Failed to generate JWT", http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("error checking user: %w", err)
 	}
 
-	// Set JWT in HttpOnly Cookie for web users
-	cookie.SetCookie(w, "access_token", jwtToken)
+	if !exists {
+		userID, err = user.CreateUser(ctx, user.UserAuthInfo{
+			Email:         claims.Email,
+			Provider:      "google",
+			DisplayName:   claims.Name,
+			FirstName:     claims.GivenName,
+			LastName:      claims.FamilyName,
+			HD:            claims.HD,
+			Picture:       claims.Picture,
+			EmailVerified: claims.EmailVerified,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create user: %w", err)
+		}
+	}
 
-	// Return token for Mobile/SPAs
-	json.NewEncoder(w).Encode(map[string]string{"token": jwtToken})
+	// Generate JWT
+	jwtToken, err := generateJWT(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate JWT: %w", err)
+	}
+
+	return &AuthResult{UserID: userID, JWTToken: jwtToken}, nil
 }
 
 // Logout clears the authentication cookie
@@ -189,15 +202,16 @@ func (o *OAuthAuthenticator) Authenticate(next http.Handler) http.Handler {
 }
 
 // generateJWT creates a JWT token
-func generateJWT(googleClaims GoogleTokenClaims) (string, error) {
+func generateJWT(userID int) (string, error) {
+	fmt.Printf("user id %d", userID)
 	claims := JWTClaims{
-		GoogleTokenClaims: googleClaims,
+		ID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 1)), // 1 hour expiry
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	return token.SignedString([]byte(config.GetConfig().JWTSecret))
 }
 
 // generateCodeVerifier creates a random 32-byte code verifier (URL-safe)

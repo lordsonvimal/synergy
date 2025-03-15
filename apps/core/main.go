@@ -16,6 +16,7 @@ import (
 )
 
 func main() {
+	gin.SetMode(gin.DebugMode) // Ensure debug mode is enabled
 	r := gin.Default()
 
 	// CORS Configuration

@@ -23,6 +23,7 @@ func SetAuthenticator(a *auth.OAuthAuthenticator) {
 func LoginHandler(c *gin.Context) {
 	if authenticator == nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Authenticator is not defined"})
+		return
 	}
 
 	authenticator.Login(c.Writer, c.Request)
@@ -31,6 +32,7 @@ func LoginHandler(c *gin.Context) {
 func AuthCallbackHandler(c *gin.Context) {
 	if authenticator == nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Authenticator is not defined"})
+		return
 	}
 
 	// Extract query parameters
@@ -45,7 +47,37 @@ func AuthCallbackHandler(c *gin.Context) {
 		return
 	}
 
-	authenticator.Callback(c.Writer, c.Request)
+	// Retrieve cookies
+	stateCookie, err := c.Cookie("oauth_state")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid state parameter"})
+		return
+	}
+
+	codeVerifier, err := c.Cookie("code_verifier")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Code verifier not found"})
+		return
+	}
+
+	// Authenticate user
+	ctx := c.Request.Context()
+	authResult, err := authenticator.Callback(ctx, auth.AuthRequest{
+		Code:         req.Code,
+		State:        req.State,
+		StoredState:  stateCookie,
+		CodeVerifier: codeVerifier,
+	})
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Set JWT in HttpOnly Cookie for web users
+	c.SetCookie("access_token", authResult.JWTToken, 3600, "/", "", false, true)
+
+	// Return token for Mobile/SPAs
+	c.JSON(http.StatusOK, gin.H{"user_id": authResult.UserID})
 }
 
 // Protected route

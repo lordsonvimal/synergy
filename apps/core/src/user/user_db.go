@@ -2,9 +2,11 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/lordsonvimal/synergy/services/db"
 )
 
@@ -15,6 +17,17 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type UserAuthInfo struct {
+	Email         string
+	Provider      string
+	DisplayName   string
+	FirstName     string
+	LastName      string
+	HD            string
+	Picture       string
+	EmailVerified bool
+}
+
 type AuthProvider string
 
 const (
@@ -22,25 +35,33 @@ const (
 	ProviderGitHub AuthProvider = "github"
 )
 
-func UserExists(email string, provider AuthProvider) (bool, error) {
+func GetUserID(ctx context.Context, email string, provider AuthProvider) (bool, int, error) {
 	pool := db.GetDB()
-	var count int
+	var userID int
+
 	query := `
-		SELECT COUNT(*) 
-		FROM user_auth_providers 
-		WHERE user_id = (SELECT id FROM users WHERE email = $1) 
-		  AND provider = $2;
+		SELECT u.id
+		FROM users u
+		JOIN user_auth_providers uap ON u.id = uap.user_id
+		WHERE u.email = $1 AND uap.provider = $2;
 	`
-	err := pool.QueryRow(context.Background(), query, email, provider).Scan(&count)
-	return count > 0, err
+
+	err := pool.QueryRow(ctx, query, email, provider).Scan(&userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, 0, nil // User not found
+		}
+		return false, 0, fmt.Errorf("failed to fetch user ID: %w", err)
+	}
+
+	return true, userID, nil // User exists, return ID
 }
 
-// CreateUser inserts a user and their authentication provider details with timestamps.
-func CreateUser(ctx context.Context, email, provider, displayName, firstName, lastName, hd, picture string, emailVerified bool) error {
+func CreateUser(ctx context.Context, userInfo UserAuthInfo) (int, error) {
 	pool := db.GetDB()
 	tx, err := pool.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to start transaction: %w", err)
+		return 0, fmt.Errorf("failed to start transaction: %w", err)
 	}
 	defer tx.Rollback(ctx) // Rollback if not committed
 
@@ -53,9 +74,9 @@ func CreateUser(ctx context.Context, email, provider, displayName, firstName, la
         ON CONFLICT (email) DO UPDATE 
         SET updated_at = EXCLUDED.updated_at 
         RETURNING id
-    `, email, currentTime).Scan(&userID)
+    `, userInfo.Email, currentTime).Scan(&userID)
 	if err != nil {
-		return fmt.Errorf("failed to insert user: %w", err)
+		return 0, fmt.Errorf("failed to insert user: %w", err)
 	}
 
 	_, err = tx.Exec(ctx, `
@@ -69,16 +90,17 @@ func CreateUser(ctx context.Context, email, provider, displayName, firstName, la
             picture = EXCLUDED.picture,
             email_verified = EXCLUDED.email_verified,
             updated_at = EXCLUDED.updated_at
-    `, userID, provider, displayName, firstName, lastName, hd, picture, emailVerified, currentTime)
+    `, userID, userInfo.Provider, userInfo.DisplayName, userInfo.FirstName, userInfo.LastName, userInfo.HD, userInfo.Picture, userInfo.EmailVerified, currentTime)
 
 	if err != nil {
-		return fmt.Errorf("failed to insert/update auth provider: %w", err)
+		return 0, fmt.Errorf("failed to insert/update auth provider: %w", err)
 	}
 
 	// Commit transaction
 	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		_ = tx.Rollback(ctx) // Ensure rollback on commit failure
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return nil
+	return userID, nil
 }
