@@ -16,6 +16,8 @@ export function Home() {
     >
       <Section align="center" minHeight="100%" height="100%">
         <Column
+          alignItems="center"
+          direction="row"
           gap="1rem"
           justifyContent="center"
           start={4}

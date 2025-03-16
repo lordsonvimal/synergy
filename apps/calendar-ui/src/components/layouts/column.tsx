@@ -6,6 +6,7 @@ import styles from "./layout.module.scss";
 interface ColumnProps {
   as?: keyof JSX.IntrinsicElements;
   className?: string;
+  direction?: "row" | "column";
   span?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
   start?: number;
   end?: number;
@@ -54,7 +55,7 @@ export const Column: ParentComponent<ColumnProps> = props => {
         "--column-padding": formatCSSVar(props.padding),
         "--column-margin": formatCSSVar(props.margin),
         "--column-gap": formatCSSVar(props.gap, "0px"),
-
+        "flex-direction": props.direction || "column",
         "grid-column": gridColumn,
         overflow: props.overflow || "visible",
         "text-align": props.textAlign,
