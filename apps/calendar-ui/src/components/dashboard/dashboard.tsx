@@ -1,8 +1,9 @@
 import { onMount, Show } from "solid-js";
-import { getUserStore, loadUser } from "../stores/userStore";
-import { logout } from "../stores/authStore";
+import { getUserStore, loadUser } from "../../stores/userStore";
+import { logout } from "../../stores/authStore";
 import { useNavigate } from "@solidjs/router";
-import { clientRoutes } from "../services/clientRoutes";
+import { clientRoutes } from "../../services/clientRoutes";
+import { Button } from "../button/button";
 
 export function Dashboard() {
   onMount(() => {
@@ -28,7 +29,7 @@ export function Dashboard() {
               alt="User Profile"
             />
             <div>{user().display_name}</div>
-            <button on:click={() => logout(onLogout)}>Logout</button>
+            <Button onClick={() => logout(onLogout)}>Logout</Button>
           </>
         );
       }}

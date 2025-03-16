@@ -1,0 +1,27 @@
+:root {
+  --background-color: #f4f4f4;
+  --border-color: #ddd;
+  --text-color: #333;
+}
+
+.layoutRow {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 10px;
+  height: auto;
+  width: 100%;
+}
+
+// layout.module.scss
+
+.column {
+  display: flex;
+  flex-direction: column;
+
+  padding: var(--column-padding, 0);
+  margin: var(--column-margin, 0);
+  min-height: var(--column-min-height, auto);
+  max-height: var(--column-max-height, none);
+  height: var(--column-height, auto);
+}
+

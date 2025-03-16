@@ -36,6 +36,11 @@ export function logout(cb: VoidFunction) {
 }
 
 export function login() {
+  const userId = getUserId();
+  if (!userId) {
+    setAuthStore("checkingLoginStatus", false);
+    return;
+  }
   const nav = useNavigate();
   httpGet(urls.authLogin)
     .then(response => {

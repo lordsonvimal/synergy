@@ -1,4 +1,4 @@
-import { loginFromCallback } from "../stores/authStore";
+import { loginFromCallback } from "../../stores/authStore";
 
 export function AuthCallback() {
   loginFromCallback();
