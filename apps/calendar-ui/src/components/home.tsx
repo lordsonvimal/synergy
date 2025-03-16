@@ -1,16 +1,17 @@
-import { urls } from "../services/apiRoutes";
-import { httpGet } from "../services/httpService";
-
-function redirect() {
-  httpGet(urls.authRedirect)
-    .then(data => {
-      window.location.href = data.url;
-    })
-    .catch(e => {
-      console.error(e);
-    });
-}
+import { onMount, Show } from "solid-js";
+import { authStore, login, redirect } from "../stores/authStore";
 
 export function Home() {
-  return <button on:click={redirect}>Login</button>;
+  onMount(() => {
+    login();
+  });
+
+  return (
+    <Show
+      when={!authStore.checkingLoginStatus}
+      fallback={<div>Loading...</div>}
+    >
+      <button on:click={redirect}>Login</button>
+    </Show>
+  );
 }

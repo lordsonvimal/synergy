@@ -15,6 +15,11 @@ type TokenRequest struct {
 
 func AuthRedirectHandler(c *gin.Context) {
 	authenticator := auth.GetAuthenticator()
+	if authenticator == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Authenticator is not defined"})
+		return
+	}
+
 	data := authenticator.Redirect(c.Request.Context())
 
 	// Store state in a cookie (SPA retrieves it later)
@@ -33,7 +38,13 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// authenticator.Login(c.Writer, c.Request)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user_id": userID})
 }
 
 func AuthCallbackHandler(c *gin.Context) {
