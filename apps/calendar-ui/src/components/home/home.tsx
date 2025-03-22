@@ -25,7 +25,7 @@ export function Home() {
           textAlign="center"
         >
           <h1 class="title">Synergy</h1>
-          <Button onClick={redirect} size="medium" variant="primary-alt">
+          <Button onClick={redirect} size="large" variant="primary-alt">
             <img
               src="https://www.svgrepo.com/show/355037/google.svg"
               alt="Google Logo"

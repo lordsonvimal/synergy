@@ -21,9 +21,9 @@ func main() {
 
 	// CORS Configuration
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://localhost:3001"}, // Allowed origins
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type"},
+		AllowOrigins:     []string{"https://localhost:3001", "https://localhost:3001/"}, // Allowed origins
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"*"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,           // Allow cookies/auth headers
 		MaxAge:           12 * time.Hour, // Cache preflight requests for 12 hours
