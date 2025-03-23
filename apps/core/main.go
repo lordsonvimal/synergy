@@ -48,7 +48,6 @@ func main() {
 	pool := db.GetPostgresPool()
 	scyllaSession := db.GetScyllaSession()
 
-	// Initialize the container
 	db.InitDBs(pool, scyllaSession)
 
 	router := setupRouter()
@@ -80,7 +79,11 @@ func setupRouter() *gin.Engine {
 		AllowHeaders:     []string{"*"}, // Allow all headers
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
-		MaxAge:           12 * time.Hour, // Cache preflight requests
+		AllowWildcard:    true,
+		AllowOriginFunc: func(origin string) bool {
+			return true // Allow all origins
+		},
+		MaxAge: 12 * time.Hour, // Cache preflight requests
 	}))
 
 	// Inject the container middleware
