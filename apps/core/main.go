@@ -74,19 +74,14 @@ func setupRouter() *gin.Engine {
 
 	// CORS configuration
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3001", "https://localhost:3001"}, // Allowed origins
+		AllowOrigins:     []string{"https://localhost:3001"}, // Exact origin
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"*"}, // Allow all headers
-		ExposeHeaders:    []string{"Content-Length"},
+		AllowHeaders:     []string{"Content-Type", "Authorization", "X-Requested-With"},
 		AllowCredentials: true,
-		AllowWildcard:    true,
-		AllowOriginFunc: func(origin string) bool {
-			return true // Allow all origins
-		},
-		MaxAge: 12 * time.Hour, // Cache preflight requests
+		MaxAge:           12 * time.Hour,
 	}))
 
-	// Inject the container middleware
+	// Inject the dbs - pgPool, scyllaSession using middleware
 	router.Use(db.DBMiddleware())
 
 	// Register routes

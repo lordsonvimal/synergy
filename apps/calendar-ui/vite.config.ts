@@ -1,9 +1,8 @@
 import { defineConfig } from "vite";
-import mkcert from "vite-plugin-mkcert";
 import solidPlugin from "vite-plugin-solid";
 
 export default defineConfig({
-  plugins: [mkcert(), solidPlugin()],
+  plugins: [solidPlugin()],
   server: {
     https: {
       cert: "../core/certs/server.crt",

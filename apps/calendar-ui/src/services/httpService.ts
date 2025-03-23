@@ -27,7 +27,7 @@ export async function httpGet(url: string) {
 }
 
 export async function httpPost<T>(url: string, body: T) {
-  return api(`${BASE_URL}${url}`, Methods.POST, JSON.stringify(body));
+  return api(`${BASE_URL}${url}`, Methods.POST, body);
 }
 
 async function api<T = any>(
