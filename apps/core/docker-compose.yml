@@ -11,6 +11,32 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - synergy_net
+  scylla1:
+    container_name: scylla1
+    image: scylladb/scylla
+    ports:
+      - "9042:9042"
+    command: --seeds scylla1
+    volumes:
+      - scylla_data1:/var/lib/scylla
+    networks:
+      - synergy_net
+  scylla2:
+    container_name: scylla2
+    image: scylladb/scylla
+    command: --seeds scylla1
+    volumes:
+      - scylla_data2:/var/lib/scylla
+    networks:
+      - synergy_net
+
+networks:
+  synergy_net:
+    driver: bridge
 
 volumes:
   postgres_data:
+  scylla_data1:
+  scylla_data2:

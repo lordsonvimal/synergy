@@ -12,19 +12,24 @@ import (
 
 // Config holds all configuration values with validation tags
 type Config struct {
-	GoogleOauthClientId     string `validate:"required"`
-	GoogleOauthClientSecret string `validate:"required"`
-	GoogleOauthRedirectUrl  string `validate:"required"`
-	ServerCert              string `validate:"required"`
-	ServerCertKey           string `validate:"required"`
-	ServerPort              string `validate:"required,numeric"`
-	PostgresURL             string `validate:"required,url"`
-	PostgresConnMaxLifetime int32  `validate:"required,numeric"`
-	PostgresConnMaxIdleTime int32  `validate:"required,numeric"`
-	PostgresMinConns        int32  `validate:"required,numeric"`
-	PostgresMaxConns        int32  `validate:"required,numeric"`
-	RedisURL                string `validate:"required,url"`
-	JWTSecret               string `validate:"required"`
+	GoogleOauthClientId     string   `validate:"required"`
+	GoogleOauthClientSecret string   `validate:"required"`
+	GoogleOauthRedirectUrl  string   `validate:"required"`
+	ServerCert              string   `validate:"required"`
+	ServerCertKey           string   `validate:"required"`
+	ServerPort              string   `validate:"required,numeric"`
+	PostgresURL             string   `validate:"required,url"`
+	PostgresConnMaxLifetime int32    `validate:"required,numeric"`
+	PostgresConnMaxIdleTime int32    `validate:"required,numeric"`
+	PostgresMinConns        int32    `validate:"required,numeric"`
+	PostgresMaxConns        int32    `validate:"required,numeric"`
+	RedisURL                string   `validate:"required,url"`
+	JWTSecret               string   `validate:"required"`
+	ScyllaHosts             []string `validate:"required"`
+	ScyllaKeyspace          string   `validate:"required"`
+	ScyllaTimeout           int32    `validate:"required"`
+	ScyllaConnectTimeout    int32    `validate:"required"`
+	ScyllaMaxConns          int32    `validate:"required"`
 }
 
 // defaultConfig defines fallback values if environment variables are missing
@@ -42,6 +47,11 @@ var defaultConfig = Config{
 	PostgresMaxConns:        5,
 	RedisURL:                "redis://localhost:6379",
 	JWTSecret:               "supersecret",
+	ScyllaHosts:             []string{"localhost:9042"},
+	ScyllaKeyspace:          "synergy",
+	ScyllaTimeout:           10,
+	ScyllaConnectTimeout:    5,
+	ScyllaMaxConns:          5,
 }
 
 var instance *Config
@@ -78,6 +88,11 @@ func LoadConfig() (*Config, error) {
 		PostgresMaxConns:        getEnvInt("POSTGRES_MAX_CONN", defaultConfig.PostgresMaxConns),
 		RedisURL:                getEnv("REDIS_URL", defaultConfig.RedisURL),
 		JWTSecret:               getEnv("JWT_SECRET", defaultConfig.JWTSecret),
+		ScyllaHosts:             getEnvList("SCYLLA_HOSTS", defaultConfig.ScyllaHosts),
+		ScyllaKeyspace:          getEnv("SCYLLA_KEYSPACE", defaultConfig.ScyllaKeyspace),
+		ScyllaTimeout:           getEnvInt("SCYLLA_TIMEOUT", defaultConfig.ScyllaTimeout),
+		ScyllaConnectTimeout:    getEnvInt("SCYLLA_CONNECT_TIMEOUT", defaultConfig.ScyllaConnectTimeout),
+		ScyllaMaxConns:          getEnvInt("SCYLLA_MAX_CONNS", defaultConfig.ScyllaMaxConns),
 	}
 
 	validate := validator.New()
@@ -130,5 +145,9 @@ func getEnvInt(key string, defaultValue int32) int32 {
 			return intValue
 		}
 	}
+	return defaultValue
+}
+
+func getEnvList(key string, defaultValue []string) []string {
 	return defaultValue
 }

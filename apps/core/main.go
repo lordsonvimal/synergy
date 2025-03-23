@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,19 +18,6 @@ import (
 )
 
 func main() {
-	gin.SetMode(gin.DebugMode) // Ensure debug mode is enabled
-	r := gin.Default()
-
-	// CORS Configuration
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://localhost:3001", "https://localhost:3001/"}, // Allowed origins
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"*"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,           // Allow cookies/auth headers
-		MaxAge:           12 * time.Hour, // Cache preflight requests for 12 hours
-	}))
-
 	logger.InitLogger("Synergy App")
 	log := logger.GetLogger()
 
@@ -52,25 +41,79 @@ func main() {
 	db.InitPostgresDB()
 	defer db.ClosePostgresDB()
 
+	db.InitScyllaDB()
+	defer db.CloseScyllaDB()
+
+	// Create repositories
+	pgRepo := db.NewPostgresRepository(db.GetPostgresPool())
+	scyllaRepo := db.NewScyllaRepository(db.GetScyllaSession())
+
+	// Initialize the container
+	db.InitializeContainer(pgRepo, scyllaRepo)
+
+	router := setupRouter()
+
+	// Server configuration with TLS
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%s", c.ServerPort),
+		Handler: router,
+	}
+
 	// Graceful shutdown handling
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-stop
-		logger.GetLogger().Info("Shutting down server gracefully", nil)
-		db.ClosePostgresDB()
-		os.Exit(0)
+		log.Info(fmt.Sprintf("Starting HTTPS server on port %s", c.ServerPort), nil)
+		if err := srv.ListenAndServeTLS(c.ServerCert, c.ServerCertKey); err != nil && err != http.ErrServerClosed {
+			log.Fatal("Failed to start HTTPS server", map[string]any{"error": err.Error()})
+		}
 	}()
 
-	httpsCert := c.ServerCert
-	httpsKey := c.ServerCertKey
+	gracefulShutdown(srv, log)
+}
 
-	routes.RegisterRoutes(r)
+// ✅ Sets up the Gin server with CORS and routes
+func setupRouter() *gin.Engine {
+	router := gin.Default()
 
-	log.Info(fmt.Sprintf("Starting HTTPS server on port %s", c.ServerPort), nil)
-	// Start the server with HTTPS
-	err = r.RunTLS(fmt.Sprintf(":%s", c.ServerPort), httpsCert, httpsKey)
-	if err != nil {
-		log.Fatal("Failed to start HTTPS server", map[string]interface{}{"error": err.Error()})
+	// CORS configuration
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"https://localhost:3001"}, // Allowed origins
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"*"}, // Allow all headers
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour, // Cache preflight requests
+	}))
+
+	// Inject the container middleware
+	router.Use(db.ContainerMiddleware())
+
+	// Register routes
+	routes.RegisterRoutes(router)
+
+	return router
+}
+
+// ✅ Handles graceful shutdown
+func gracefulShutdown(srv *http.Server, log logger.Logger) {
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	<-stop
+	log.Info("Shutting down server gracefully...", nil)
+
+	// Graceful shutdown context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Shutdown the server
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error("Server shutdown failed", map[string]interface{}{"error": err.Error()})
 	}
+
+	// Close DB connections
+	log.Info("Closing database connections...", nil)
+	db.ClosePostgresDB()
+	db.CloseScyllaDB()
+
+	log.Info("Server gracefully stopped", nil)
 }

@@ -47,15 +47,15 @@ func InitPostgresDB() {
 	})
 }
 
-// GetDB returns the connection pool instance
-func GetDB() *pgxpool.Pool {
+// GetPostgresPool returns the connection pool instance
+func GetPostgresPool() *pgxpool.Pool {
 	if dbPool == nil {
 		log.Fatal("Database not initialized. Call InitPostgresDB() first.")
 	}
 	return dbPool
 }
 
-// CloseDB closes the connection pool
+// closes the connection pool
 func ClosePostgresDB() {
 	log := logger.GetLogger()
 	if dbPool != nil {

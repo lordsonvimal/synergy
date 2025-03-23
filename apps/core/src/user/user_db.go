@@ -36,7 +36,7 @@ const (
 )
 
 func GetUserID(ctx context.Context, email string, provider AuthProvider) (bool, int, error) {
-	pool := db.GetDB()
+	pool := db.GetPostgresPool()
 	var userID int
 
 	query := `
@@ -58,7 +58,7 @@ func GetUserID(ctx context.Context, email string, provider AuthProvider) (bool, 
 }
 
 func CreateUser(ctx context.Context, userInfo UserAuthInfo) (int, error) {
-	pool := db.GetDB()
+	pool := db.GetPostgresPool()
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to start transaction: %w", err)
@@ -106,7 +106,7 @@ func CreateUser(ctx context.Context, userInfo UserAuthInfo) (int, error) {
 }
 
 func GetUserByID(ctx context.Context, userID int) (*UserAuthProvider, error) {
-	pool := db.GetDB()
+	pool := db.GetPostgresPool()
 
 	query := `
 	SELECT 
