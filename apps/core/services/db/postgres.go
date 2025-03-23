@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"log"
 	"sync"
 	"time"
@@ -38,9 +39,13 @@ func InitPostgresDB() {
 		poolConfig.MaxConnIdleTime = time.Duration(c.PostgresConnMaxIdleTime) * time.Second
 
 		// Create connection pool
-		dbPool, err = pgxpool.NewWithConfig(context.Background(), poolConfig)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) // Add timeout context
+		defer cancel()
+
+		// Create connection pool
+		dbPool, err = pgxpool.NewWithConfig(ctx, poolConfig)
 		if err != nil {
-			log.Fatal("Failed to create DB pool", map[string]interface{}{"error": err.Error()})
+			log.Fatal("Failed to create DB pool", map[string]any{"error": err.Error()})
 		}
 
 		log.Info("Connected to PostgreSQL", nil)
@@ -53,6 +58,29 @@ func GetPostgresPool() *pgxpool.Pool {
 		log.Fatal("Database not initialized. Call InitPostgresDB() first.")
 	}
 	return dbPool
+}
+
+func GetPgxPoolFromCtx(ctx context.Context) (*pgxpool.Pool, error) {
+	db, ok := ctx.Value(DBKey).(*DBs)
+	if !ok {
+		return nil, errors.New("pool not found in context. set it in middleware")
+	}
+	return db.PgPool, nil
+}
+
+func Ping() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	pool := GetPostgresPool()
+
+	err := pool.Ping(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // closes the connection pool

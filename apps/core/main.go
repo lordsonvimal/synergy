@@ -23,7 +23,7 @@ func main() {
 
 	c, err := config.LoadConfig()
 	if err != nil {
-		log.Fatal("Cannot load config", map[string]interface{}{"error": err.Error()})
+		log.Fatal("Cannot load config", map[string]any{"error": err.Error()})
 	}
 
 	// err = db.ValidateSchema()
@@ -45,11 +45,11 @@ func main() {
 	defer db.CloseScyllaDB()
 
 	// Create repositories
-	pgRepo := db.NewPostgresRepository(db.GetPostgresPool())
-	scyllaRepo := db.NewScyllaRepository(db.GetScyllaSession())
+	pool := db.GetPostgresPool()
+	scyllaSession := db.GetScyllaSession()
 
 	// Initialize the container
-	db.InitializeContainer(pgRepo, scyllaRepo)
+	db.InitDBs(pool, scyllaSession)
 
 	router := setupRouter()
 
@@ -70,13 +70,12 @@ func main() {
 	gracefulShutdown(srv, log)
 }
 
-// ✅ Sets up the Gin server with CORS and routes
 func setupRouter() *gin.Engine {
 	router := gin.Default()
 
 	// CORS configuration
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://localhost:3001"}, // Allowed origins
+		AllowOrigins:     []string{"http://localhost:3001", "https://localhost:3001"}, // Allowed origins
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"*"}, // Allow all headers
 		ExposeHeaders:    []string{"Content-Length"},
@@ -85,7 +84,7 @@ func setupRouter() *gin.Engine {
 	}))
 
 	// Inject the container middleware
-	router.Use(db.ContainerMiddleware())
+	router.Use(db.DBMiddleware())
 
 	// Register routes
 	routes.RegisterRoutes(router)
@@ -93,7 +92,6 @@ func setupRouter() *gin.Engine {
 	return router
 }
 
-// ✅ Handles graceful shutdown
 func gracefulShutdown(srv *http.Server, log logger.Logger) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)

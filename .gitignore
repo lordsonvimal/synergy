@@ -1,6 +1,8 @@
 tmp
 .vscode
 vault_pass.txt
+certs
+.env
 
 .nx/installation
 .nx/cache

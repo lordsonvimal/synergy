@@ -36,7 +36,11 @@ const (
 )
 
 func GetUserID(ctx context.Context, email string, provider AuthProvider) (bool, int, error) {
-	pool := db.GetPostgresPool()
+	pool, err := db.GetPgxPoolFromCtx(ctx)
+	if err != nil {
+		return false, 0, err
+	}
+
 	var userID int
 
 	query := `
@@ -46,7 +50,7 @@ func GetUserID(ctx context.Context, email string, provider AuthProvider) (bool, 
 		WHERE u.email = $1 AND uap.provider = $2;
 	`
 
-	err := pool.QueryRow(ctx, query, email, provider).Scan(&userID)
+	err = pool.QueryRow(ctx, query, email, provider).Scan(&userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, 0, nil // User not found
@@ -58,7 +62,11 @@ func GetUserID(ctx context.Context, email string, provider AuthProvider) (bool, 
 }
 
 func CreateUser(ctx context.Context, userInfo UserAuthInfo) (int, error) {
-	pool := db.GetPostgresPool()
+	pool, err := db.GetPgxPoolFromCtx(ctx)
+	if err != nil {
+		return 0, err
+	}
+
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to start transaction: %w", err)
@@ -106,7 +114,10 @@ func CreateUser(ctx context.Context, userInfo UserAuthInfo) (int, error) {
 }
 
 func GetUserByID(ctx context.Context, userID int) (*UserAuthProvider, error) {
-	pool := db.GetPostgresPool()
+	pool, err := db.GetPgxPoolFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	query := `
 	SELECT 
@@ -120,7 +131,7 @@ func GetUserByID(ctx context.Context, userID int) (*UserAuthProvider, error) {
 
 	// Scan into struct
 	var user UserAuthProvider
-	err := row.Scan(
+	err = row.Scan(
 		&user.ID, &user.Email, &user.DisplayName,
 		&user.Picture,
 	)

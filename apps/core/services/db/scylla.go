@@ -1,6 +1,8 @@
 package db
 
 import (
+	"context"
+	"errors"
 	"log"
 	"sync"
 	"time"
@@ -22,7 +24,7 @@ func InitScyllaDB() {
 		c, err := config.LoadConfig()
 
 		if err != nil {
-			log.Fatal("Failed to load config", map[string]interface{}{"error": err.Error()})
+			log.Fatal("Failed to load config", map[string]any{"error": err.Error()})
 		}
 
 		// Create Scylla cluster configuration
@@ -54,6 +56,14 @@ func GetScyllaSession() *gocql.Session {
 		log.Fatal("ScyllaDB not initialized. Call InitScyllaDB() first.")
 	}
 	return scyllaSession
+}
+
+func GetScyllaSessionFromCtx(ctx context.Context) (*gocql.Session, error) {
+	db, ok := ctx.Value(DBKey).(*DBs)
+	if !ok {
+		return nil, errors.New("session not found in context. set it in middleware")
+	}
+	return db.ScyllaSession, nil
 }
 
 // CloseScyllaDB closes the ScyllaDB session

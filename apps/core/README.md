@@ -58,7 +58,7 @@ Check docker logs `docker logs -f scylla-node1`
 Create a keyspace
 
 ```
-CREATE KEYSPACE IF NOT EXISTS synergy WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 2};
+CREATE KEYSPACE IF NOT EXISTS synergy WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
 ```
 
 ```

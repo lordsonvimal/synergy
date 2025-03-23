@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -34,7 +33,6 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		// Attach userID to context for future handlers
 		c.Set("user_id", claims.ID)
 
-		fmt.Println("User token validation successful")
 		// Proceed with request
 		c.Next()
 	}

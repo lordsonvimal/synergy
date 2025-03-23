@@ -31,6 +31,14 @@ services:
       - scylla_data2:/var/lib/scylla
     networks:
       - synergy_net
+  scylla3:
+    container_name: scylla3
+    image: scylladb/scylla
+    command: --seeds scylla1
+    volumes:
+      - scylla_data3:/var/lib/scylla
+    networks:
+      - synergy_net
 
 networks:
   synergy_net:
@@ -40,3 +48,4 @@ volumes:
   postgres_data:
   scylla_data1:
   scylla_data2:
+  scylla_data3:
