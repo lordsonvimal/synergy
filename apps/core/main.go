@@ -66,6 +66,7 @@ func main() {
 }
 
 func setupRouter() *gin.Engine {
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 
 	router.Use(gin.Recovery())

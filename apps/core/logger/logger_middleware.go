@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -34,19 +35,23 @@ func LoggerMiddleware() gin.HandlerFunc {
 		}
 
 		// Extract trace and span IDs
-		spanCtx := span.SpanContext()
+		// spanCtx := span.SpanContext()
 		fields := map[string]any{
-			"request_id": requestID,
-			"method":     c.Request.Method,
-			"path":       c.Request.URL.Path,
-			"ip":         c.ClientIP(),
-			"user_agent": c.Request.UserAgent(),
-			"trace_id":   spanCtx.TraceID().String(),
-			"span_id":    spanCtx.SpanID().String(),
+			// "request_id": requestID,
+			"method": c.Request.Method,
+			"path":   c.Request.URL.Path,
+			// "ip":     c.ClientIP(),
+			"params": c.Params,
+			// "user_agent": c.Request.UserAgent(),
+			// "trace_id":   spanCtx.TraceID().String(),
+			// "span_id":    spanCtx.SpanID().String(),
 		}
 
 		// Create logger instance with request context
 		log := GetLogger().WithContext(c.Request.Context())
+		ctx := context.WithValue(c.Request.Context(), LoggerKey, log)
+		c.Request = c.Request.WithContext(ctx)
+
 		log.Info(c.Request.Context(), "Incoming request", fields)
 
 		// Add logger and request ID to context
@@ -58,10 +63,13 @@ func LoggerMiddleware() gin.HandlerFunc {
 		// Log response with duration
 		status := c.Writer.Status()
 		duration := time.Since(start)
+		route := c.FullPath()
 
 		log.Info(c.Request.Context(), "Request completed", map[string]any{
-			"status":   status,
 			"duration": duration.String(),
+			"method":   c.Request.Method,
+			"status":   status,
+			"route":    route,
 		})
 	}
 }

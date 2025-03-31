@@ -12,6 +12,7 @@ import (
 	"github.com/coreos/go-oidc"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lordsonvimal/synergy/config"
+	"github.com/lordsonvimal/synergy/logger"
 	"github.com/lordsonvimal/synergy/src/user"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -98,6 +99,12 @@ func (o *OAuthAuthenticator) Redirect(ctx context.Context) *AuthRedirectResult {
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
 	)
 
+	log, ok := ctx.Value(logger.LoggerKey).(logger.Logger)
+	if !ok {
+		return &AuthRedirectResult{}
+	}
+
+	log.Info(ctx, "Computed code verifier and state", map[string]any{"code_verifier": codeVerifier, "state": state})
 	return &AuthRedirectResult{
 		CodeVerifier: codeVerifier,
 		State:        state,
