@@ -49,16 +49,16 @@ To open pgAdmin `docker run --rm -p 5050:80 -e PGADMIN_DEFAULT_EMAIL=admin@examp
 
 #### Scylla
 
-Log into a node `docker exec -it scylla-node2 cqlsh`
+Log into a node `docker exec -it scylla1 cqlsh`
 
-Check cluster status `docker exec -it scylla-node1 nodetool status`
+Check cluster status `docker exec -it scylla1 nodetool status`
 
-Check docker logs `docker logs -f scylla-node1`
+Check docker logs `docker logs -f scylla1`
 
 Create a keyspace
 
 ```
-CREATE KEYSPACE IF NOT EXISTS synergy WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+CREATE KEYSPACE IF NOT EXISTS synergy WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
 ```
 
 ```
