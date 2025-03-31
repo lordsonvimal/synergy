@@ -20,19 +20,8 @@ type Calendar struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// CreateNewCalendar is a wrapper function for easy calendar creation
-func CreateNewCalendar(ctx context.Context, userID int, name, desc string, isDefault bool) (string, error) {
-	cal := &Calendar{
-		UserID:      userID,
-		Name:        name,
-		Description: desc,
-		IsDefault:   isDefault,
-	}
-	return cal.Create(ctx)
-}
-
 // Create inserts a new calendar into ScyllaDB
-func (cal *Calendar) Create(ctx context.Context) (string, error) {
+func CreateCalendar(ctx context.Context, userID int, name, desc string, isDefault bool) (string, error) {
 	// Add context timeout
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -44,10 +33,8 @@ func (cal *Calendar) Create(ctx context.Context) (string, error) {
 	}
 
 	// Generate UUID for calendar ID
-	cal.CalendarID = uuid.New().String()
+	calendarID := uuid.New().String()
 	now := time.Now().UTC()
-	cal.CreatedAt = now
-	cal.UpdatedAt = now
 
 	// CQL query with parameterized inputs
 	query := `INSERT INTO calendars (user_id, calendar_id, is_default, name, description, created_at, updated_at) 
@@ -55,21 +42,21 @@ func (cal *Calendar) Create(ctx context.Context) (string, error) {
 
 	// Execute the query
 	err = session.Query(query,
-		cal.UserID,
-		cal.CalendarID,
-		cal.IsDefault,
-		cal.Name,
-		cal.Description,
-		cal.CreatedAt,
-		cal.UpdatedAt,
+		userID,
+		calendarID,
+		isDefault,
+		name,
+		desc,
+		now,
+		now,
 	).Exec()
 
 	if err != nil {
 		return "", fmt.Errorf("failed to create calendar: %w", err)
 	}
 
-	fmt.Println("Calendar created:", cal.CalendarID)
-	return cal.CalendarID, nil
+	fmt.Println("Calendar created:", calendarID)
+	return calendarID, nil
 }
 
 // GetCalendarByID fetches a calendar by user_id and calendar_id
@@ -105,7 +92,7 @@ func GetCalendarByID(ctx context.Context, userID int, calendarID string) (*Calen
 }
 
 // UpdateCalendar updates an existing calendar in ScyllaDB
-func (cal *Calendar) Update(ctx context.Context) error {
+func UpdateCalendar(ctx context.Context, userID int, calendarID string, name string, desc string, isDefault bool) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -114,26 +101,26 @@ func (cal *Calendar) Update(ctx context.Context) error {
 		return fmt.Errorf("failed to get session: %w", err)
 	}
 
-	cal.UpdatedAt = time.Now().UTC()
+	now := time.Now().UTC()
 
 	query := `UPDATE calendars 
 			  SET name = ?, description = ?, is_default = ?, updated_at = ?
 			  WHERE user_id = ? AND calendar_id = ?`
 
 	err = session.Query(query,
-		cal.Name,
-		cal.Description,
-		cal.IsDefault,
-		cal.UpdatedAt,
-		cal.UserID,
-		cal.CalendarID,
+		name,
+		desc,
+		isDefault,
+		now,
+		userID,
+		calendarID,
 	).Exec()
 
 	if err != nil {
 		return fmt.Errorf("failed to update calendar: %w", err)
 	}
 
-	fmt.Println("Calendar updated:", cal.CalendarID)
+	fmt.Println("Calendar updated:", calendarID)
 	return nil
 }
 
