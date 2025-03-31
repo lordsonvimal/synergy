@@ -1,6 +1,6 @@
 
 CREATE TABLE IF NOT EXISTS recurrence (
-    calendar_id INT,
+    calendar_id UUID,
     recurrence_id UUID,
     recurrence_rule TEXT,
     recurrence_start TIMESTAMP,

@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS events (
-    calendar_id INT,
+    calendar_id UUID,
     event_id UUID,
     title TEXT,
     description TEXT,
@@ -9,5 +9,5 @@ CREATE TABLE IF NOT EXISTS events (
     is_all_day BOOLEAN,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    PRIMARY KEY (calendar_id, event_id)
-) WITH CLUSTERING ORDER BY (event_id ASC);
+    PRIMARY KEY ((calendar_id), start_time, event_id)
+) WITH CLUSTERING ORDER BY (start_time ASC, event_id ASC);
