@@ -111,6 +111,7 @@ func CreateUser(ctx context.Context, userInfo UserAuthInfo) (int, error) {
 		return 0, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	// TODO: The calendar should be created when a user is created. If failed, the user creation should be rolled back
 	calendar.CreateCalendar(ctx, userID, "My Calendar", "", true)
 
 	return userID, nil

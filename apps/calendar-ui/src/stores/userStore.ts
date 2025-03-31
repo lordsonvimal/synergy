@@ -39,12 +39,7 @@ export function loadUser() {
     })
     .catch(err => {
       if (err instanceof ApiError) {
-        if (err.status === 401) {
-          logout(() => nav(clientRoutes.home));
-          return;
-        }
-
-        if (err.json.error) {
+        if (err.status === 401 || err.json.error) {
           logout(() => nav(clientRoutes.home));
           return;
         }
