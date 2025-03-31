@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -34,12 +35,19 @@ func LoggerMiddleware() gin.HandlerFunc {
 			span = newSpan
 		}
 
+		fullHandlerName := c.HandlerName()
+
+		// Extract only the function name
+		handlerParts := strings.Split(fullHandlerName, ".")
+		handlerName := handlerParts[len(handlerParts)-1]
+
 		// Extract trace and span IDs
 		// spanCtx := span.SpanContext()
 		fields := map[string]any{
 			// "request_id": requestID,
-			"method": c.Request.Method,
-			"path":   c.Request.URL.Path,
+			"handler": handlerName,
+			"method":  c.Request.Method,
+			"path":    c.Request.URL.Path,
 			// "ip":     c.ClientIP(),
 			"params": c.Params,
 			// "user_agent": c.Request.UserAgent(),
@@ -66,9 +74,10 @@ func LoggerMiddleware() gin.HandlerFunc {
 		route := c.FullPath()
 
 		info := map[string]any{
-			"duration": duration.String(),
 			"method":   c.Request.Method,
+			"handler":  handlerName,
 			"status":   status,
+			"duration": duration.String(),
 			"route":    route,
 		}
 
