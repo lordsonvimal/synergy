@@ -25,3 +25,5 @@ vitest.config.*.timestamp*
 
 .DS_Store
 .git
+
+logs
