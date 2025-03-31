@@ -13,6 +13,8 @@ import (
 
 // Config holds all configuration values with validation tags
 type Config struct {
+	AppEnv                  string   `validate:"required"`
+	LogLevel                string   `validate:"required"`
 	GoogleOauthClientId     string   `validate:"required"`
 	GoogleOauthClientSecret string   `validate:"required"`
 	GoogleOauthRedirectUrl  string   `validate:"required"`
@@ -35,6 +37,8 @@ type Config struct {
 
 // defaultConfig defines fallback values if environment variables are missing
 var defaultConfig = Config{
+	AppEnv:                  "development",
+	LogLevel:                "debug",
 	GoogleOauthClientId:     "",
 	GoogleOauthClientSecret: "",
 	GoogleOauthRedirectUrl:  "http://localhost:3001/callback",
@@ -76,6 +80,8 @@ func LoadConfig(ctx context.Context) (*Config, error) {
 	}
 
 	config := &Config{
+		AppEnv:                  getEnv(ctx, "APP_ENV", defaultConfig.AppEnv),
+		LogLevel:                getEnv(ctx, "LOG_LEVEL", defaultConfig.LogLevel),
 		GoogleOauthClientId:     getEnv(ctx, "GOOGLE_OAUTH_CLIENT_ID", defaultConfig.GoogleOauthClientId),
 		GoogleOauthClientSecret: getEnv(ctx, "GOOGLE_OAUTH_CLIENT_SECRET", defaultConfig.GoogleOauthClientSecret),
 		GoogleOauthRedirectUrl:  getEnv(ctx, "GOOGLE_OAUTH_REDIRECT_URL", defaultConfig.GoogleOauthRedirectUrl),

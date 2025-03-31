@@ -28,6 +28,13 @@ func main() {
 		log.Fatal(ctx, "Cannot load config", map[string]any{"error": err.Error()})
 	}
 
+	logger.ConfigureLogger(ctx, &logger.LoggerConfig{
+		Environment: c.AppEnv,
+		LogLevel:    c.LogLevel,
+	})
+
+	log.Info(ctx, fmt.Sprintf("Successfully loaded config using env %s with log level=%s", c.AppEnv, c.LogLevel), nil)
+
 	db.InitPostgresDB(ctx)
 	defer db.ClosePostgresDB(ctx)
 
@@ -59,7 +66,9 @@ func main() {
 }
 
 func setupRouter() *gin.Engine {
-	router := gin.Default()
+	router := gin.New()
+
+	router.Use(gin.Recovery())
 
 	// CORS configuration
 	router.Use(cors.New(cors.Config{
@@ -96,7 +105,7 @@ func gracefulShutdown(srv *http.Server, log logger.Logger) {
 
 	// Shutdown the server
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Error(ctx, "Server shutdown failed", map[string]interface{}{"error": err.Error()})
+		log.Error(ctx, "Server shutdown failed", map[string]any{"error": err.Error()})
 	}
 
 	// Close DB connections

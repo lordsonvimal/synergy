@@ -2,7 +2,6 @@ package logger
 
 import (
 	"context"
-	"io"
 	"os"
 	"sync"
 	"time"
@@ -14,7 +13,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
 	otelTrace "go.opentelemetry.io/otel/trace"
-	"go.opentelemetry.io/otel/trace/noop"
 )
 
 // Logger interface for flexibility
@@ -38,6 +36,11 @@ type LogrusLogger struct {
 	sync.WaitGroup
 }
 
+type LoggerConfig struct {
+	Environment string
+	LogLevel    string
+}
+
 var (
 	instance Logger // Use the Logger interface
 	once     sync.Once
@@ -46,49 +49,64 @@ var (
 func InitLogger(serviceName string) {
 	once.Do(func() {
 		log := logrus.New()
-		log.SetFormatter(&logrus.JSONFormatter{})
 
-		// Multi-output: file + console for development
-		log.SetOutput(os.Stdout) // Print to console during development
-
-		// Use lumberjack for rotating logs
-		fileLogOut := &lumberjack.Logger{
-			Filename:   "./logs/app.log",
-			MaxSize:    10,   // MB
-			MaxBackups: 3,    // Maximum backup files
-			MaxAge:     28,   // Retention period (days)
-			Compress:   true, // Compress old logs
-		}
-
-		multiWriter := io.MultiWriter(os.Stdout, fileLogOut)
-		log.SetOutput(multiWriter)
-
-		level, err := logrus.ParseLevel(os.Getenv("LOG_LEVEL"))
-		if err != nil {
-			level = logrus.InfoLevel
-		}
-		log.SetLevel(level)
+		// Basic logger settings for initial logging
+		log.SetFormatter(&logrus.TextFormatter{
+			FullTimestamp: true,
+			ForceColors:   true,
+		})
+		log.SetOutput(os.Stdout)
+		log.SetLevel(logrus.InfoLevel)
 
 		instance = &LogrusLogger{
 			logger:     log,
-			tracer:     noop.NewTracerProvider().Tracer("noop"),
 			logChannel: make(chan *logrus.Entry, 1000),
 			shutdown:   make(chan struct{}),
 		}
 
-		// Start log processing workers
-		for range 4 {
-			instance.(*LogrusLogger).Add(1)
-			go instance.(*LogrusLogger).processLogQueue()
-		}
-
-		if tp := initTracerProvider(); tp != nil {
-			instance.(*LogrusLogger).tracer = tp.Tracer(serviceName)
-			log.Info("OpenTelemetry tracing enabled")
-		} else {
-			log.Warn("OpenTelemetry tracing disabled")
-		}
+		go instance.(*LogrusLogger).processLogQueue()
 	})
+}
+
+// ConfigureLogger applies config-based settings dynamically
+func ConfigureLogger(ctx context.Context, cfg *LoggerConfig) {
+	log := logrus.New()
+
+	// Use config values for logger settings
+	log.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+		ForceColors:   true,
+	})
+
+	if cfg.Environment == "production" {
+		log.SetFormatter(&logrus.JSONFormatter{})
+	}
+
+	log.SetOutput(&lumberjack.Logger{
+		Filename:   "./logs/app.log", // Config log path
+		MaxSize:    10,               // MB
+		MaxBackups: 3,
+		MaxAge:     28,
+		Compress:   true,
+	})
+
+	level, err := logrus.ParseLevel(cfg.LogLevel)
+	if err != nil {
+		level = logrus.InfoLevel
+	}
+	log.SetLevel(level)
+
+	instance = &LogrusLogger{
+		logger:     log,
+		logChannel: make(chan *logrus.Entry, 1000),
+		shutdown:   make(chan struct{}),
+	}
+
+	// Restart log queue workers
+	for range 4 {
+		instance.(*LogrusLogger).Add(1)
+		go instance.(*LogrusLogger).processLogQueue()
+	}
 }
 
 // GetLogger returns the logger as the Logger interface
