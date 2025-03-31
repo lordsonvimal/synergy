@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/lordsonvimal/synergy/services/db"
+	"github.com/lordsonvimal/synergy/src/calendar"
 )
 
 type UserAuthProvider struct {
@@ -109,6 +110,8 @@ func CreateUser(ctx context.Context, userInfo UserAuthInfo) (int, error) {
 		_ = tx.Rollback(ctx) // Ensure rollback on commit failure
 		return 0, fmt.Errorf("failed to commit transaction: %w", err)
 	}
+
+	calendar.CreateCalendar(ctx, userID, "My Calendar", "", true)
 
 	return userID, nil
 }
