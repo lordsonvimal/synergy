@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -42,25 +43,23 @@ func LoggerMiddleware() gin.HandlerFunc {
 		handlerName := handlerParts[len(handlerParts)-1]
 
 		// Extract trace and span IDs
-		// spanCtx := span.SpanContext()
+		spanCtx := span.SpanContext()
 		fields := map[string]any{
-			// "request_id": requestID,
-			"handler": handlerName,
-			"method":  c.Request.Method,
-			"path":    c.Request.URL.Path,
-			// "ip":     c.ClientIP(),
-			"params": c.Params,
+			"request_id": requestID,
+			"ip":         c.ClientIP(),
 			// "user_agent": c.Request.UserAgent(),
-			// "trace_id":   spanCtx.TraceID().String(),
-			// "span_id":    spanCtx.SpanID().String(),
+			"trace_id": spanCtx.TraceID().String(),
+			"span_id":  spanCtx.SpanID().String(),
 		}
+
+		req := fmt.Sprintf("method=%s Handler=%s Path=%s Params=%s", c.Request.Method, handlerName, c.Request.URL.Path, c.Params)
 
 		// Create logger instance with request context
 		log := GetLogger().WithContext(c.Request.Context())
 		ctx := context.WithValue(c.Request.Context(), LoggerKey, log)
 		c.Request = c.Request.WithContext(ctx)
 
-		log.Info(c.Request.Context(), "Incoming request", fields)
+		log.Info(c.Request.Context(), req, fields)
 
 		// Add logger and request ID to context
 		c.Set(string(LoggerKey), log)
@@ -73,20 +72,14 @@ func LoggerMiddleware() gin.HandlerFunc {
 		duration := time.Since(start)
 		route := c.FullPath()
 
-		info := map[string]any{
-			"method":   c.Request.Method,
-			"handler":  handlerName,
-			"status":   status,
-			"duration": duration.String(),
-			"route":    route,
-		}
+		result := fmt.Sprintf("method=%s Handler=%s status=%d duration=%s route=%s", c.Request.Method, handlerName, status, duration.String(), route)
 
 		if status >= 200 && status < 400 {
-			log.Info(c.Request.Context(), "Request completed successfully", info)
+			log.Info(c.Request.Context(), result, nil)
 		}
 
 		if status >= 400 {
-			log.Error(c.Request.Context(), "Request completed with errors", info)
+			log.Error(c.Request.Context(), result, nil)
 		}
 	}
 }
