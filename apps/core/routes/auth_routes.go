@@ -11,7 +11,7 @@ import (
 func RegisterAuthRoutes(router *gin.RouterGroup) {
 	oauthAuthenticator, err := auth.NewOAuthAuthenticator()
 	if err != nil {
-		logger.GetLogger().Fatal("Cannot set authenticator", map[string]interface{}{"error": err})
+		logger.GetLogger().Fatal(nil, "Cannot set authenticator", map[string]interface{}{"error": err})
 	}
 	auth.SetAuthenticator(oauthAuthenticator)
 	authGroup := router.Group("/auth")

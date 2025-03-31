@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -62,34 +63,34 @@ func GetConfig() *Config {
 }
 
 // LoadConfig loads and validates environment variables
-func LoadConfig() (*Config, error) {
+func LoadConfig(ctx context.Context) (*Config, error) {
 	if instance != nil {
 		return instance, nil
 	}
 
 	log := logger.GetLogger()
-	log.Info("Loading configuration...", nil)
+	log.Info(ctx, "Loading configuration...", nil)
 
 	if err := godotenv.Load(); err != nil {
-		log.Warn("No .env file found, using system environment variables", nil)
+		log.Warn(ctx, "No .env file found, using system environment variables", nil)
 	}
 
 	config := &Config{
-		GoogleOauthClientId:     getEnv("GOOGLE_OAUTH_CLIENT_ID", defaultConfig.GoogleOauthClientId),
-		GoogleOauthClientSecret: getEnv("GOOGLE_OAUTH_CLIENT_SECRET", defaultConfig.GoogleOauthClientSecret),
-		GoogleOauthRedirectUrl:  getEnv("GOOGLE_OAUTH_REDIRECT_URL", defaultConfig.GoogleOauthRedirectUrl),
-		ServerCert:              getEnv("HTTPS_SERVER_CERT", defaultConfig.ServerCert),
-		ServerCertKey:           getEnv("HTTPS_SERVER_KEY", defaultConfig.ServerCertKey),
-		ServerPort:              getEnv("SERVER_PORT", defaultConfig.ServerPort),
-		PostgresURL:             getEnv("POSTGRES_URL", defaultConfig.PostgresURL),
+		GoogleOauthClientId:     getEnv(ctx, "GOOGLE_OAUTH_CLIENT_ID", defaultConfig.GoogleOauthClientId),
+		GoogleOauthClientSecret: getEnv(ctx, "GOOGLE_OAUTH_CLIENT_SECRET", defaultConfig.GoogleOauthClientSecret),
+		GoogleOauthRedirectUrl:  getEnv(ctx, "GOOGLE_OAUTH_REDIRECT_URL", defaultConfig.GoogleOauthRedirectUrl),
+		ServerCert:              getEnv(ctx, "HTTPS_SERVER_CERT", defaultConfig.ServerCert),
+		ServerCertKey:           getEnv(ctx, "HTTPS_SERVER_KEY", defaultConfig.ServerCertKey),
+		ServerPort:              getEnv(ctx, "SERVER_PORT", defaultConfig.ServerPort),
+		PostgresURL:             getEnv(ctx, "POSTGRES_URL", defaultConfig.PostgresURL),
 		PostgresConnMaxLifetime: getEnvInt("POSTGRES_CONN_MAX_LIFETIME", defaultConfig.PostgresConnMaxLifetime),
 		PostgresConnMaxIdleTime: getEnvInt("POSTGRES_CONN_MAX_IDLE_TIME", defaultConfig.PostgresConnMaxIdleTime),
 		PostgresMinConns:        getEnvInt("POSTGRES_MIN_CONN", defaultConfig.PostgresMinConns),
 		PostgresMaxConns:        getEnvInt("POSTGRES_MAX_CONN", defaultConfig.PostgresMaxConns),
-		RedisURL:                getEnv("REDIS_URL", defaultConfig.RedisURL),
-		JWTSecret:               getEnv("JWT_SECRET", defaultConfig.JWTSecret),
+		RedisURL:                getEnv(ctx, "REDIS_URL", defaultConfig.RedisURL),
+		JWTSecret:               getEnv(ctx, "JWT_SECRET", defaultConfig.JWTSecret),
 		ScyllaHosts:             getEnvList("SCYLLA_HOSTS", defaultConfig.ScyllaHosts),
-		ScyllaKeyspace:          getEnv("SCYLLA_KEYSPACE", defaultConfig.ScyllaKeyspace),
+		ScyllaKeyspace:          getEnv(ctx, "SCYLLA_KEYSPACE", defaultConfig.ScyllaKeyspace),
 		ScyllaTimeout:           getEnvInt("SCYLLA_TIMEOUT", defaultConfig.ScyllaTimeout),
 		ScyllaConnectTimeout:    getEnvInt("SCYLLA_CONNECT_TIMEOUT", defaultConfig.ScyllaConnectTimeout),
 		ScyllaMaxConns:          getEnvInt("SCYLLA_MAX_CONNS", defaultConfig.ScyllaMaxConns),
@@ -97,19 +98,19 @@ func LoadConfig() (*Config, error) {
 
 	validate := validator.New()
 	if err := validate.Struct(config); err != nil {
-		log.Info("Has error", map[string]interface{}{})
+		log.Info(ctx, "Has error", nil)
 		var validationErrors validator.ValidationErrors
 
 		if errors.As(err, &validationErrors) { // Safe type assertion
 			for _, e := range validationErrors {
 				msg := fmt.Sprintf("Invalid field %s", e.Field())
-				log.Error(msg, map[string]interface{}{
+				log.Error(ctx, msg, map[string]any{
 					"field": e.Field(),
 					"error": e.Tag(),
 				})
 			}
 		} else {
-			log.Error("Unexpected validation error", map[string]interface{}{
+			log.Error(ctx, "Unexpected validation error", map[string]any{
 				"error": err.Error(),
 			})
 		}
@@ -117,7 +118,7 @@ func LoadConfig() (*Config, error) {
 		return nil, err // Ensure caller properly handles the error
 	}
 
-	log.Info("Configuration loaded successfully", map[string]interface{}{})
+	log.Info(ctx, "Configuration loaded successfully", map[string]any{})
 
 	instance = config
 
@@ -125,12 +126,12 @@ func LoadConfig() (*Config, error) {
 }
 
 // getEnv fetches an environment variable or returns a default value
-func getEnv(key, defaultVal string) string {
+func getEnv(ctx context.Context, key, defaultVal string) string {
 	log := logger.GetLogger()
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
-	log.Warn("Missing environment variable, using default", map[string]interface{}{
+	log.Warn(ctx, "Missing environment variable, using default", map[string]any{
 		"key":     key,
 		"default": defaultVal,
 	})

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -11,8 +12,8 @@ import (
 )
 
 // ValidateSchema checks if DB schema is in sync with migrations
-func ValidateSchema() error {
-	c, err := config.LoadConfig()
+func ValidateSchema(ctx context.Context) error {
+	c, err := config.LoadConfig(ctx)
 
 	// Open a separate *sql.DB connection for migrations
 	db, err := sql.Open("pgx", c.PostgresURL)
@@ -49,8 +50,8 @@ func ValidateSchema() error {
 }
 
 // RunMigrations applies database migrations
-func RunMigrations() error {
-	c, err := config.LoadConfig()
+func RunMigrations(ctx context.Context) error {
+	c, err := config.LoadConfig(ctx)
 
 	// Open *sql.DB connection
 	db, err := sql.Open("pgx", c.PostgresURL)

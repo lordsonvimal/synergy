@@ -18,13 +18,13 @@ var (
 )
 
 // InitScyllaDB initializes the ScyllaDB session with a connection pool
-func InitScyllaDB() {
+func InitScyllaDB(ctx context.Context) {
 	scyllaOnce.Do(func() {
 		log := logger.GetLogger()
-		c, err := config.LoadConfig()
+		c, err := config.LoadConfig(ctx)
 
 		if err != nil {
-			log.Fatal("Failed to load config", map[string]any{"error": err.Error()})
+			log.Fatal(ctx, "Failed to load config", map[string]any{"error": err.Error()})
 		}
 
 		// Create Scylla cluster configuration
@@ -42,11 +42,11 @@ func InitScyllaDB() {
 		// Establish connection
 		session, err := cluster.CreateSession()
 		if err != nil {
-			log.Fatal("Failed to connect to ScyllaDB", map[string]any{"error": err.Error()})
+			log.Fatal(ctx, "Failed to connect to ScyllaDB", map[string]any{"error": err.Error()})
 		}
 
 		scyllaSession = session
-		log.Info("Connected to ScyllaDB", nil)
+		log.Info(ctx, "Connected to ScyllaDB", nil)
 	})
 }
 
@@ -67,10 +67,10 @@ func GetScyllaSessionFromCtx(ctx context.Context) (*gocql.Session, error) {
 }
 
 // CloseScyllaDB closes the ScyllaDB session
-func CloseScyllaDB() {
+func CloseScyllaDB(ctx context.Context) {
 	log := logger.GetLogger()
 	if scyllaSession != nil {
 		scyllaSession.Close()
-		log.Info("ScyllaDB connection closed", nil)
+		log.Info(ctx, "ScyllaDB connection closed", nil)
 	}
 }

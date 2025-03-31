@@ -17,19 +17,19 @@ var (
 	once   sync.Once
 )
 
-func InitPostgresDB() {
+func InitPostgresDB(ctx context.Context) {
 	once.Do(func() {
 		log := logger.GetLogger()
-		c, err := config.LoadConfig()
+		c, err := config.LoadConfig(ctx)
 
 		if err != nil {
-			log.Fatal("Failed to load config", map[string]interface{}{"error": err.Error()})
+			log.Fatal(ctx, "Failed to load config", map[string]interface{}{"error": err.Error()})
 		}
 
 		poolConfig, err := pgxpool.ParseConfig(c.PostgresURL)
 
 		if err != nil {
-			log.Fatal("Failed to parse DB config", map[string]interface{}{"error": err.Error()})
+			log.Fatal(ctx, "Failed to parse DB config", map[string]interface{}{"error": err.Error()})
 		}
 
 		// Set connection pool settings
@@ -45,10 +45,10 @@ func InitPostgresDB() {
 		// Create connection pool
 		dbPool, err = pgxpool.NewWithConfig(ctx, poolConfig)
 		if err != nil {
-			log.Fatal("Failed to create DB pool", map[string]any{"error": err.Error()})
+			log.Fatal(ctx, "Failed to create DB pool", map[string]any{"error": err.Error()})
 		}
 
-		log.Info("Connected to PostgreSQL", nil)
+		log.Info(ctx, "Connected to PostgreSQL", nil)
 	})
 }
 
@@ -84,10 +84,10 @@ func Ping() error {
 }
 
 // closes the connection pool
-func ClosePostgresDB() {
+func ClosePostgresDB(ctx context.Context) {
 	log := logger.GetLogger()
 	if dbPool != nil {
 		dbPool.Close()
-		log.Info("Database connection closed", nil)
+		log.Info(ctx, "Database connection closed", nil)
 	}
 }

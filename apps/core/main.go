@@ -18,12 +18,13 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	logger.InitLogger("Synergy App")
 	log := logger.GetLogger()
 
-	c, err := config.LoadConfig()
+	c, err := config.LoadConfig(ctx)
 	if err != nil {
-		log.Fatal("Cannot load config", map[string]any{"error": err.Error()})
+		log.Fatal(ctx, "Cannot load config", map[string]any{"error": err.Error()})
 	}
 
 	// err = db.ValidateSchema()
@@ -38,11 +39,11 @@ func main() {
 	// 	os.Exit(1)
 	// }
 
-	db.InitPostgresDB()
-	defer db.ClosePostgresDB()
+	db.InitPostgresDB(ctx)
+	defer db.ClosePostgresDB(ctx)
 
-	db.InitScyllaDB()
-	defer db.CloseScyllaDB()
+	db.InitScyllaDB(ctx)
+	defer db.CloseScyllaDB(ctx)
 
 	// Create repositories
 	pool := db.GetPostgresPool()
@@ -50,7 +51,7 @@ func main() {
 
 	db.InitDBs(pool, scyllaSession)
 
-	router := setupRouter()
+	router := setupRouter(ctx)
 
 	// Server configuration with TLS
 	srv := &http.Server{
@@ -60,16 +61,16 @@ func main() {
 
 	// Graceful shutdown handling
 	go func() {
-		log.Info(fmt.Sprintf("Starting HTTPS server on port %s", c.ServerPort), nil)
+		log.Info(ctx, fmt.Sprintf("Starting HTTPS server on port %s", c.ServerPort), nil)
 		if err := srv.ListenAndServeTLS(c.ServerCert, c.ServerCertKey); err != nil && err != http.ErrServerClosed {
-			log.Fatal("Failed to start HTTPS server", map[string]any{"error": err.Error()})
+			log.Fatal(ctx, "Failed to start HTTPS server", map[string]any{"error": err.Error()})
 		}
 	}()
 
 	gracefulShutdown(srv, log)
 }
 
-func setupRouter() *gin.Engine {
+func setupRouter(ctx context.Context) *gin.Engine {
 	router := gin.Default()
 
 	// CORS configuration
@@ -95,21 +96,22 @@ func gracefulShutdown(srv *http.Server, log logger.Logger) {
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	<-stop
-	log.Info("Shutting down server gracefully...", nil)
 
 	// Graceful shutdown context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	log.Info(ctx, "Shutting down server gracefully...", nil)
+
 	// Shutdown the server
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Error("Server shutdown failed", map[string]interface{}{"error": err.Error()})
+		log.Error(ctx, "Server shutdown failed", map[string]interface{}{"error": err.Error()})
 	}
 
 	// Close DB connections
-	log.Info("Closing database connections...", nil)
-	db.ClosePostgresDB()
-	db.CloseScyllaDB()
+	log.Info(ctx, "Closing database connections...", nil)
+	db.ClosePostgresDB(ctx)
+	db.CloseScyllaDB(ctx)
 
-	log.Info("Server gracefully stopped", nil)
+	log.Info(ctx, "Server gracefully stopped", nil)
 }
