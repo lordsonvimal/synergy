@@ -4,18 +4,16 @@ import (
 	"context"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/natefinch/lumberjack"
 	"github.com/sirupsen/logrus"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/sdk/resource"
-	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
 	otelTrace "go.opentelemetry.io/otel/trace"
 )
 
-// Logger interface for flexibility
+type loggerKey string
+
+const LoggerKey loggerKey = "logger"
+
 type Logger interface {
 	Flush()
 	WithContext(ctx context.Context) Logger
@@ -39,18 +37,17 @@ type LogrusLogger struct {
 type LoggerConfig struct {
 	Environment string
 	LogLevel    string
+	LogFile     string
 }
 
 var (
-	instance Logger // Use the Logger interface
+	instance Logger
 	once     sync.Once
 )
 
 func InitLogger(serviceName string) {
 	once.Do(func() {
 		log := logrus.New()
-
-		// Basic logger settings for initial logging
 		log.SetFormatter(&logrus.TextFormatter{
 			FullTimestamp: true,
 			ForceColors:   true,
@@ -64,53 +61,50 @@ func InitLogger(serviceName string) {
 			shutdown:   make(chan struct{}),
 		}
 
-		go instance.(*LogrusLogger).processLogQueue()
+		// Start log queue workers
+		for range 4 {
+			instance.(*LogrusLogger).Add(1)
+			go instance.(*LogrusLogger).processLogQueue()
+		}
 	})
 }
 
-// ConfigureLogger applies config-based settings dynamically
 func ConfigureLogger(ctx context.Context, cfg *LoggerConfig) {
-	log := logrus.New()
+	log := GetLogger().(*LogrusLogger).logger // Get the existing logger
 
-	// Use config values for logger settings
-	log.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
-		ForceColors:   true,
-	})
-
+	// Apply new configurations
 	if cfg.Environment == "production" {
 		log.SetFormatter(&logrus.JSONFormatter{})
+	} else {
+		log.SetFormatter(&logrus.TextFormatter{
+			FullTimestamp: true,
+			ForceColors:   true,
+		})
 	}
 
-	log.SetOutput(&lumberjack.Logger{
-		Filename:   "./logs/app.log", // Config log path
-		MaxSize:    10,               // MB
-		MaxBackups: 3,
-		MaxAge:     28,
-		Compress:   true,
-	})
+	if cfg.LogFile != "" {
+		log.SetOutput(&lumberjack.Logger{
+			Filename:   cfg.LogFile,
+			MaxSize:    10, // MB
+			MaxBackups: 3,
+			MaxAge:     28,
+			Compress:   true,
+		})
+	} else {
+		log.SetOutput(os.Stdout)
+	}
 
 	level, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		level = logrus.InfoLevel
 	}
 	log.SetLevel(level)
-
-	instance = &LogrusLogger{
-		logger:     log,
-		logChannel: make(chan *logrus.Entry, 1000),
-		shutdown:   make(chan struct{}),
-	}
-
-	// Restart log queue workers
-	for range 4 {
-		instance.(*LogrusLogger).Add(1)
-		go instance.(*LogrusLogger).processLogQueue()
-	}
 }
 
-// GetLogger returns the logger as the Logger interface
 func GetLogger() Logger {
+	if instance == nil {
+		panic("Logger not initialized. Call InitLogger() first.")
+	}
 	return instance
 }
 
@@ -143,8 +137,8 @@ func (l *LogrusLogger) WithContext(ctx context.Context) Logger {
 
 	// Create a new logger with contextual fields
 	return &LogrusLogger{
-		logger:       l.logger,                    // Base logger
-		contextEntry: l.logger.WithFields(fields), // Contextual entry
+		logger:       l.logger,
+		contextEntry: l.logger.WithFields(fields),
 		tracer:       l.tracer,
 		logChannel:   l.logChannel,
 		shutdown:     l.shutdown,
@@ -152,14 +146,12 @@ func (l *LogrusLogger) WithContext(ctx context.Context) Logger {
 }
 
 func (l *LogrusLogger) asyncLog(ctx context.Context, level logrus.Level, msg string, fields map[string]any) {
-	// Add trace and span IDs from the context
 	spanCtx := otelTrace.SpanContextFromContext(ctx)
 	if spanCtx.HasTraceID() {
 		fields["trace_id"] = spanCtx.TraceID().String()
 		fields["span_id"] = spanCtx.SpanID().String()
 	}
 
-	// Use contextEntry if available
 	var entry *logrus.Entry
 	if l.contextEntry != nil {
 		entry = l.contextEntry.WithFields(fields)
@@ -193,32 +185,4 @@ func (l *LogrusLogger) Close() {
 	close(l.shutdown)
 	l.Wait()
 	close(l.logChannel)
-}
-
-// initTracerProvider initializes OpenTelemetry tracing
-func initTracerProvider() *sdkTrace.TracerProvider {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	otelEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	if otelEndpoint == "" {
-		return nil
-	}
-
-	grpcExporter, err := otlptracegrpc.New(ctx,
-		otlptracegrpc.WithInsecure(),
-		otlptracegrpc.WithEndpoint(otelEndpoint),
-	)
-
-	if err != nil {
-		return nil
-	}
-
-	tp := sdkTrace.NewTracerProvider(
-		sdkTrace.WithBatcher(grpcExporter),
-		sdkTrace.WithResource(resource.Default()),
-	)
-
-	otel.SetTracerProvider(tp)
-	return tp
 }

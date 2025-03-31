@@ -50,7 +50,7 @@ func LoggerMiddleware() gin.HandlerFunc {
 		log.Info(c.Request.Context(), "Incoming request", fields)
 
 		// Add logger and request ID to context
-		c.Set("logger", log)
+		c.Set(string(LoggerKey), log)
 		c.Set("request_id", requestID)
 
 		c.Next()

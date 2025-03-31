@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"errors"
-	"log"
 	"sync"
 	"time"
 
@@ -23,7 +22,7 @@ func InitPostgresDB(ctx context.Context) {
 		c, err := config.LoadConfig(ctx)
 
 		if err != nil {
-			log.Fatal(ctx, "Failed to load config", map[string]interface{}{"error": err.Error()})
+			log.Fatal(ctx, "Failed to load config", map[string]any{"error": err.Error()})
 		}
 
 		poolConfig, err := pgxpool.ParseConfig(c.PostgresURL)
@@ -53,9 +52,10 @@ func InitPostgresDB(ctx context.Context) {
 }
 
 // GetPostgresPool returns the connection pool instance
-func GetPostgresPool() *pgxpool.Pool {
+func GetPostgresPool(ctx context.Context) *pgxpool.Pool {
+	log := logger.GetLogger()
 	if dbPool == nil {
-		log.Fatal("Database not initialized. Call InitPostgresDB() first.")
+		log.Fatal(ctx, "Database not initialized. Call InitPostgresDB() first", nil)
 	}
 	return dbPool
 }
@@ -72,7 +72,7 @@ func Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	pool := GetPostgresPool()
+	pool := GetPostgresPool(ctx)
 
 	err := pool.Ping(ctx)
 

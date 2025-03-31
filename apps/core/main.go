@@ -41,7 +41,7 @@ func main() {
 	db.InitScyllaDB(ctx)
 	defer db.CloseScyllaDB(ctx)
 
-	pool := db.GetPostgresPool()
+	pool := db.GetPostgresPool(ctx)
 	scyllaSession := db.GetScyllaSession()
 
 	db.InitDBs(pool, scyllaSession)

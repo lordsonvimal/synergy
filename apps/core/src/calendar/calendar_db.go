@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/google/uuid"
+	"github.com/lordsonvimal/synergy/logger"
 	"github.com/lordsonvimal/synergy/services/db"
 )
 
@@ -51,24 +51,29 @@ func CreateCalendar(ctx context.Context, userID int, name, desc string, isDefaul
 	calendarID := uuid.New()
 	now := time.Now().UTC()
 
-	slog.Info("Creating calendar",
-		"user_id", userID,
-		"calendar_id", calendarID,
-		"name", name,
-		"is_default", isDefault)
+	log, ok := ctx.Value(logger.LoggerKey).(logger.Logger)
+	if !ok {
+		return uuid.Nil, errors.New("logger not found in context. set it in middleware")
+	}
+
+	log.Info(ctx, "Creating calendar", map[string]any{
+		"user_id":     userID,
+		"calendar_id": calendarID,
+		"name":        name,
+		"is_default":  isDefault})
 
 	err = session.Query(queryInsertCalendar, userID, calendarID, isDefault, name, desc, now, now).
 		WithContext(ctx).Exec()
 
 	if err != nil {
-		slog.Error("Failed to create calendar", "error", err)
+		log.Error(ctx, "Failed to create calendar", map[string]any{"error": err})
 		return uuid.Nil, fmt.Errorf("failed to create calendar: %w", err)
 	}
 
-	slog.Info("Calendar created successfully",
-		"calendar_id", calendarID,
-		"user_id", userID,
-		"elapsed_time", time.Since(start))
+	log.Info(ctx, "Calendar created successfully", map[string]any{
+		"calendar_id":  calendarID,
+		"user_id":      userID,
+		"elapsed_time": time.Since(start)})
 
 	return calendarID, nil
 }
@@ -100,15 +105,20 @@ func ListCalendars(ctx context.Context, userID int, pageSize int, pageState []by
 		calendars = append(calendars, cal)
 	}
 
+	log, ok := ctx.Value(logger.LoggerKey).(logger.Logger)
+	if !ok {
+		return nil, nil, errors.New("logger not found in context. set it in middleware")
+	}
+
 	if err := iter.Close(); err != nil {
-		slog.Error("Failed to close iterator", "error", err)
+		log.Error(ctx, "Failed to close iterator", map[string]any{"error": err})
 		return nil, nil, fmt.Errorf("failed to list calendars: %w", err)
 	}
 
-	slog.Info("Calendars listed successfully",
-		"user_id", userID,
-		"page_size", pageSize,
-		"num_calendars", len(calendars))
+	log.Info(ctx, "Calendars listed successfully", map[string]any{
+		"user_id":       userID,
+		"page_size":     pageSize,
+		"num_calendars": len(calendars)})
 
 	return calendars, iter.PageState(), nil
 }
@@ -169,9 +179,13 @@ func UpdateCalendar(ctx context.Context, userID int, calendarID uuid.UUID, name,
 		return fmt.Errorf("calendar not found")
 	}
 
-	slog.Info("Calendar updated successfully",
-		"calendar_id", calendarID,
-		"user_id", userID)
+	log, ok := ctx.Value(logger.LoggerKey).(logger.Logger)
+	if !ok {
+		return errors.New("logger not found in context. set it in middleware")
+	}
+	log.Info(ctx, "Calendar updated successfully", map[string]any{
+		"calendar_id": calendarID,
+		"user_id":     userID})
 
 	return nil
 }
@@ -198,9 +212,14 @@ func DeleteCalendar(ctx context.Context, userID int, calendarID uuid.UUID) error
 		return fmt.Errorf("calendar not found")
 	}
 
-	slog.Info("Calendar deleted successfully",
-		"calendar_id", calendarID,
-		"user_id", userID)
+	log, ok := ctx.Value(logger.LoggerKey).(logger.Logger)
+	if !ok {
+		return errors.New("logger not found in context. set it in middleware")
+	}
+
+	log.Info(ctx, "Calendar deleted successfully", map[string]any{
+		"calendar_id": calendarID,
+		"user_id":     userID})
 
 	return nil
 }

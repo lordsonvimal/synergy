@@ -202,7 +202,6 @@ func (o *OAuthAuthenticator) Authenticate(tokenString string) (*JWTClaims, error
 
 // generateJWT creates a JWT token
 func generateJWT(userID int) (string, error) {
-	fmt.Printf("user id %d", userID)
 	claims := JWTClaims{
 		ID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{

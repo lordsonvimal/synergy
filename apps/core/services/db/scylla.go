@@ -30,7 +30,7 @@ func InitScyllaDB(ctx context.Context) {
 		// Create Scylla cluster configuration
 		cluster := gocql.NewCluster(c.ScyllaHosts...)
 		cluster.Keyspace = c.ScyllaKeyspace
-		cluster.Consistency = gocql.Quorum
+		cluster.Consistency = gocql.One
 		cluster.Timeout = time.Duration(c.ScyllaTimeout) * time.Second
 		cluster.ConnectTimeout = time.Duration(c.ScyllaConnectTimeout) * time.Second
 
