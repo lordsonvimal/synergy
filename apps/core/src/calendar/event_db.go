@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/google/uuid"
 	"github.com/lordsonvimal/synergy/services/db"
 )
 
-// Event struct for CRUD operations
 type Event struct {
 	EventID     uuid.UUID `json:"event_id"`
-	CalendarID  string    `json:"calendar_id"`
+	CalendarID  uuid.UUID `json:"calendar_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Location    string    `json:"location"`
@@ -36,14 +36,11 @@ type EventResponse struct {
 	UpdatedAt   string `json:"updated_at"`
 }
 
-func CreateEvent(ctx context.Context, event *Event) (string, error) {
+func CreateEvent(ctx context.Context, event *Event) (uuid.UUID, error) {
 	session, err := db.GetScyllaSessionFromCtx(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed to get scylla session: %w", err)
+		return uuid.Nil, fmt.Errorf("failed to get scylla session: %w", err)
 	}
-
-	eventID := uuid.New()
-	now := time.Now().UTC()
 
 	query := `
 	INSERT INTO events (
@@ -55,25 +52,25 @@ func CreateEvent(ctx context.Context, event *Event) (string, error) {
 	err = session.Query(
 		query,
 		event.CalendarID,
-		eventID,
+		event.EventID,
 		event.Title,
 		event.Description,
 		event.Location,
 		event.StartTime,
 		event.EndTime,
 		event.IsAllDay,
-		now,
-		now,
+		event.CreatedAt,
+		event.UpdatedAt,
 	).Exec()
 
 	if err != nil {
-		return "", fmt.Errorf("failed to insert event: %w", err)
+		return uuid.Nil, fmt.Errorf("failed to insert event: %w", err)
 	}
 
-	return eventID.String(), nil
+	return event.EventID, nil
 }
 
-func GetEventByID(ctx context.Context, calendarID int, eventID string) (*EventResponse, error) {
+func GetEventByID(ctx context.Context, calendarID uuid.UUID, eventID uuid.UUID) (*EventResponse, error) {
 	session, err := db.GetScyllaSessionFromCtx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get scylla session: %w", err)
@@ -82,7 +79,7 @@ func GetEventByID(ctx context.Context, calendarID int, eventID string) (*EventRe
 	var e Event
 
 	query := `
-	SELECT event_id, title, description, location, start_time, end_time, 
+	SELECT event_id, calendar_id, title, description, location, start_time, end_time, 
 	       is_all_day, created_at, updated_at
 	FROM events
 	WHERE calendar_id = ? AND event_id = ?
@@ -90,12 +87,15 @@ func GetEventByID(ctx context.Context, calendarID int, eventID string) (*EventRe
 	`
 
 	err = session.Query(query, calendarID, eventID).Scan(
-		&e.EventID, &e.Title, &e.Description, &e.Location,
-		&e.StartTime, &e.EndTime, &e.IsAllDay,
-		&e.CreatedAt, &e.UpdatedAt,
+		&e.EventID, &e.CalendarID, &e.Title, &e.Description, &e.Location,
+		&e.StartTime, &e.EndTime, &e.IsAllDay, &e.CreatedAt, &e.UpdatedAt,
 	)
 
+	// Handle no results separately
 	if err != nil {
+		if err == gocql.ErrNotFound {
+			return nil, fmt.Errorf("event not found")
+		}
 		return nil, fmt.Errorf("failed to fetch event: %w", err)
 	}
 
@@ -114,13 +114,13 @@ func GetEventByID(ctx context.Context, calendarID int, eventID string) (*EventRe
 	return response, nil
 }
 
-func UpdateEvent(ctx context.Context, calendarID int, eventID string, updatedEvent *Event) error {
+func UpdateEvent(ctx context.Context, event *Event) error {
 	session, err := db.GetScyllaSessionFromCtx(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get scylla session: %w", err)
+		return fmt.Errorf("failed to get Scylla session: %w", err)
 	}
 
-	now := time.Now().UTC()
+	event.UpdatedAt = time.Now().UTC()
 
 	query := `
 	UPDATE events
@@ -131,9 +131,15 @@ func UpdateEvent(ctx context.Context, calendarID int, eventID string, updatedEve
 
 	err = session.Query(
 		query,
-		updatedEvent.Title, updatedEvent.Description, updatedEvent.Location,
-		updatedEvent.StartTime, updatedEvent.EndTime, updatedEvent.IsAllDay,
-		now, calendarID, eventID,
+		event.Title,
+		event.Description,
+		event.Location,
+		event.StartTime,
+		event.EndTime,
+		event.IsAllDay,
+		event.UpdatedAt,
+		event.CalendarID,
+		event.EventID,
 	).Exec()
 
 	if err != nil {
@@ -143,7 +149,7 @@ func UpdateEvent(ctx context.Context, calendarID int, eventID string, updatedEve
 	return nil
 }
 
-func DeleteEvent(ctx context.Context, calendarID int, eventID string) error {
+func DeleteEvent(ctx context.Context, calendarID uuid.UUID, eventID uuid.UUID) error {
 	session, err := db.GetScyllaSessionFromCtx(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get scylla session: %w", err)

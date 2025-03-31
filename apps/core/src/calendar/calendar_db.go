@@ -11,7 +11,7 @@ import (
 
 // Calendar struct for creating and retrieving calendars
 type Calendar struct {
-	CalendarID  string    `json:"calendar_id"`
+	CalendarID  uuid.UUID `json:"calendar_id"`
 	UserID      int       `json:"user_id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
@@ -21,7 +21,7 @@ type Calendar struct {
 }
 
 // Create inserts a new calendar into ScyllaDB
-func CreateCalendar(ctx context.Context, userID int, name, desc string, isDefault bool) (string, error) {
+func CreateCalendar(ctx context.Context, userID int, name, desc string, isDefault bool) (uuid.UUID, error) {
 	// Add context timeout
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -29,11 +29,11 @@ func CreateCalendar(ctx context.Context, userID int, name, desc string, isDefaul
 	// Get Scylla session from context
 	session, err := db.GetScyllaSessionFromCtx(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed to get session: %w", err)
+		return uuid.Nil, fmt.Errorf("failed to get session: %w", err)
 	}
 
 	// Generate UUID for calendar ID
-	calendarID := uuid.New().String()
+	calendarID := uuid.New()
 	now := time.Now().UTC()
 
 	// CQL query with parameterized inputs
@@ -52,7 +52,7 @@ func CreateCalendar(ctx context.Context, userID int, name, desc string, isDefaul
 	).Exec()
 
 	if err != nil {
-		return "", fmt.Errorf("failed to create calendar: %w", err)
+		return uuid.Nil, fmt.Errorf("failed to create calendar: %w", err)
 	}
 
 	fmt.Println("Calendar created:", calendarID)
@@ -60,7 +60,7 @@ func CreateCalendar(ctx context.Context, userID int, name, desc string, isDefaul
 }
 
 // GetCalendarByID fetches a calendar by user_id and calendar_id
-func GetCalendarByID(ctx context.Context, userID int, calendarID string) (*Calendar, error) {
+func GetCalendarByID(ctx context.Context, userID int, calendarID uuid.UUID) (*Calendar, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -91,8 +91,7 @@ func GetCalendarByID(ctx context.Context, userID int, calendarID string) (*Calen
 	return &cal, nil
 }
 
-// UpdateCalendar updates an existing calendar in ScyllaDB
-func UpdateCalendar(ctx context.Context, userID int, calendarID string, name string, desc string, isDefault bool) error {
+func UpdateCalendar(ctx context.Context, userID int, calendarID uuid.UUID, name string, desc string, isDefault bool) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -124,8 +123,7 @@ func UpdateCalendar(ctx context.Context, userID int, calendarID string, name str
 	return nil
 }
 
-// DeleteCalendar deletes a calendar by user_id and calendar_id
-func DeleteCalendar(ctx context.Context, userID int, calendarID string) error {
+func DeleteCalendar(ctx context.Context, userID int, calendarID uuid.UUID) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
