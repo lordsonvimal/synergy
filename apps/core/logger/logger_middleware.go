@@ -5,10 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
 
-// LoggerMiddleware injects the logger into the context
+// LoggerMiddleware injects logger and ensures trace_id generation
 func LoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
@@ -19,21 +20,29 @@ func LoggerMiddleware() gin.HandlerFunc {
 			requestID = uuid.New().String()
 		}
 
-		// Extract trace and span IDs
+		// Check if trace exists, else create a new one
 		span := trace.SpanFromContext(c.Request.Context())
-		spanCtx := span.SpanContext()
+		if !span.SpanContext().IsValid() {
+			// Generate a new trace if missing
+			tracer := otel.Tracer("synergy-tracer")
+			ctx, newSpan := tracer.Start(c.Request.Context(), "http-request")
+			defer newSpan.End()
 
+			// Update the context with the new trace
+			c.Request = c.Request.WithContext(ctx)
+			span = newSpan
+		}
+
+		// Extract trace and span IDs
+		spanCtx := span.SpanContext()
 		fields := map[string]any{
 			"request_id": requestID,
 			"method":     c.Request.Method,
 			"path":       c.Request.URL.Path,
 			"ip":         c.ClientIP(),
 			"user_agent": c.Request.UserAgent(),
-		}
-
-		if spanCtx.HasTraceID() {
-			fields["trace_id"] = spanCtx.TraceID().String()
-			fields["span_id"] = spanCtx.SpanID().String()
+			"trace_id":   spanCtx.TraceID().String(),
+			"span_id":    spanCtx.SpanID().String(),
 		}
 
 		// Create logger instance with request context

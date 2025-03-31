@@ -21,23 +21,12 @@ func main() {
 	ctx := context.Background()
 	logger.InitLogger("Synergy App")
 	log := logger.GetLogger()
+	defer log.Flush()
 
 	c, err := config.LoadConfig(ctx)
 	if err != nil {
 		log.Fatal(ctx, "Cannot load config", map[string]any{"error": err.Error()})
 	}
-
-	// err = db.ValidateSchema()
-	// if err != nil {
-	// 	log.Fatal(fmt.Sprintf("❌ Schema validation failed: %v", err), nil)
-	// 	os.Exit(1)
-	// }
-
-	// err = db.RunMigrations()
-	// if err != nil {
-	// 	log.Fatal(fmt.Sprintf("❌ Migration error: %v", err), nil)
-	// 	os.Exit(1)
-	// }
 
 	db.InitPostgresDB(ctx)
 	defer db.ClosePostgresDB(ctx)
@@ -45,13 +34,12 @@ func main() {
 	db.InitScyllaDB(ctx)
 	defer db.CloseScyllaDB(ctx)
 
-	// Create repositories
 	pool := db.GetPostgresPool()
 	scyllaSession := db.GetScyllaSession()
 
 	db.InitDBs(pool, scyllaSession)
 
-	router := setupRouter(ctx)
+	router := setupRouter()
 
 	// Server configuration with TLS
 	srv := &http.Server{
@@ -70,7 +58,7 @@ func main() {
 	gracefulShutdown(srv, log)
 }
 
-func setupRouter(ctx context.Context) *gin.Engine {
+func setupRouter() *gin.Engine {
 	router := gin.Default()
 
 	// CORS configuration
@@ -81,6 +69,9 @@ func setupRouter(ctx context.Context) *gin.Engine {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	// Setup logger middleware
+	router.Use(logger.LoggerMiddleware())
 
 	// Inject the dbs - pgPool, scyllaSession using middleware
 	router.Use(db.DBMiddleware())

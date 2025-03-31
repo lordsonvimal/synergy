@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"io"
 	"os"
 	"sync"
 	"time"
@@ -18,6 +19,7 @@ import (
 
 // Logger interface for flexibility
 type Logger interface {
+	Flush()
 	WithContext(ctx context.Context) Logger
 	Info(ctx context.Context, msg string, fields map[string]any)
 	Warn(ctx context.Context, msg string, fields map[string]any)
@@ -50,13 +52,16 @@ func InitLogger(serviceName string) {
 		log.SetOutput(os.Stdout) // Print to console during development
 
 		// Use lumberjack for rotating logs
-		log.SetOutput(&lumberjack.Logger{
+		fileLogOut := &lumberjack.Logger{
 			Filename:   "./logs/app.log",
 			MaxSize:    10,   // MB
 			MaxBackups: 3,    // Maximum backup files
 			MaxAge:     28,   // Retention period (days)
 			Compress:   true, // Compress old logs
-		})
+		}
+
+		multiWriter := io.MultiWriter(os.Stdout, fileLogOut)
+		log.SetOutput(multiWriter)
 
 		level, err := logrus.ParseLevel(os.Getenv("LOG_LEVEL"))
 		if err != nil {
@@ -72,7 +77,7 @@ func InitLogger(serviceName string) {
 		}
 
 		// Start log processing workers
-		for i := 0; i < 4; i++ {
+		for range 4 {
 			instance.(*LogrusLogger).Add(1)
 			go instance.(*LogrusLogger).processLogQueue()
 		}
@@ -91,20 +96,21 @@ func GetLogger() Logger {
 	return instance
 }
 
-// processLogQueue processes logs asynchronously
 func (l *LogrusLogger) processLogQueue() {
 	defer l.Done()
 	for {
 		select {
 		case logEntry := <-l.logChannel:
-			_, err := logEntry.Logger.Out.Write([]byte(logEntry.Message + "\n"))
-			if err != nil {
-				logrus.Errorf("Failed to write log: %v", err)
-			}
+			logEntry.Log(logEntry.Level, logEntry.Message)
 		case <-l.shutdown:
 			return
 		}
 	}
+}
+
+func (l *LogrusLogger) Flush() {
+	close(l.shutdown) // Signal the log workers to stop
+	l.Wait()          // Wait for all logs to be processed
 }
 
 func (l *LogrusLogger) WithContext(ctx context.Context) Logger {
