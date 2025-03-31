@@ -1,5 +1,5 @@
 import { createStore } from "solid-js/store";
-import { getUserId } from "./authStore";
+import { getUserId, logout } from "./authStore";
 import { ApiError, httpGet } from "../services/httpService";
 import { urls } from "../services/apiRoutes";
 import { useNavigate } from "@solidjs/router";
@@ -40,10 +40,16 @@ export function loadUser() {
     .catch(err => {
       if (err instanceof ApiError) {
         if (err.status === 401) {
-          nav(clientRoutes.home);
+          logout(() => nav(clientRoutes.home));
+          return;
+        }
+
+        if (err.json.error) {
+          logout(() => nav(clientRoutes.home));
           return;
         }
       }
+
       console.error(err);
     });
 }

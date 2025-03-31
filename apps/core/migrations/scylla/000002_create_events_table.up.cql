@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS events (
+CREATE TABLE IF NOT EXISTS synergy.events (
     calendar_id UUID,
     event_id UUID,
     title TEXT,

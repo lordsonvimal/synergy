@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS reminders;
+DROP TABLE IF EXISTS synergy.reminders;

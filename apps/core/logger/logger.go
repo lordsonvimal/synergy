@@ -45,26 +45,35 @@ var (
 	once     sync.Once
 )
 
+var textFormatter = &logrus.TextFormatter{
+	DisableSorting:         true,
+	FullTimestamp:          true,
+	TimestampFormat:        "15:04:05",
+	PadLevelText:           true,
+	ForceColors:            true,
+	DisableLevelTruncation: true,
+	QuoteEmptyFields:       true,
+}
+
 func InitLogger(serviceName string) {
 	once.Do(func() {
 		log := logrus.New()
-		log.SetFormatter(&logrus.TextFormatter{
-			FullTimestamp: true,
-			ForceColors:   true,
-		})
+		log.SetFormatter(textFormatter)
 		log.SetOutput(os.Stdout)
 		log.SetLevel(logrus.InfoLevel)
 
-		instance = &LogrusLogger{
+		logrusLog := &LogrusLogger{
 			logger:     log,
 			logChannel: make(chan *logrus.Entry, 1000),
 			shutdown:   make(chan struct{}),
 		}
 
+		instance = logrusLog
+
 		// Start log queue workers
 		for range 4 {
-			instance.(*LogrusLogger).Add(1)
-			go instance.(*LogrusLogger).processLogQueue()
+			logrusLog.Add(1)
+			go logrusLog.processLogQueue()
 		}
 	})
 }
@@ -76,10 +85,7 @@ func ConfigureLogger(ctx context.Context, cfg *LoggerConfig) {
 	if cfg.Environment == "production" {
 		log.SetFormatter(&logrus.JSONFormatter{})
 	} else {
-		log.SetFormatter(&logrus.TextFormatter{
-			FullTimestamp: true,
-			ForceColors:   true,
-		})
+		log.SetFormatter(textFormatter)
 	}
 
 	if cfg.LogFile != "" {

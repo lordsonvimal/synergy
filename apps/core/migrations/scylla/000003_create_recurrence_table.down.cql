@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS recurrence;
+DROP TABLE IF EXISTS synergy.recurrence;

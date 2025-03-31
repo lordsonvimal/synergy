@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS reminders (
+CREATE TABLE IF NOT EXISTS synergy.reminders (
     event_id UUID,
     reminder_time TIMESTAMP,
     message TEXT,

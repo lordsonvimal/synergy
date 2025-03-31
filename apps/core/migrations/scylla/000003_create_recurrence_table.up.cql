@@ -1,5 +1,5 @@
 
-CREATE TABLE IF NOT EXISTS recurrence (
+CREATE TABLE IF NOT EXISTS synergy.recurrence (
     calendar_id UUID,
     recurrence_id UUID,
     recurrence_rule TEXT,

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/google/uuid"
 	"github.com/lordsonvimal/synergy/logger"
 	"github.com/lordsonvimal/synergy/services/db"
 )
@@ -15,45 +14,48 @@ import (
 const timeout = 5 * time.Second
 
 const (
-	queryInsertCalendar = `INSERT INTO calendars (user_id, calendar_id, is_default, name, description, created_at, updated_at) 
+	queryInsertCalendar = `INSERT INTO synergy.calendars (user_id, calendar_id, is_default, name, description, created_at, updated_at) 
 						   VALUES (?, ?, ?, ?, ?, ?, ?)`
 
 	queryGetCalendar = `SELECT calendar_id, user_id, is_default, name, description, created_at, updated_at 
-						FROM calendars WHERE user_id = ? AND calendar_id = ? LIMIT 1`
+						FROM synergy.calendars WHERE user_id = ? AND calendar_id = ? LIMIT 1`
 
-	queryUpdateCalendar = `UPDATE calendars 
+	queryListCalendars = `SELECT calendar_id, name, description, is_default, created_at, updated_at
+					  FROM synergy.calendars WHERE user_id = ?`
+
+	queryUpdateCalendar = `UPDATE synergy.calendars 
 						   SET name = ?, description = ?, is_default = ?, updated_at = ?
 						   WHERE user_id = ? AND calendar_id = ? IF EXISTS`
 
-	queryDeleteCalendar = `DELETE FROM calendars WHERE user_id = ? AND calendar_id = ? IF EXISTS`
+	queryDeleteCalendar = `DELETE FROM synergy.calendars WHERE user_id = ? AND calendar_id = ? IF EXISTS`
 )
 
 type Calendar struct {
-	CalendarID  uuid.UUID `json:"calendar_id"`
-	UserID      int       `json:"user_id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	IsDefault   bool      `json:"is_default"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	CalendarID  gocql.UUID `json:"calendar_id"`
+	UserID      int        `json:"user_id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	IsDefault   bool       `json:"is_default"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
-func CreateCalendar(ctx context.Context, userID int, name, desc string, isDefault bool) (uuid.UUID, error) {
+func CreateCalendar(ctx context.Context, userID int, name, desc string, isDefault bool) (string, error) {
 	start := time.Now()
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	session, err := db.GetScyllaSessionFromCtx(ctx)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("failed to get session: %w", err)
+		return "", fmt.Errorf("failed to get session: %w", err)
 	}
 
-	calendarID := uuid.New()
+	calendarID := gocql.TimeUUID()
 	now := time.Now().UTC()
 
 	log, ok := ctx.Value(logger.LoggerKey).(logger.Logger)
 	if !ok {
-		return uuid.Nil, errors.New("logger not found in context. set it in middleware")
+		return "", errors.New("logger not found in context. set it in middleware")
 	}
 
 	log.Info(ctx, "Creating calendar", map[string]any{
@@ -67,7 +69,7 @@ func CreateCalendar(ctx context.Context, userID int, name, desc string, isDefaul
 
 	if err != nil {
 		log.Error(ctx, "Failed to create calendar", map[string]any{"error": err})
-		return uuid.Nil, fmt.Errorf("failed to create calendar: %w", err)
+		return "", fmt.Errorf("failed to create calendar: %w", err)
 	}
 
 	log.Info(ctx, "Calendar created successfully", map[string]any{
@@ -75,7 +77,7 @@ func CreateCalendar(ctx context.Context, userID int, name, desc string, isDefaul
 		"user_id":      userID,
 		"elapsed_time": time.Since(start)})
 
-	return calendarID, nil
+	return calendarID.String(), nil
 }
 
 func ListCalendars(ctx context.Context, userID int, pageSize int, pageState []byte) ([]Calendar, []byte, error) {
@@ -87,14 +89,15 @@ func ListCalendars(ctx context.Context, userID int, pageSize int, pageState []by
 		return nil, nil, fmt.Errorf("failed to get session: %w", err)
 	}
 
-	query := `SELECT calendar_id, name, description, is_default, created_at, updated_at
-			  FROM calendars WHERE user_id = ?`
-
-	iter := session.Query(query, userID).
+	iter := session.Query(queryListCalendars, userID).
 		WithContext(ctx).
 		PageSize(pageSize).
 		PageState(pageState).
 		Iter()
+
+	if iter == nil {
+		return nil, nil, fmt.Errorf("failed to create iterator")
+	}
 
 	var calendars []Calendar
 	for {
@@ -102,6 +105,7 @@ func ListCalendars(ctx context.Context, userID int, pageSize int, pageState []by
 		if !iter.Scan(&cal.CalendarID, &cal.Name, &cal.Description, &cal.IsDefault, &cal.CreatedAt, &cal.UpdatedAt) {
 			break
 		}
+		cal.UserID = userID
 		calendars = append(calendars, cal)
 	}
 
@@ -123,7 +127,7 @@ func ListCalendars(ctx context.Context, userID int, pageSize int, pageState []by
 	return calendars, iter.PageState(), nil
 }
 
-func GetCalendarByID(ctx context.Context, userID int, calendarID uuid.UUID) (*Calendar, error) {
+func GetCalendarByID(ctx context.Context, userID int, calendarID string) (*Calendar, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -132,9 +136,14 @@ func GetCalendarByID(ctx context.Context, userID int, calendarID uuid.UUID) (*Ca
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
 
+	calendarUUID, err := gocql.ParseUUID(calendarID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid UUID format: %w", err)
+	}
+
 	var cal Calendar
 
-	err = session.Query(queryGetCalendar, userID, calendarID).
+	err = session.Query(queryGetCalendar, userID, calendarUUID).
 		WithContext(ctx).Scan(
 		&cal.CalendarID,
 		&cal.UserID,
@@ -155,7 +164,7 @@ func GetCalendarByID(ctx context.Context, userID int, calendarID uuid.UUID) (*Ca
 	return &cal, nil
 }
 
-func UpdateCalendar(ctx context.Context, userID int, calendarID uuid.UUID, name, desc string, isDefault bool) error {
+func UpdateCalendar(ctx context.Context, userID int, calendarID string, name, desc string, isDefault bool) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -164,10 +173,15 @@ func UpdateCalendar(ctx context.Context, userID int, calendarID uuid.UUID, name,
 		return fmt.Errorf("failed to get session: %w", err)
 	}
 
+	calendarUUID, err := gocql.ParseUUID(calendarID)
+	if err != nil {
+		return fmt.Errorf("invalid UUID format: %w", err)
+	}
+
 	now := time.Now().UTC()
 
 	m := map[string]any{}
-	err = session.Query(queryUpdateCalendar, name, desc, isDefault, now, userID, calendarID).
+	err = session.Query(queryUpdateCalendar, name, desc, isDefault, now, userID, calendarUUID).
 		WithContext(ctx).MapScan(m)
 
 	if err != nil {
@@ -190,7 +204,7 @@ func UpdateCalendar(ctx context.Context, userID int, calendarID uuid.UUID, name,
 	return nil
 }
 
-func DeleteCalendar(ctx context.Context, userID int, calendarID uuid.UUID) error {
+func DeleteCalendar(ctx context.Context, userID int, calendarID string) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -199,8 +213,13 @@ func DeleteCalendar(ctx context.Context, userID int, calendarID uuid.UUID) error
 		return fmt.Errorf("failed to get session: %w", err)
 	}
 
+	calendarUUID, err := gocql.ParseUUID(calendarID)
+	if err != nil {
+		return fmt.Errorf("invalid UUID format: %w", err)
+	}
+
 	m := map[string]any{}
-	err = session.Query(queryDeleteCalendar, userID, calendarID).
+	err = session.Query(queryDeleteCalendar, userID, calendarUUID).
 		WithContext(ctx).MapScan(m)
 
 	if err != nil {

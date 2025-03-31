@@ -65,11 +65,19 @@ func LoggerMiddleware() gin.HandlerFunc {
 		duration := time.Since(start)
 		route := c.FullPath()
 
-		log.Info(c.Request.Context(), "Request completed", map[string]any{
+		info := map[string]any{
 			"duration": duration.String(),
 			"method":   c.Request.Method,
 			"status":   status,
 			"route":    route,
-		})
+		}
+
+		if status >= 200 && status < 400 {
+			log.Info(c.Request.Context(), "Request completed successfully", info)
+		}
+
+		if status >= 400 {
+			log.Error(c.Request.Context(), "Request completed with errors", info)
+		}
 	}
 }
