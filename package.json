@@ -3,9 +3,9 @@
   "packageManager": "yarn@4.7.0",
   "scripts": {
     "nx": "nx",
-    "dev": "nx run-many --target=dev --parallel",
-    "serve": "nx run-many --target=serve --parallel",
-    "lint": "nx run-many --target=lint"
+    "dev": "nx run-many --target=dev --parallel --exclude=synergy",
+    "serve": "nx run-many --target=serve --parallel --exclude=synergy",
+    "lint": "nx run-many --target=lint --exclude=synergy"
   },
   "devDependencies": {
     "@nx-go/nx-go": "^3.3.1",
