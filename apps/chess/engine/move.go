@@ -67,21 +67,27 @@ func (m Move) IsEnPassant() bool {
 
 // ToUCI converts move to standard UCI string (e2e4, e7e8q)
 func (m Move) ToUCI() string {
-	promoChar := ""
-	if m.IsPromotion() {
+	var buf [5]byte // max 5 bytes: 4 for squares + 1 for promotion
+	buf[0] = 'a' + (m.From % 8)
+	buf[1] = '1' + (m.From / 8)
+	buf[2] = 'a' + (m.To % 8)
+	buf[3] = '1' + (m.To / 8)
+
+	if m.Promotion != NoPiece {
 		switch m.Promotion {
 		case Queen:
-			promoChar = "q"
+			buf[4] = 'q'
 		case Rook:
-			promoChar = "r"
+			buf[4] = 'r'
 		case Bishop:
-			promoChar = "b"
+			buf[4] = 'b'
 		case Knight:
-			promoChar = "n"
+			buf[4] = 'n'
 		}
+		return string(buf[:5])
 	}
 
-	return squareToString(m.From) + squareToString(m.To) + promoChar
+	return string(buf[:4])
 }
 
 // MoveFromUCI parses a UCI string into Move
@@ -120,42 +126,4 @@ func MoveFromUCI(s string) Move {
 	}
 
 	return Move{From: from, To: to, Promotion: promo, Flags: flags}
-}
-
-// --------------------------
-// Helpers
-// --------------------------
-
-func squareToString(sq uint8) string {
-	files := "abcdefgh"
-	rank := sq/8 + 1
-	file := files[sq%8]
-	return fmt.Sprintf("%c%d", file, rank)
-}
-
-// Returns UCI Move notation in string
-func (m Move) String() string {
-	s := []byte{
-		'a' + (m.From % 8),
-		'1' + (m.From / 8),
-		'a' + (m.To % 8),
-		'1' + (m.To / 8),
-	}
-
-	str := string(s)
-
-	if m.Promotion != NoPiece {
-		switch m.Promotion {
-		case Queen:
-			str += "q"
-		case Rook:
-			str += "r"
-		case Bishop:
-			str += "b"
-		case Knight:
-			str += "n"
-		}
-	}
-
-	return str
 }

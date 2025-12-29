@@ -40,7 +40,7 @@ func (b *Board) PerftDivide(depth int) map[string]uint64 {
 		count := b.Perft(depth - 1)
 		b.unapplyMove()
 
-		results[m.String()] = count
+		results[m.ToUCI()] = count
 	}
 
 	return results
@@ -91,7 +91,7 @@ func (b *Board) PerftDivideTT(depth int) map[string]uint64 {
 		nodes := b.PerftTT(depth-1, tt)
 		b.unapplyMove()
 
-		results[m.String()] = nodes
+		results[m.ToUCI()] = nodes
 	}
 
 	return results

@@ -468,7 +468,7 @@ func (b *Board) tryMove(m Move) bool {
 	b.applyMove(m)
 
 	// Check if king is safe
-	legal := !b.isKingInCheck(color)
+	legal := !b.IsKingInCheck(color)
 
 	// Undo temporary move
 	b.EnPassant = prevEP

@@ -305,7 +305,7 @@ func (b *Board) generateKingMoves(sq uint8, color Color) []Move {
 // --------------------------
 // Check detection
 // --------------------------
-func (b *Board) isKingInCheck(color Color) bool {
+func (b *Board) IsKingInCheck(color Color) bool {
 	opp := color ^ 1
 
 	// Find king square as bitboard
@@ -389,6 +389,38 @@ func (b *Board) GenerateMovesForSquare(sq uint8) []Move {
 	}
 
 	return legalMoves
+}
+
+func (b *Board) HasLegalMoves(color Color) bool {
+	for sq := uint8(0); sq < 64; sq++ {
+		c, p, ok := b.PieceAt(sq)
+		if !ok || c != color {
+			continue
+		}
+		// generate pseudo-legal moves for this piece
+		var moves []Move
+		switch p {
+		case Pawn:
+			moves = b.generatePawnMoves(sq, color, color^1)
+		case Knight:
+			moves = b.generateKnightMoves(sq, color)
+		case Bishop:
+			moves = b.generateBishopMoves(sq, color)
+		case Rook:
+			moves = b.generateRookMoves(sq, color)
+		case Queen:
+			moves = b.generateQueenMoves(sq, color)
+		case King:
+			moves = b.generateKingMoves(sq, color)
+		}
+
+		for _, m := range moves {
+			if b.tryMove(m) {
+				return true // found at least one legal move
+			}
+		}
+	}
+	return false
 }
 
 // --------------------------

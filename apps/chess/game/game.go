@@ -10,6 +10,27 @@ type Game struct {
 	Seq   uint64
 }
 
+// --------------------------
+// Check if current side's king is in check
+// --------------------------
+func (g *Game) IsCheck() bool {
+	return g.Board.IsKingInCheck(g.Board.SideToMove)
+}
+
+// --------------------------
+// Check if current side is checkmated
+// --------------------------
+func (g *Game) IsCheckmate() bool {
+	return g.Board.IsKingInCheck(g.Board.SideToMove) && !g.Board.HasLegalMoves(g.Board.SideToMove)
+}
+
+// --------------------------
+// Check if current side is stalemated
+// --------------------------
+func (g *Game) IsStalemate() bool {
+	return !g.Board.IsKingInCheck(g.Board.SideToMove) && !g.Board.HasLegalMoves(g.Board.SideToMove)
+}
+
 func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
 	color := g.Board.SideToMove
 
