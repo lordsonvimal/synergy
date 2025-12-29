@@ -2,33 +2,34 @@ package engine
 
 import "math/bits"
 
+const NoSquare uint8 = 64
+
 // --------------------------
 // Generate pseudo-legal moves
 // --------------------------
 func (b *Board) GeneratePseudoLegalMoves() []Move {
 	var moves []Move
-
 	color := b.SideToMove
+	opp := color ^ 1
 
-	// Iterate all pieces for side to move
 	for p := Piece(0); p < PieceNB; p++ {
 		bb := b.Pieces[color][p]
 		for bb != 0 {
-			sq := PopLSB((*Bitboard)(&bb))
+			sq := PopLSB(&bb)
 
 			switch p {
 			case Pawn:
-				moves = append(moves, b.pawnMoves(sq, color)...)
+				moves = append(moves, b.generatePawnMoves(sq, color, opp)...)
 			case Knight:
-				moves = append(moves, b.knightMoves(sq, color)...)
+				moves = append(moves, b.generateKnightMoves(sq, color)...)
 			case Bishop:
-				moves = append(moves, b.bishopMoves(sq, color)...)
+				moves = append(moves, b.generateBishopMoves(sq, color)...)
 			case Rook:
-				moves = append(moves, b.rookMoves(sq, color)...)
+				moves = append(moves, b.generateRookMoves(sq, color)...)
 			case Queen:
-				moves = append(moves, b.queenMoves(sq, color)...)
+				moves = append(moves, b.generateQueenMoves(sq, color)...)
 			case King:
-				moves = append(moves, b.kingMoves(sq, color)...)
+				moves = append(moves, b.generateKingMoves(sq, color)...)
 			}
 		}
 	}
@@ -37,93 +38,148 @@ func (b *Board) GeneratePseudoLegalMoves() []Move {
 }
 
 // --------------------------
-// Move generation for pieces
+// Pawn moves
 // --------------------------
-
-func (b *Board) pawnMoves(sq uint8, color Color) []Move {
+func (b *Board) generatePawnMoves(sq uint8, color, opp Color) []Move {
 	var moves []Move
-	attacks := PawnAttacks(color, sq)
+	forward := int8(8)
+	startRank := uint8(1)
+	promoRank := uint8(7)
 
-	// Capture moves
-	for target := uint8(0); target < 64; target++ {
-		if attacks&Bitboard(1<<target) != 0 {
-			if b.Occupancy[color^1]&Bitboard(1<<target) != 0 {
-				moves = append(moves, Move{From: sq, To: target, Promotion: NoPiece})
-				// Promotions
-				rank := target / 8
-				if rank == 0 || rank == 7 {
-					for _, promo := range []Piece{Queen, Rook, Bishop, Knight} {
-						moves = append(moves, Move{From: sq, To: target, Promotion: promo})
-					}
-				}
+	if color == Black {
+		forward = -8
+		startRank = 6
+		promoRank = 0
+	}
+
+	// Single forward
+	to := int(sq) + int(forward)
+	if to >= 0 && to < 64 && (b.All&(1<<to)) == 0 {
+		if uint8(to/8) == promoRank {
+			for _, promo := range []Piece{Queen, Rook, Bishop, Knight} {
+				moves = append(moves, Move{From: sq, To: uint8(to), Promotion: promo})
+			}
+		} else {
+			moves = append(moves, Move{From: sq, To: uint8(to)})
+		}
+
+		// Double move
+		if sq/8 == startRank {
+			to2 := int(sq) + int(forward*2)
+			if to2 >= 0 && to2 < 64 && (b.All&(1<<to2)) == 0 {
+				moves = append(moves, Move{From: sq, To: uint8(to2)})
 			}
 		}
 	}
 
-	// Forward moves
-	var forward uint8
+	// Captures
+	caps := PawnAttacks(color, sq) & b.Occupancy[opp]
+	for bb := caps; bb != 0; {
+		to := PopLSB(&bb)
+		if uint8(to/8) == promoRank {
+			for _, promo := range []Piece{Queen, Rook, Bishop, Knight} {
+				moves = append(moves, Move{From: sq, To: to, Promotion: promo})
+			}
+		} else {
+			moves = append(moves, Move{From: sq, To: to})
+		}
+	}
+
+	// En-passant
+	if b.EnPassant != NoSquare {
+		epSq := b.EnPassant
+		if PawnAttacks(color, sq)&(1<<epSq) != 0 {
+			moves = append(moves, Move{From: sq, To: epSq})
+		}
+	}
+
+	return moves
+}
+
+// --------------------------
+// Knight moves
+// --------------------------
+func (b *Board) generateKnightMoves(sq uint8, color Color) []Move {
+	var moves []Move
+	attacks := KnightAttacks[sq] &^ b.Occupancy[color]
+	for bb := attacks; bb != 0; {
+		to := PopLSB(&bb)
+		moves = append(moves, Move{From: sq, To: to})
+	}
+	return moves
+}
+
+// --------------------------
+// Bishop moves
+// --------------------------
+func (b *Board) generateBishopMoves(sq uint8, color Color) []Move {
+	var moves []Move
+	attacks := BishopAttacks(sq, b.All) &^ b.Occupancy[color]
+	for bb := attacks; bb != 0; {
+		to := PopLSB(&bb)
+		moves = append(moves, Move{From: sq, To: to})
+	}
+	return moves
+}
+
+// --------------------------
+// Rook moves
+// --------------------------
+func (b *Board) generateRookMoves(sq uint8, color Color) []Move {
+	var moves []Move
+	attacks := RookAttacks(sq, b.All) &^ b.Occupancy[color]
+	for bb := attacks; bb != 0; {
+		to := PopLSB(&bb)
+		moves = append(moves, Move{From: sq, To: to})
+	}
+	return moves
+}
+
+// --------------------------
+// Queen moves
+// --------------------------
+func (b *Board) generateQueenMoves(sq uint8, color Color) []Move {
+	moves := b.generateRookMoves(sq, color)
+	moves = append(moves, b.generateBishopMoves(sq, color)...)
+	return moves
+}
+
+// --------------------------
+// King moves (including castling)
+// --------------------------
+func (b *Board) generateKingMoves(sq uint8, color Color) []Move {
+	var moves []Move
+	attacks := KingAttacks[sq] &^ b.Occupancy[color]
+	for bb := attacks; bb != 0; {
+		to := PopLSB(&bb)
+		moves = append(moves, Move{From: sq, To: to})
+	}
+
+	// Castling
 	if color == White {
-		forward = sq + 8
-		if forward < 64 && (b.All&Bitboard(1<<forward)) == 0 {
-			moves = append(moves, Move{From: sq, To: forward, Promotion: NoPiece})
-			if sq/8 == 1 { // double move
-				double := sq + 16
-				if (b.All & Bitboard(1<<double)) == 0 {
-					moves = append(moves, Move{From: sq, To: double, Promotion: NoPiece})
-				}
+		if b.Castling&0b0001 != 0 { // White kingside
+			if b.All&(1<<61|1<<62) == 0 {
+				moves = append(moves, Move{From: sq, To: 62})
+			}
+		}
+		if b.Castling&0b0010 != 0 { // White queenside
+			if b.All&(1<<57|1<<58|1<<59) == 0 {
+				moves = append(moves, Move{From: sq, To: 58})
 			}
 		}
 	} else {
-		forward = sq - 8
-		if forward < 64 && (b.All&Bitboard(1<<forward)) == 0 {
-			moves = append(moves, Move{From: sq, To: forward, Promotion: NoPiece})
-			if sq/8 == 6 { // double move
-				double := sq - 16
-				if (b.All & Bitboard(1<<double)) == 0 {
-					moves = append(moves, Move{From: sq, To: double, Promotion: NoPiece})
-				}
+		if b.Castling&0b0100 != 0 { // Black kingside
+			if b.All&(1<<5|1<<6) == 0 {
+				moves = append(moves, Move{From: sq, To: 6})
+			}
+		}
+		if b.Castling&0b1000 != 0 { // Black queenside
+			if b.All&(1<<1|1<<2|1<<3) == 0 {
+				moves = append(moves, Move{From: sq, To: 2})
 			}
 		}
 	}
 
-	return moves
-}
-
-func (b *Board) knightMoves(sq uint8, color Color) []Move {
-	var moves []Move
-	attacks := KnightAttacks[sq] & ^b.Occupancy[color]
-	for bb := attacks; bb != 0; {
-		to := PopLSB((*Bitboard)(&bb))
-		moves = append(moves, Move{From: sq, To: to, Promotion: NoPiece})
-	}
-	return moves
-}
-
-func (b *Board) kingMoves(sq uint8, color Color) []Move {
-	var moves []Move
-	attacks := KingAttacks[sq] & ^b.Occupancy[color]
-	for bb := attacks; bb != 0; {
-		to := PopLSB((*Bitboard)(&bb))
-		moves = append(moves, Move{From: sq, To: to, Promotion: NoPiece})
-	}
-	// Castling placeholder (implement later)
-	return moves
-}
-
-func (b *Board) rookMoves(sq uint8, color Color) []Move {
-	// TODO: sliding attack with occupancy (rook)
-	return []Move{}
-}
-
-func (b *Board) bishopMoves(sq uint8, color Color) []Move {
-	// TODO: sliding attack with occupancy (bishop)
-	return []Move{}
-}
-
-func (b *Board) queenMoves(sq uint8, color Color) []Move {
-	// Queen = rook + bishop
-	moves := b.rookMoves(sq, color)
-	moves = append(moves, b.bishopMoves(sq, color)...)
 	return moves
 }
 
