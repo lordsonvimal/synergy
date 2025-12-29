@@ -22,7 +22,7 @@ func (b *Board) Perft(depth int) uint64 {
 		}
 
 		nodes += b.Perft(depth - 1)
-		b.unapplyMove()
+		b.UnapplyMove()
 	}
 
 	return nodes
@@ -38,7 +38,7 @@ func (b *Board) PerftDivide(depth int) map[string]uint64 {
 		}
 
 		count := b.Perft(depth - 1)
-		b.unapplyMove()
+		b.UnapplyMove()
 
 		results[m.ToUCI()] = count
 	}
@@ -65,7 +65,7 @@ func (b *Board) PerftTT(depth int, tt PerftTT) uint64 {
 		}
 
 		nodes += b.PerftTT(depth-1, tt)
-		b.unapplyMove()
+		b.UnapplyMove()
 	}
 
 	// Store in TT
@@ -89,7 +89,7 @@ func (b *Board) PerftDivideTT(depth int) map[string]uint64 {
 		}
 
 		nodes := b.PerftTT(depth-1, tt)
-		b.unapplyMove()
+		b.UnapplyMove()
 
 		results[m.ToUCI()] = nodes
 	}

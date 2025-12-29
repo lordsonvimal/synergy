@@ -126,7 +126,7 @@ func (s *Searcher) searchRoot(b *Board, depth int) (int, Move) {
 		}
 
 		score := -s.alphaBeta(b, depth-1, -beta, -alpha, 1, true)
-		b.unapplyMove()
+		b.UnapplyMove()
 
 		if score > bestScore {
 			bestScore = score
@@ -207,7 +207,7 @@ func (s *Searcher) alphaBeta(b *Board, depth, alpha, beta, ply int, allowNull bo
 
 		hasLegal = true
 		score := -s.alphaBeta(b, depth-1, -beta, -alpha, ply+1, true)
-		b.unapplyMove()
+		b.UnapplyMove()
 
 		if score >= beta {
 			// TT store lower bound
@@ -271,7 +271,7 @@ func (s *Searcher) quiescence(b *Board, alpha, beta int) int {
 		}
 
 		score := -s.quiescence(b, -beta, -alpha)
-		b.unapplyMove()
+		b.UnapplyMove()
 
 		if score >= beta {
 			return beta

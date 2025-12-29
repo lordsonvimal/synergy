@@ -175,7 +175,7 @@ func (b *Board) PieceAt(sq uint8) (Color, Piece, bool) {
 // --------------------------
 // Apply move (low-level, mutates bitboards)
 // --------------------------
-func (b *Board) applyMove(m Move) {
+func (b *Board) ApplyMove(m Move) {
 	fromMask := bit(m.From)
 	toMask := bit(m.To)
 
@@ -312,7 +312,7 @@ func (b *Board) applyMove(m Move) {
 // --------------------------
 // Unapply move (undo)
 // --------------------------
-func (b *Board) unapplyMove() {
+func (b *Board) UnapplyMove() {
 	if len(b.MoveStack) == 0 {
 		panic("unapplyMove: no moves to undo")
 	}
@@ -408,7 +408,7 @@ func (b *Board) MakeMove(m Move) bool {
 	}
 
 	// 3. Check legality efficiently
-	if !b.tryMove(m) {
+	if !b.TryMove(m) {
 		return false
 	}
 
@@ -421,7 +421,7 @@ func (b *Board) MakeMove(m Move) bool {
 	prevHash := b.Hash
 
 	// 5. Apply move permanently
-	b.applyMove(m)
+	b.ApplyMove(m)
 	b.UpdateHash(m, prevSide, movingPiece, captured, prevCastling, prevEP)
 
 	// 6. Save MoveState
@@ -454,7 +454,7 @@ func (b *Board) MakeMove(m Move) bool {
 // --------------------------
 // Try move temporarily, check legality
 // --------------------------
-func (b *Board) tryMove(m Move) bool {
+func (b *Board) TryMove(m Move) bool {
 	color := b.SideToMove
 
 	// Save state
@@ -465,7 +465,7 @@ func (b *Board) tryMove(m Move) bool {
 	prevHash := b.Hash
 
 	// Apply move temporarily
-	b.applyMove(m)
+	b.ApplyMove(m)
 
 	// Check if king is safe
 	legal := !b.IsKingInCheck(color)
@@ -476,7 +476,7 @@ func (b *Board) tryMove(m Move) bool {
 	b.HalfMoveClock = prevHalf
 	b.FullMoveNumber = prevFull
 	b.Hash = prevHash
-	b.unapplyMove()
+	b.UnapplyMove()
 
 	return legal
 }

@@ -383,7 +383,7 @@ func (b *Board) GenerateMovesForSquare(sq uint8) []Move {
 	// Filter moves to only legal ones
 	legalMoves := []Move{}
 	for _, m := range moves {
-		if b.tryMove(m) {
+		if b.TryMove(m) {
 			legalMoves = append(legalMoves, m)
 		}
 	}
@@ -415,7 +415,7 @@ func (b *Board) HasLegalMoves(color Color) bool {
 		}
 
 		for _, m := range moves {
-			if b.tryMove(m) {
+			if b.TryMove(m) {
 				return true // found at least one legal move
 			}
 		}
