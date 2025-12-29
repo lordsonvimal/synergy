@@ -131,3 +131,29 @@ func squareToString(sq uint8) string {
 	file := files[sq%8]
 	return fmt.Sprintf("%c%d", file, rank)
 }
+
+func (m Move) String() string {
+	s := []byte{
+		'a' + (m.From % 8),
+		'1' + (m.From / 8),
+		'a' + (m.To % 8),
+		'1' + (m.To / 8),
+	}
+
+	str := string(s)
+
+	if m.Promotion != NoPiece {
+		switch m.Promotion {
+		case Queen:
+			str += "q"
+		case Rook:
+			str += "r"
+		case Bishop:
+			str += "b"
+		case Knight:
+			str += "n"
+		}
+	}
+
+	return str
+}
