@@ -97,33 +97,6 @@ func init() {
 }
 
 // --------------------------
-// Pawn attacks
-// --------------------------
-func PawnAttacks(color Color, sq uint8) Bitboard {
-	rank := sq / 8
-	file := sq % 8
-	var attacks Bitboard
-
-	if color == White {
-		if file > 0 && rank < 7 {
-			attacks |= SqBB(uint64((rank+1)*8 + (file - 1)))
-		}
-		if file < 7 && rank < 7 {
-			attacks |= SqBB(uint64((rank+1)*8 + (file + 1)))
-		}
-	} else {
-		if file > 0 && rank > 0 {
-			attacks |= SqBB(uint64((rank-1)*8 + (file - 1)))
-		}
-		if file < 7 && rank > 0 {
-			attacks |= SqBB(uint64((rank-1)*8 + (file + 1)))
-		}
-	}
-
-	return attacks
-}
-
-// --------------------------
 // Rank, File, Diagonal masks
 // --------------------------
 var RankMask [8]Bitboard

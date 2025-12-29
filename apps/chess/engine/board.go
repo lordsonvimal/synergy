@@ -42,6 +42,19 @@ var pieceToFEN = map[Piece]map[Color]string{
 	NoPiece: {White: "", Black: ""},
 }
 
+type MoveState struct {
+	From, To      uint8
+	MovingPiece   Piece
+	CapturedPiece Piece
+	Promotion     Piece
+	PrevEP        uint8
+	PrevCastling  uint8
+	PrevHalfMove  uint16
+	PrevFullMove  uint16
+	PrevHash      uint64
+	Flags         uint8 // MoveNormal, MoveCastle, MoveEP, MovePromo
+}
+
 // --------------------------
 // Board
 // --------------------------
@@ -65,6 +78,10 @@ type Board struct {
 
 	HalfMoveClock  uint16
 	FullMoveNumber uint16
+
+	Hash uint64 // Zobrist hash
+
+	MoveStack []MoveState
 }
 
 // --------------------------
@@ -190,10 +207,78 @@ func (b *Board) applyMove(m Move) {
 // --------------------------
 // Unapply move (undo)
 // --------------------------
-func (b *Board) unapplyMove(m Move) {
-	// For now: simple placeholder. Implement later with MoveState stack.
-	// Needed for legality checks and search.
-	fmt.Println("unapplyMove: TODO implement")
+func (b *Board) unapplyMove() {
+	if len(b.MoveStack) == 0 {
+		panic("unapplyMove: no moves to undo")
+	}
+
+	// Pop last move
+	state := b.MoveStack[len(b.MoveStack)-1]
+	b.MoveStack = b.MoveStack[:len(b.MoveStack)-1]
+
+	color := b.SideToMove ^ 1 // The side that actually moved
+	opp := color ^ 1
+
+	// 1. Remove moving piece from destination
+	if state.Flags&MovePromo != 0 {
+		// remove promoted piece
+		b.Pieces[color][state.Promotion] &^= 1 << state.To
+	} else {
+		b.Pieces[color][state.MovingPiece] &^= 1 << state.To
+	}
+
+	// 2. Restore moving piece to original square
+	b.Pieces[color][state.MovingPiece] |= 1 << state.From
+
+	// 3. Restore captured piece
+	if state.CapturedPiece != NoPiece {
+		if state.Flags&MoveEP != 0 {
+			// En-passant capture: captured pawn is behind the destination square
+			var capSq uint8
+			if color == White {
+				capSq = state.To - 8
+			} else {
+				capSq = state.To + 8
+			}
+			b.Pieces[opp][state.CapturedPiece] |= 1 << capSq
+		} else {
+			// Normal capture
+			b.Pieces[opp][state.CapturedPiece] |= 1 << state.To
+		}
+	}
+
+	// 4. Restore rook for castling
+	if state.Flags&MoveCastle != 0 {
+		switch state.To {
+		case 62: // White kingside
+			b.Pieces[White][Rook] &^= 1 << 61
+			b.Pieces[White][Rook] |= 1 << 63
+		case 58: // White queenside
+			b.Pieces[White][Rook] &^= 1 << 59
+			b.Pieces[White][Rook] |= 1 << 56
+		case 6: // Black kingside
+			b.Pieces[Black][Rook] &^= 1 << 5
+			b.Pieces[Black][Rook] |= 1 << 7
+		case 2: // Black queenside
+			b.Pieces[Black][Rook] &^= 1 << 3
+			b.Pieces[Black][Rook] |= 1 << 0
+		}
+	}
+
+	// 5. Recalculate occupancy
+	b.updateOccupancy()
+
+	// 6. Restore en passant, castling rights, half/full move counters
+	b.EnPassant = state.PrevEP
+	b.Castling = state.PrevCastling
+	b.HalfMoveClock = state.PrevHalfMove
+	b.FullMoveNumber = state.PrevFullMove
+
+	// 7. Restore Zobrist hash
+	b.Hash = state.PrevHash
+
+	// 8. Flip side back
+	b.SideToMove ^= 1
 }
 
 // --------------------------
@@ -205,36 +290,88 @@ func (b *Board) MakeMove(m Move) bool {
 		return false
 	}
 
+	// Determine moving piece and captured piece before moving
+	movingPiece := b.pieceOnSquare(m.From)
+	captured := b.pieceOnSquare(m.To)
+	promoted := m.Promotion
+
+	// 2. Set move flags
+	m.Flags = MoveNormal
+	if promoted != NoPiece {
+		m.Flags |= MovePromo
+	}
+	if movingPiece == King && (m.To == m.From+2 || m.To == m.From-2) {
+		m.Flags |= MoveCastle
+	}
+	if movingPiece == Pawn && captured == NoPiece && m.From%8 != m.To%8 {
+		// pawn moved diagonally but no capture -> en-passant
+		m.Flags |= MoveEP
+	}
+
 	// Save state for unapply
 	prevSide := b.SideToMove
 	prevEP := b.EnPassant
 	prevCastling := b.Castling
 	prevHalf := b.HalfMoveClock
 	prevFull := b.FullMoveNumber
+	prevHash := b.Hash
 
-	// 2. Apply move
+	// 3. Apply move
 	b.applyMove(m)
 
-	// 3. Flip side
+	// 4. Update Zobrist hash incrementally
+	b.Hash = b.UpdateHash(m, prevSide, captured, promoted)
+
+	// 5. Save MoveState for undo
+	state := MoveState{
+		From:          m.From,
+		To:            m.To,
+		MovingPiece:   movingPiece,
+		CapturedPiece: captured,
+		Promotion:     promoted,
+		PrevEP:        prevEP,
+		PrevCastling:  prevCastling,
+		PrevHalfMove:  prevHalf,
+		PrevFullMove:  prevFull,
+		PrevHash:      prevHash,
+		Flags:         m.Flags,
+	}
+	b.MoveStack = append(b.MoveStack, state)
+
+	// 6. Flip side
 	b.SideToMove ^= 1
 
-	// 4. Check legality: did mover leave own king in check?
+	// 7. Check legality: did mover leave own king in check?
 	if b.isKingInCheck(prevSide) {
+		// Restore state
 		b.SideToMove = prevSide
 		b.EnPassant = prevEP
 		b.Castling = prevCastling
 		b.HalfMoveClock = prevHalf
 		b.FullMoveNumber = prevFull
-		b.unapplyMove(m)
+		b.Hash = prevHash
+		b.unapplyMove()
 		return false
 	}
 
-	// 5. Fullmove update
+	// 8. Fullmove update
 	if b.SideToMove == White {
 		b.FullMoveNumber++
 	}
 
 	return true
+}
+
+// Helper: get piece on a square
+func (b *Board) pieceOnSquare(sq uint8) Piece {
+	for color := Color(0); color < 2; color++ {
+		for p := Piece(0); p < PieceNB; p++ {
+			if b.Pieces[color][p]&(1<<sq) != 0 {
+				return p
+			}
+		}
+	}
+	return NoPiece
 }
 
 // String returns board position in FEN-like notation

@@ -1,5 +1,7 @@
 package engine
 
+import "math/bits"
+
 // --------------------------
 // Generate pseudo-legal moves
 // --------------------------
@@ -129,7 +131,50 @@ func (b *Board) queenMoves(sq uint8, color Color) []Move {
 // Check detection
 // --------------------------
 func (b *Board) isKingInCheck(color Color) bool {
-	// TODO: implement full check detection
+	opp := color ^ 1
+
+	// Find king square as bitboard
+	kingBB := b.Pieces[color][King]
+	if kingBB == 0 {
+		panic("king missing on the board")
+	}
+
+	kingSq := uint8(bits.TrailingZeros64(uint64(kingBB))) // position 0..63
+
+	// Opponent pawn attacks
+	if color == White {
+		if kingBB&PawnAttacks(Black, kingSq) != 0 {
+			return true
+		}
+	} else {
+		if kingBB&PawnAttacks(White, kingSq) != 0 {
+			return true
+		}
+	}
+
+	// Knight attacks
+	if kingBB&KnightAttacks[kingSq]&b.Pieces[opp][Knight] != 0 {
+		return true
+	}
+
+	// King attacks (rare)
+	if kingBB&KingAttacks[kingSq]&b.Pieces[opp][King] != 0 {
+		return true
+	}
+
+	// Sliding pieces
+	all := b.All
+
+	// Rook + Queen orthogonal attacks
+	if (RookAttacks(kingSq, all) & (b.Pieces[opp][Rook] | b.Pieces[opp][Queen])) != 0 {
+		return true
+	}
+
+	// Bishop + Queen diagonal attacks
+	if (BishopAttacks(kingSq, all) & (b.Pieces[opp][Bishop] | b.Pieces[opp][Queen])) != 0 {
+		return true
+	}
+
 	return false
 }
 
