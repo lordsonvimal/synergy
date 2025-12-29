@@ -33,7 +33,7 @@ func (b *Board) BoardHash() uint64 {
 		for piece := Piece(0); piece < PieceNB; piece++ {
 			bb := b.Pieces[color][piece]
 			for bb != 0 {
-				sq := PopLSB((*Bitboard)(&bb))
+				sq := PopLSB(&bb)
 				hash ^= Zobrist[color][piece][sq]
 			}
 		}
