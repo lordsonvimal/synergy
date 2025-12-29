@@ -89,7 +89,7 @@ func gameSnapshot(g *game.Game, lastMove string, status string) map[string]any {
 		"check":     g.IsCheck(),
 		"checkmate": g.IsCheckmate(),
 		"stalemate": g.IsStalemate(),
-		"moves":     movesFromStack(&g.Board), // optional PGN / move list
+		"moves":     movesFromStack(g.Board), // optional PGN / move list
 	}
 }
 

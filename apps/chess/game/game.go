@@ -1,20 +1,46 @@
 package game
 
 import (
+	"log"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/lordsonvimal/synergy/apps/chess/engine"
 )
 
 type Game struct {
 	ID    string
-	Board engine.Board
+	Board *engine.Board
 	Clock GameClock
-	WAL   WAL
+	WAL   *WAL
 	Seq   uint64
 
 	mu             sync.RWMutex
 	legalMoveCache map[engine.Color]bool // cache per side
+}
+
+func NewGame(mode *GameMode) *Game {
+	board := engine.NewBoard()
+
+	id := uuid.New().String()
+
+	// 2. 5 minutes per side with 2-second increment
+	gc := NewClock(mode.TimeNs, mode.Increment)
+
+	wal, err := NewWAL("game_" + id + ".wal")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// 4. Create the Game struct
+	return &Game{
+		ID:    id,
+		Board: board,
+		Clock: gc,
+		WAL:   wal,
+		Seq:   0,
+	}
+
 }
 
 // --------------------------

@@ -19,6 +19,24 @@ type GameClock struct {
 	Turn  int
 }
 
+// NewClock returns a GameClock with the given initial time and increment (both in nanoseconds)
+func NewClock(initialTimeNs int64, incNs int64) GameClock {
+	return GameClock{
+		White: Clock{
+			RemainingNs: initialTimeNs,
+			LastStartNs: 0,
+			Running:     false,
+		},
+		Black: Clock{
+			RemainingNs: initialTimeNs,
+			LastStartNs: 0,
+			Running:     false,
+		},
+		IncNs: incNs,
+		Turn:  0,
+	}
+}
+
 func monoNow() int64 {
 	return time.Now().UnixNano()
 }
@@ -38,8 +56,14 @@ func (gc *GameClock) Stop(color engine.Color, lagCompNs int64) {
 		elapsed = 0
 	}
 	c.RemainingNs -= elapsed
+	if c.RemainingNs < 0 {
+		c.RemainingNs = 0
+	}
 	c.RemainingNs += gc.IncNs
 	c.Running = false
+
+	// Increment turn after the player stops their clock
+	gc.Turn++
 }
 
 func (gc *GameClock) clock(color engine.Color) *Clock {
