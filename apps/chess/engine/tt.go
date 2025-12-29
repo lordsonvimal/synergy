@@ -151,3 +151,15 @@ func (tt *TranspositionTable) evict() {
 		return
 	}
 }
+
+// GetMove returns the best move stored in the TT for the given hash, if any.
+func (tt *TranspositionTable) GetMove(hash uint64) (Move, bool) {
+	tt.mu.RLock()
+	entry, ok := tt.table[hash]
+	tt.mu.RUnlock()
+
+	if !ok {
+		return Move{}, false
+	}
+	return entry.BestMove, true
+}
