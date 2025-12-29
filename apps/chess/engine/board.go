@@ -60,13 +60,13 @@ type MoveState struct {
 // --------------------------
 type Board struct {
 	// Pieces[color][piece] → bitboard
-	Pieces [ColorNB][PieceNB]Bitboard
+	Pieces [ColorNB][PieceNB]uint64
 
 	// Occupancy per color
-	Occupancy [ColorNB]Bitboard
+	Occupancy [ColorNB]uint64
 
 	// All occupied squares
-	All Bitboard
+	All uint64
 
 	SideToMove Color
 
@@ -133,7 +133,7 @@ func (b *Board) Reset() {
 // --------------------------
 // Bit helpers
 // --------------------------
-func bit(sq uint8) Bitboard {
+func bit(sq uint8) uint64 {
 	return 1 << sq
 }
 

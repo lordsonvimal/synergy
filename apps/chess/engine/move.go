@@ -10,15 +10,16 @@ type Move struct {
 	From      uint8 // 0–63
 	To        uint8 // 0–63
 	Promotion Piece // NoPiece if none
-	Flags     uint8 // bitflags: MoveNormal, MoveCastle, MoveEP, MovePromo
+	Flags     uint8 // bitflags: MoveNormal, MoveCastle, MoveEP, MovePromo, MoveCapture
 }
 
 // Move flags
 const (
-	MoveNormal = 0
-	MoveCastle = 1 << 0
-	MoveEP     = 1 << 1
-	MovePromo  = 1 << 2
+	MoveNormal  = 0
+	MoveCastle  = 1 << 0
+	MoveEP      = 1 << 1
+	MovePromo   = 1 << 2
+	MoveCapture = 1 << 3
 )
 
 // --------------------------
@@ -49,7 +50,7 @@ func (m Move) IsPromotion() bool {
 
 func (m Move) IsCapture(b *Board, color Color) bool {
 	opp := color ^ 1 // opponent color
-	return (b.Occupancy[opp] & Bitboard(1<<m.To)) != 0
+	return (b.Occupancy[opp] & 1 << m.To) != 0
 }
 
 func (m Move) IsCastle() bool {
@@ -132,6 +133,7 @@ func squareToString(sq uint8) string {
 	return fmt.Sprintf("%c%d", file, rank)
 }
 
+// Returns UCI Move notation in string
 func (m Move) String() string {
 	s := []byte{
 		'a' + (m.From % 8),

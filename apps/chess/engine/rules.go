@@ -82,19 +82,20 @@ func (b *Board) generatePawnMoves(sq uint8, color, opp Color) []Move {
 	// Single forward
 	to := int(sq) + int(forward)
 	if to >= 0 && to < 64 && (b.All&(1<<to)) == 0 {
+		flag := MoveNormal
 		if uint8(to/8) == promoRank {
 			for _, promo := range []Piece{Queen, Rook, Bishop, Knight} {
-				moves = append(moves, Move{From: sq, To: uint8(to), Promotion: promo})
+				moves = append(moves, Move{From: sq, To: uint8(to), Promotion: promo, Flags: MovePromo})
 			}
 		} else {
-			moves = append(moves, Move{From: sq, To: uint8(to)})
+			moves = append(moves, Move{From: sq, To: uint8(to), Flags: uint8(flag)})
 		}
 
 		// Double move
 		if sq/8 == startRank {
 			to2 := int(sq) + int(forward*2)
 			if to2 >= 0 && to2 < 64 && (b.All&(1<<to2)) == 0 {
-				moves = append(moves, Move{From: sq, To: uint8(to2)})
+				moves = append(moves, Move{From: sq, To: uint8(to2), Flags: MoveNormal})
 			}
 		}
 	}
@@ -103,12 +104,13 @@ func (b *Board) generatePawnMoves(sq uint8, color, opp Color) []Move {
 	caps := PawnAttacks(color, sq) & b.Occupancy[opp]
 	for bb := caps; bb != 0; {
 		to := PopLSB(&bb)
+		flag := MoveCapture
 		if uint8(to/8) == promoRank {
 			for _, promo := range []Piece{Queen, Rook, Bishop, Knight} {
-				moves = append(moves, Move{From: sq, To: to, Promotion: promo})
+				moves = append(moves, Move{From: sq, To: to, Promotion: promo, Flags: MoveCapture | MovePromo})
 			}
 		} else {
-			moves = append(moves, Move{From: sq, To: to})
+			moves = append(moves, Move{From: sq, To: to, Flags: uint8(flag)})
 		}
 	}
 
@@ -116,7 +118,7 @@ func (b *Board) generatePawnMoves(sq uint8, color, opp Color) []Move {
 	if b.EnPassant != NoSquare {
 		epSq := b.EnPassant
 		if PawnAttacks(color, sq)&(1<<epSq) != 0 {
-			moves = append(moves, Move{From: sq, To: epSq})
+			moves = append(moves, Move{From: sq, To: epSq, Flags: MoveEP})
 		}
 	}
 
@@ -129,10 +131,22 @@ func (b *Board) generatePawnMoves(sq uint8, color, opp Color) []Move {
 func (b *Board) generateKnightMoves(sq uint8, color Color) []Move {
 	var moves []Move
 	attacks := KnightAttacks[sq] &^ b.Occupancy[color]
+
 	for bb := attacks; bb != 0; {
 		to := PopLSB(&bb)
-		moves = append(moves, Move{From: sq, To: to})
+
+		flag := MoveNormal
+		if (b.Occupancy[color^1] & (1 << to)) != 0 {
+			flag |= MoveCapture
+		}
+
+		moves = append(moves, Move{
+			From:  sq,
+			To:    to,
+			Flags: uint8(flag),
+		})
 	}
+
 	return moves
 }
 
@@ -142,10 +156,22 @@ func (b *Board) generateKnightMoves(sq uint8, color Color) []Move {
 func (b *Board) generateBishopMoves(sq uint8, color Color) []Move {
 	var moves []Move
 	attacks := BishopAttacks(sq, b.All) &^ b.Occupancy[color]
+
 	for bb := attacks; bb != 0; {
 		to := PopLSB(&bb)
-		moves = append(moves, Move{From: sq, To: to})
+
+		flag := MoveNormal
+		if (b.Occupancy[color^1] & (1 << to)) != 0 {
+			flag |= MoveCapture
+		}
+
+		moves = append(moves, Move{
+			From:  sq,
+			To:    to,
+			Flags: uint8(flag),
+		})
 	}
+
 	return moves
 }
 
@@ -155,10 +181,22 @@ func (b *Board) generateBishopMoves(sq uint8, color Color) []Move {
 func (b *Board) generateRookMoves(sq uint8, color Color) []Move {
 	var moves []Move
 	attacks := RookAttacks(sq, b.All) &^ b.Occupancy[color]
+
 	for bb := attacks; bb != 0; {
 		to := PopLSB(&bb)
-		moves = append(moves, Move{From: sq, To: to})
+
+		flag := MoveNormal
+		if (b.Occupancy[color^1] & (1 << to)) != 0 {
+			flag |= MoveCapture
+		}
+
+		moves = append(moves, Move{
+			From:  sq,
+			To:    to,
+			Flags: uint8(flag),
+		})
 	}
+
 	return moves
 }
 
@@ -166,8 +204,12 @@ func (b *Board) generateRookMoves(sq uint8, color Color) []Move {
 // Queen moves
 // --------------------------
 func (b *Board) generateQueenMoves(sq uint8, color Color) []Move {
-	moves := b.generateRookMoves(sq, color)
-	moves = append(moves, b.generateBishopMoves(sq, color)...)
+	rMoves := b.generateRookMoves(sq, color)
+	bMoves := b.generateBishopMoves(sq, color)
+
+	moves := make([]Move, 0, len(rMoves)+len(bMoves))
+	moves = append(moves, rMoves...)
+	moves = append(moves, bMoves...)
 	return moves
 }
 
@@ -184,8 +226,19 @@ func (b *Board) generateKingMoves(sq uint8, color Color) []Move {
 	attacks := KingAttacks[sq] &^ b.Occupancy[color]
 	for bb := attacks; bb != 0; {
 		to := PopLSB(&bb)
+
+		flag := MoveNormal
+		if b.Occupancy[opp]&(1<<to) != 0 {
+			flag |= MoveCapture
+		}
+
+		// Skip squares under attack
 		if !b.squareAttacked(to, opp) {
-			moves = append(moves, Move{From: sq, To: to})
+			moves = append(moves, Move{
+				From:  sq,
+				To:    to,
+				Flags: uint8(flag),
+			})
 		}
 	}
 
@@ -199,7 +252,11 @@ func (b *Board) generateKingMoves(sq uint8, color Color) []Move {
 			!b.squareAttacked(60, Black) &&
 			!b.squareAttacked(61, Black) &&
 			!b.squareAttacked(62, Black) {
-			moves = append(moves, Move{From: 60, To: 62})
+			moves = append(moves, Move{
+				From:  60,
+				To:    62,
+				Flags: MoveCastle,
+			})
 		}
 
 		// White queen side: e1 -> c1 (60 -> 58)
@@ -208,7 +265,11 @@ func (b *Board) generateKingMoves(sq uint8, color Color) []Move {
 			!b.squareAttacked(60, Black) &&
 			!b.squareAttacked(59, Black) &&
 			!b.squareAttacked(58, Black) {
-			moves = append(moves, Move{From: 60, To: 58})
+			moves = append(moves, Move{
+				From:  60,
+				To:    58,
+				Flags: MoveCastle,
+			})
 		}
 	} else {
 		// Black king side: e8 -> g8 (4 -> 6)
@@ -217,7 +278,11 @@ func (b *Board) generateKingMoves(sq uint8, color Color) []Move {
 			!b.squareAttacked(4, White) &&
 			!b.squareAttacked(5, White) &&
 			!b.squareAttacked(6, White) {
-			moves = append(moves, Move{From: 4, To: 6})
+			moves = append(moves, Move{
+				From:  4,
+				To:    6,
+				Flags: MoveCastle,
+			})
 		}
 
 		// Black queen side: e8 -> c8 (4 -> 2)
@@ -226,7 +291,11 @@ func (b *Board) generateKingMoves(sq uint8, color Color) []Move {
 			!b.squareAttacked(4, White) &&
 			!b.squareAttacked(3, White) &&
 			!b.squareAttacked(2, White) {
-			moves = append(moves, Move{From: 4, To: 2})
+			moves = append(moves, Move{
+				From:  4,
+				To:    2,
+				Flags: MoveCastle,
+			})
 		}
 	}
 

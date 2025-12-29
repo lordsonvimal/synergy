@@ -3,10 +3,10 @@ package engine
 // --------------------------
 // Pawn attacks
 // --------------------------
-func PawnAttacks(color Color, sq uint8) Bitboard {
+func PawnAttacks(color Color, sq uint8) uint64 {
 	rank := sq / 8
 	file := sq % 8
-	var attacks Bitboard
+	var attacks uint64
 
 	if color == White {
 		if file > 0 && rank < 7 {
@@ -27,93 +27,15 @@ func PawnAttacks(color Color, sq uint8) Bitboard {
 	return attacks
 }
 
-func RookAttacks(sq uint8, occ Bitboard) Bitboard {
-	var attacks Bitboard
-
-	rank := sq / 8
-	file := sq % 8
-
-	// Up
-	for r := rank + 1; r < 8; r++ {
-		s := uint8(r*8) + file
-		attacks |= 1 << s
-		if occ&(1<<s) != 0 {
-			break
-		}
-	}
-
-	// Down
-	for r := int(rank) - 1; r >= 0; r-- {
-		s := uint8(r*8) + file
-		attacks |= 1 << s
-		if occ&(1<<s) != 0 {
-			break
-		}
-	}
-
-	// Right
-	for f := file + 1; f < 8; f++ {
-		s := rank*8 + f
-		attacks |= 1 << s
-		if occ&(1<<s) != 0 {
-			break
-		}
-	}
-
-	// Left
-	for f := int(file) - 1; f >= 0; f-- {
-		s := rank*8 + uint8(f)
-		attacks |= 1 << s
-		if occ&(1<<s) != 0 {
-			break
-		}
-	}
-
-	return attacks
+// BishopAttacks generates all squares a bishop attacks from sq given occupancy
+func RookAttacks(sq uint8, occ uint64) uint64 {
+	m := RookMagics[sq]
+	index := ((occ & m.Mask) * m.Magic) >> m.Shift
+	return m.Attacks[index]
 }
 
-// BishopAttacks generates all squares a bishop attacks from sq given occupancy
-func BishopAttacks(sq uint8, occ Bitboard) Bitboard {
-	var attacks Bitboard
-
-	rank := sq / 8
-	file := sq % 8
-
-	// Up-right
-	for r, f := int(rank)+1, int(file)+1; r < 8 && f < 8; r, f = r+1, f+1 {
-		s := uint8(r*8 + f)
-		attacks |= 1 << s
-		if occ&(1<<s) != 0 {
-			break
-		}
-	}
-
-	// Up-left
-	for r, f := int(rank)+1, int(file)-1; r < 8 && f >= 0; r, f = r+1, f-1 {
-		s := uint8(r*8 + f)
-		attacks |= 1 << s
-		if occ&(1<<s) != 0 {
-			break
-		}
-	}
-
-	// Down-right
-	for r, f := int(rank)-1, int(file)+1; r >= 0 && f < 8; r, f = r-1, f+1 {
-		s := uint8(r*8 + f)
-		attacks |= 1 << s
-		if occ&(1<<s) != 0 {
-			break
-		}
-	}
-
-	// Down-left
-	for r, f := int(rank)-1, int(file)-1; r >= 0 && f >= 0; r, f = r-1, f-1 {
-		s := uint8(r*8 + f)
-		attacks |= 1 << s
-		if occ&(1<<s) != 0 {
-			break
-		}
-	}
-
-	return attacks
+func BishopAttacks(sq uint8, occ uint64) uint64 {
+	m := BishopMagics[sq]
+	index := ((occ & m.Mask) * m.Magic) >> m.Shift
+	return m.Attacks[index]
 }

@@ -8,12 +8,12 @@ package engine
 type Bitboard uint64
 
 // Return bitboard with only bit `sq` set
-func SqBB(sq uint64) Bitboard {
+func SqBB(sq uint64) uint64 {
 	return 1 << sq
 }
 
 // Pop least significant bit and return index
-func PopLSB(bb *Bitboard) uint8 {
+func PopLSB(bb *uint64) uint8 {
 	lsb := *bb & -(*bb)
 	index := uint8(BitScanForward(*bb))
 	*bb &^= lsb
@@ -21,7 +21,7 @@ func PopLSB(bb *Bitboard) uint8 {
 }
 
 // Count set bits
-func PopCount(bb Bitboard) int {
+func PopCount(bb uint64) int {
 	count := 0
 	b := uint64(bb)
 	for b != 0 {
@@ -32,7 +32,7 @@ func PopCount(bb Bitboard) int {
 }
 
 // Scan forward (LSB index)
-func BitScanForward(bb Bitboard) int {
+func BitScanForward(bb uint64) int {
 	if bb == 0 {
 		return -1
 	}
@@ -49,11 +49,11 @@ func BitScanForward(bb Bitboard) int {
 // --------------------------
 
 // Knight moves
-var KnightAttacks [64]Bitboard
+var KnightAttacks [64]uint64
 
 func init() {
 	for sq := 0; sq < 64; sq++ {
-		attacks := Bitboard(0)
+		attacks := uint64(0)
 		rank := sq / 8
 		file := sq % 8
 
@@ -73,11 +73,11 @@ func init() {
 }
 
 // King moves
-var KingAttacks [64]Bitboard
+var KingAttacks [64]uint64
 
 func init() {
 	for sq := 0; sq < 64; sq++ {
-		attacks := Bitboard(0)
+		attacks := uint64(0)
 		rank := sq / 8
 		file := sq % 8
 
@@ -99,12 +99,12 @@ func init() {
 // --------------------------
 // Rank, File, Diagonal masks
 // --------------------------
-var RankMask [8]Bitboard
-var FileMask [8]Bitboard
+var RankMask [8]uint64
+var FileMask [8]uint64
 
 func init() {
 	for r := 0; r < 8; r++ {
-		var mask Bitboard
+		var mask uint64
 		for f := 0; f < 8; f++ {
 			mask |= SqBB(uint64(r*8 + f))
 		}
@@ -112,7 +112,7 @@ func init() {
 	}
 
 	for f := 0; f < 8; f++ {
-		var mask Bitboard
+		var mask uint64
 		for r := 0; r < 8; r++ {
 			mask |= SqBB(uint64(r*8 + f))
 		}
