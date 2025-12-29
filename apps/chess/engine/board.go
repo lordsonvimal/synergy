@@ -1,6 +1,10 @@
 package engine
 
-import "fmt"
+import (
+	"fmt"
+	"math/bits"
+	"strings"
+)
 
 // --------------------------
 // Color
@@ -489,58 +493,88 @@ func (b *Board) pieceOnSquare(sq uint8) Piece {
 	return NoPiece
 }
 
-// String returns board position in FEN-like notation
-func (b *Board) String() string {
-	boardStr := ""
+// FEN returns the FEN string for the current board position using bitboards efficiently
+func (b *Board) FEN() string {
+	var board [64]byte
+	for i := range board {
+		board[i] = '.'
+	}
 
+	for color := Color(0); color < 2; color++ {
+		for p := Piece(0); p < PieceNB; p++ {
+			bb := b.Pieces[color][p]
+			for bb != 0 {
+				sq := uint8(bits.TrailingZeros64(bb))
+				board[sq] = pieceToFEN[p][color][0]
+				bb &^= 1 << sq
+			}
+		}
+	}
+
+	var fen strings.Builder
+	fen.Grow(64)
 	for rank := 7; rank >= 0; rank-- {
 		empty := 0
 		for file := 0; file < 8; file++ {
-			sq := uint8(rank*8 + file)
-			found := false
-			for color := Color(0); color < ColorNB; color++ {
-				for p := Piece(0); p < PieceNB; p++ {
-					if b.Pieces[color][p]&(1<<sq) != 0 {
-						if empty > 0 {
-							boardStr += fmt.Sprintf("%d", empty)
-							empty = 0
-						}
-						boardStr += pieceToFEN[p][color]
-						found = true
-						break
-					}
-				}
-				if found {
-					break
-				}
-			}
-			if !found {
+			sq := rank*8 + file
+			ch := board[sq]
+			if ch == '.' {
 				empty++
+			} else {
+				if empty > 0 {
+					fen.WriteByte(byte('0' + empty))
+					empty = 0
+				}
+				fen.WriteByte(ch)
 			}
 		}
 		if empty > 0 {
-			boardStr += fmt.Sprintf("%d", empty)
+			fen.WriteByte(byte('0' + empty))
 		}
 		if rank > 0 {
-			boardStr += "/"
+			fen.WriteByte('/')
 		}
 	}
 
-	// Side to move
-	side := "w"
-	if b.SideToMove == Black {
-		side = "b"
+	// Side
+	if b.SideToMove == White {
+		fen.WriteString(" w ")
+	} else {
+		fen.WriteString(" b ")
 	}
 
-	// Castling rights placeholder (implement properly later)
-	castling := "-"
-	// En passant placeholder
-	enpassant := "-"
-	// Halfmove clock, fullmove number
-	halfmove := 0
-	fullmove := b.FullMoveNumber
+	// Castling
+	c := ""
+	if b.Castling&0b0001 != 0 {
+		c += "K"
+	}
+	if b.Castling&0b0010 != 0 {
+		c += "Q"
+	}
+	if b.Castling&0b0100 != 0 {
+		c += "k"
+	}
+	if b.Castling&0b1000 != 0 {
+		c += "q"
+	}
+	if c == "" {
+		c = "-"
+	}
+	fen.WriteString(c)
+	fen.WriteByte(' ')
 
-	return fmt.Sprintf("%s %s %s %s %d %d", boardStr, side, castling, enpassant, halfmove, fullmove)
+	// En passant
+	if b.EnPassant != 255 {
+		file := b.EnPassant % 8
+		rank := b.EnPassant / 8
+		fmt.Fprintf(&fen, "%c%d ", 'a'+file, rank+1)
+	} else {
+		fen.WriteString("- ")
+	}
+
+	// Halfmove and fullmove
+	fmt.Fprintf(&fen, "%d %d", b.HalfMoveClock, b.FullMoveNumber)
+	return fen.String()
 }
 
 // --------------------------

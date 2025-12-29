@@ -354,6 +354,44 @@ func (b *Board) isKingInCheck(color Color) bool {
 }
 
 // --------------------------
+// Generate all legal moves for a given square
+// --------------------------
+func (b *Board) GenerateMovesForSquare(sq uint8) []Move {
+	color, piece, ok := b.PieceAt(sq)
+	if !ok || color != b.SideToMove {
+		return nil // no piece or not this side's turn
+	}
+
+	var moves []Move
+
+	switch piece {
+	case Pawn:
+		opp := color ^ 1
+		moves = b.generatePawnMoves(sq, color, opp)
+	case Knight:
+		moves = b.generateKnightMoves(sq, color)
+	case Bishop:
+		moves = b.generateBishopMoves(sq, color)
+	case Rook:
+		moves = b.generateRookMoves(sq, color)
+	case Queen:
+		moves = b.generateQueenMoves(sq, color)
+	case King:
+		moves = b.generateKingMoves(sq, color)
+	}
+
+	// Filter moves to only legal ones
+	legalMoves := []Move{}
+	for _, m := range moves {
+		if b.tryMove(m) {
+			legalMoves = append(legalMoves, m)
+		}
+	}
+
+	return legalMoves
+}
+
+// --------------------------
 // Pseudo-legal validation for all moves
 // --------------------------
 func (b *Board) isPseudoLegal(m Move) bool {
