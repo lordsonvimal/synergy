@@ -423,6 +423,160 @@ func (b *Board) HasLegalMoves(color Color) bool {
 	return false
 }
 
+func (b *Board) GenerateCaptures() []Move {
+	var moves []Move
+
+	color := b.SideToMove
+	opp := color ^ 1
+	occOpp := b.Occupancy[opp]
+
+	// --------------------------
+	// Pawns
+	// --------------------------
+	pawns := b.Pieces[color][Pawn]
+	for pawns != 0 {
+		sq := PopLSB(&pawns)
+
+		attacks := PawnAttacks(color, sq) & occOpp
+		for bb := attacks; bb != 0; {
+			to := PopLSB(&bb)
+
+			// Promotion captures
+			promoRank := uint8(7)
+			if color == Black {
+				promoRank = 0
+			}
+
+			if to/8 == promoRank {
+				for _, promo := range []Piece{Queen, Rook, Bishop, Knight} {
+					moves = append(moves, Move{
+						From:      sq,
+						To:        to,
+						Promotion: promo,
+						Flags:     MoveCapture | MovePromo,
+					})
+				}
+			} else {
+				moves = append(moves, Move{
+					From:  sq,
+					To:    to,
+					Flags: MoveCapture,
+				})
+			}
+		}
+
+		// En-passant capture
+		if b.EnPassant != NoSquare {
+			ep := b.EnPassant
+			if PawnAttacks(color, sq)&(1<<ep) != 0 {
+				moves = append(moves, Move{
+					From:  sq,
+					To:    ep,
+					Flags: MoveEP | MoveCapture,
+				})
+			}
+		}
+	}
+
+	// --------------------------
+	// Knights
+	// --------------------------
+	knights := b.Pieces[color][Knight]
+	for knights != 0 {
+		sq := PopLSB(&knights)
+		attacks := KnightAttacks[sq] & occOpp
+
+		for bb := attacks; bb != 0; {
+			to := PopLSB(&bb)
+			moves = append(moves, Move{
+				From:  sq,
+				To:    to,
+				Flags: MoveCapture,
+			})
+		}
+	}
+
+	// --------------------------
+	// Bishops
+	// --------------------------
+	bishops := b.Pieces[color][Bishop]
+	for bishops != 0 {
+		sq := PopLSB(&bishops)
+		attacks := BishopAttacks(sq, b.All) & occOpp
+
+		for bb := attacks; bb != 0; {
+			to := PopLSB(&bb)
+			moves = append(moves, Move{
+				From:  sq,
+				To:    to,
+				Flags: MoveCapture,
+			})
+		}
+	}
+
+	// --------------------------
+	// Rooks
+	// --------------------------
+	rooks := b.Pieces[color][Rook]
+	for rooks != 0 {
+		sq := PopLSB(&rooks)
+		attacks := RookAttacks(sq, b.All) & occOpp
+
+		for bb := attacks; bb != 0; {
+			to := PopLSB(&bb)
+			moves = append(moves, Move{
+				From:  sq,
+				To:    to,
+				Flags: MoveCapture,
+			})
+		}
+	}
+
+	// --------------------------
+	// Queens
+	// --------------------------
+	queens := b.Pieces[color][Queen]
+	for queens != 0 {
+		sq := PopLSB(&queens)
+		attacks := (RookAttacks(sq, b.All) | BishopAttacks(sq, b.All)) & occOpp
+
+		for bb := attacks; bb != 0; {
+			to := PopLSB(&bb)
+			moves = append(moves, Move{
+				From:  sq,
+				To:    to,
+				Flags: MoveCapture,
+			})
+		}
+	}
+
+	// --------------------------
+	// King (captures only, no castling)
+	// --------------------------
+	king := b.Pieces[color][King]
+	if king != 0 {
+		sq := uint8(bits.TrailingZeros64(king))
+		attacks := KingAttacks[sq] & occOpp
+
+		for bb := attacks; bb != 0; {
+			to := PopLSB(&bb)
+
+			// Skip squares under attack
+			if b.squareAttacked(to, opp) {
+				continue
+			}
+
+			moves = append(moves, Move{
+				From:  sq,
+				To:    to,
+				Flags: MoveCapture,
+			})
+		}
+	}
+
+	return moves
+}
+
 // --------------------------
 // Pseudo-legal validation for all moves
 // --------------------------

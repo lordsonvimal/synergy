@@ -422,7 +422,7 @@ func (b *Board) MakeMove(m Move) bool {
 
 	// 5. Apply move permanently
 	b.applyMove(m)
-	b.Hash = b.UpdateHash(m, prevSide, captured, promoted)
+	b.UpdateHash(m, prevSide, movingPiece, captured, prevCastling, prevEP)
 
 	// 6. Save MoveState
 	state := MoveState{

@@ -1,6 +1,8 @@
 package game
 
-import "github.com/lordsonvimal/synergy/apps/chess/engine"
+import (
+	"github.com/lordsonvimal/synergy/apps/chess/engine"
+)
 
 type Game struct {
 	ID    string
