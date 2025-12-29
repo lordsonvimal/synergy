@@ -383,7 +383,7 @@ func (b *Board) unapplyMove() {
 }
 
 // --------------------------
-// High-level MakeMove (game rules)
+// MakeMove (game rules)
 // --------------------------
 func (b *Board) MakeMove(m Move) bool {
 	// 1. Identify moving piece and captured piece
@@ -403,12 +403,12 @@ func (b *Board) MakeMove(m Move) bool {
 		m.Flags |= MoveEP
 	}
 
-	// 3. Efficient legality check BEFORE committing
-	if !b.isPseudoLegalEfficient(m) {
+	// 3. Check legality efficiently
+	if !b.tryMove(m) {
 		return false
 	}
 
-	// 4. Save current state for undo
+	// 4. Save state for undo
 	prevSide := b.SideToMove
 	prevEP := b.EnPassant
 	prevCastling := b.Castling
@@ -416,13 +416,11 @@ func (b *Board) MakeMove(m Move) bool {
 	prevFull := b.FullMoveNumber
 	prevHash := b.Hash
 
-	// 5. Apply move
+	// 5. Apply move permanently
 	b.applyMove(m)
-
-	// 6. Update hash
 	b.Hash = b.UpdateHash(m, prevSide, captured, promoted)
 
-	// 7. Save MoveState for undo
+	// 6. Save MoveState
 	state := MoveState{
 		From:          m.From,
 		To:            m.To,
@@ -438,15 +436,45 @@ func (b *Board) MakeMove(m Move) bool {
 	}
 	b.MoveStack = append(b.MoveStack, state)
 
-	// 8. Flip side
+	// 7. Flip side
 	b.SideToMove ^= 1
 
-	// 9. Update fullmove number
+	// 8. Fullmove update
 	if b.SideToMove == White {
 		b.FullMoveNumber++
 	}
 
 	return true
+}
+
+// --------------------------
+// Try move temporarily, check legality
+// --------------------------
+func (b *Board) tryMove(m Move) bool {
+	color := b.SideToMove
+
+	// Save state
+	prevEP := b.EnPassant
+	prevCastling := b.Castling
+	prevHalf := b.HalfMoveClock
+	prevFull := b.FullMoveNumber
+	prevHash := b.Hash
+
+	// Apply move temporarily
+	b.applyMove(m)
+
+	// Check if king is safe
+	legal := !b.isKingInCheck(color)
+
+	// Undo temporary move
+	b.EnPassant = prevEP
+	b.Castling = prevCastling
+	b.HalfMoveClock = prevHalf
+	b.FullMoveNumber = prevFull
+	b.Hash = prevHash
+	b.unapplyMove()
+
+	return legal
 }
 
 // Helper: get piece on a square

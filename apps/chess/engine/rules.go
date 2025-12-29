@@ -365,35 +365,3 @@ func (b *Board) isPseudoLegal(m Move) bool {
 	}
 	return false
 }
-
-// --------------------------
-// Efficient legality check
-// --------------------------
-// Checks if a move is legal by making it on the board temporarily.
-// Returns true if legal, false otherwise.
-func (b *Board) isPseudoLegalEfficient(m Move) bool {
-	color := b.SideToMove
-
-	// Save board state
-	prevEP := b.EnPassant
-	prevCastling := b.Castling
-	prevHalf := b.HalfMoveClock
-	prevFull := b.FullMoveNumber
-	prevHash := b.Hash
-
-	// Apply move temporarily
-	b.applyMove(m)
-
-	// If own king is in check after move -> illegal
-	legal := !b.isKingInCheck(color)
-
-	// Undo temporary move
-	b.EnPassant = prevEP
-	b.Castling = prevCastling
-	b.HalfMoveClock = prevHalf
-	b.FullMoveNumber = prevFull
-	b.Hash = prevHash
-	b.unapplyMove()
-
-	return legal
-}
