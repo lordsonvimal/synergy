@@ -178,8 +178,10 @@ func (b *Board) applyMove(m Move) {
 	color := b.SideToMove
 	opp := color ^ 1
 
-	// Remove moving piece
-	var moved Piece
+	// --------------------
+	// Identify moving piece
+	// --------------------
+	var moved Piece = NoPiece
 	for p := Piece(0); p < PieceNB; p++ {
 		if b.Pieces[color][p]&fromMask != 0 {
 			b.Pieces[color][p] &^= fromMask
@@ -188,19 +190,118 @@ func (b *Board) applyMove(m Move) {
 		}
 	}
 
-	// Capture
-	for p := Piece(0); p < PieceNB; p++ {
-		b.Pieces[opp][p] &^= toMask
+	// --------------------
+	// Capture handling
+	// --------------------
+	captured := NoPiece
+
+	if m.Flags&MoveEP != 0 {
+		var capSq uint8
+		if color == White {
+			capSq = m.To - 8
+		} else {
+			capSq = m.To + 8
+		}
+		b.Pieces[opp][Pawn] &^= bit(capSq)
+		captured = Pawn
+	} else {
+		for p := Piece(0); p < PieceNB; p++ {
+			if b.Pieces[opp][p]&toMask != 0 {
+				b.Pieces[opp][p] &^= toMask
+				captured = p
+				break
+			}
+		}
 	}
 
-	// Promotion
-	if m.Promotion != NoPiece {
+	// --------------------
+	// Promotion / normal move
+	// --------------------
+	if m.Flags&MovePromo != 0 {
 		b.Pieces[color][m.Promotion] |= toMask
 	} else {
 		b.Pieces[color][moved] |= toMask
 	}
 
-	b.EnPassant = 255
+	// --------------------
+	// Castling rook move
+	// --------------------
+	if m.Flags&MoveCastle != 0 {
+		switch m.To {
+		case 62: // White king side
+			b.Pieces[White][Rook] &^= bit(63)
+			b.Pieces[White][Rook] |= bit(61)
+		case 58: // White queen side
+			b.Pieces[White][Rook] &^= bit(56)
+			b.Pieces[White][Rook] |= bit(59)
+		case 6: // Black king side
+			b.Pieces[Black][Rook] &^= bit(7)
+			b.Pieces[Black][Rook] |= bit(5)
+		case 2: // Black queen side
+			b.Pieces[Black][Rook] &^= bit(0)
+			b.Pieces[Black][Rook] |= bit(3)
+		}
+	}
+
+	// --------------------
+	// Castling rights update
+	// --------------------
+	if moved == King {
+		if color == White {
+			b.Castling &^= 0b0011
+		} else {
+			b.Castling &^= 0b1100
+		}
+	}
+
+	if moved == Rook || captured == Rook {
+		switch m.From {
+		case 63:
+			b.Castling &^= 0b0001
+		case 56:
+			b.Castling &^= 0b0010
+		case 7:
+			b.Castling &^= 0b0100
+		case 0:
+			b.Castling &^= 0b1000
+		}
+		switch m.To {
+		case 63:
+			b.Castling &^= 0b0001
+		case 56:
+			b.Castling &^= 0b0010
+		case 7:
+			b.Castling &^= 0b0100
+		case 0:
+			b.Castling &^= 0b1000
+		}
+	}
+
+	// --------------------
+	// En-passant square
+	// --------------------
+	b.EnPassant = NoSquare
+	diff := int(m.To) - int(m.From)
+	if moved == Pawn && (diff == 16 || diff == -16) {
+		if color == White {
+			b.EnPassant = m.From + 8
+		} else {
+			b.EnPassant = m.From - 8
+		}
+	}
+
+	// --------------------
+	// Halfmove clock
+	// --------------------
+	if moved == Pawn || captured != NoPiece {
+		b.HalfMoveClock = 0
+	} else {
+		b.HalfMoveClock++
+	}
+
+	// --------------------
+	// Update occupancy
+	// --------------------
 	b.updateOccupancy()
 }
 

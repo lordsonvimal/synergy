@@ -4,6 +4,33 @@ import "math/bits"
 
 const NoSquare uint8 = 64
 
+func (b *Board) squareAttacked(sq uint8, by Color) bool {
+	// Pawn
+	if PawnAttacks(by^1, sq)&b.Pieces[by][Pawn] != 0 {
+		return true
+	}
+
+	// Knight
+	if KnightAttacks[sq]&b.Pieces[by][Knight] != 0 {
+		return true
+	}
+
+	// King
+	if KingAttacks[sq]&b.Pieces[by][King] != 0 {
+		return true
+	}
+
+	// Sliding
+	if RookAttacks(sq, b.All)&(b.Pieces[by][Rook]|b.Pieces[by][Queen]) != 0 {
+		return true
+	}
+	if BishopAttacks(sq, b.All)&(b.Pieces[by][Bishop]|b.Pieces[by][Queen]) != 0 {
+		return true
+	}
+
+	return false
+}
+
 // --------------------------
 // Generate pseudo-legal moves
 // --------------------------
@@ -149,34 +176,57 @@ func (b *Board) generateQueenMoves(sq uint8, color Color) []Move {
 // --------------------------
 func (b *Board) generateKingMoves(sq uint8, color Color) []Move {
 	var moves []Move
+	opp := color ^ 1
+
+	// -----------------
+	// Normal king moves
+	// -----------------
 	attacks := KingAttacks[sq] &^ b.Occupancy[color]
 	for bb := attacks; bb != 0; {
 		to := PopLSB(&bb)
-		moves = append(moves, Move{From: sq, To: to})
+		if !b.squareAttacked(to, opp) {
+			moves = append(moves, Move{From: sq, To: to})
+		}
 	}
 
+	// -----------------
 	// Castling
+	// -----------------
 	if color == White {
-		if b.Castling&0b0001 != 0 { // White kingside
-			if b.All&(1<<61|1<<62) == 0 {
-				moves = append(moves, Move{From: sq, To: 62})
-			}
+		// White king side: e1 -> g1 (60 -> 62)
+		if b.Castling&0b0001 != 0 &&
+			b.All&(bit(61)|bit(62)) == 0 &&
+			!b.squareAttacked(60, Black) &&
+			!b.squareAttacked(61, Black) &&
+			!b.squareAttacked(62, Black) {
+			moves = append(moves, Move{From: 60, To: 62})
 		}
-		if b.Castling&0b0010 != 0 { // White queenside
-			if b.All&(1<<57|1<<58|1<<59) == 0 {
-				moves = append(moves, Move{From: sq, To: 58})
-			}
+
+		// White queen side: e1 -> c1 (60 -> 58)
+		if b.Castling&0b0010 != 0 &&
+			b.All&(bit(57)|bit(58)|bit(59)) == 0 &&
+			!b.squareAttacked(60, Black) &&
+			!b.squareAttacked(59, Black) &&
+			!b.squareAttacked(58, Black) {
+			moves = append(moves, Move{From: 60, To: 58})
 		}
 	} else {
-		if b.Castling&0b0100 != 0 { // Black kingside
-			if b.All&(1<<5|1<<6) == 0 {
-				moves = append(moves, Move{From: sq, To: 6})
-			}
+		// Black king side: e8 -> g8 (4 -> 6)
+		if b.Castling&0b0100 != 0 &&
+			b.All&(bit(5)|bit(6)) == 0 &&
+			!b.squareAttacked(4, White) &&
+			!b.squareAttacked(5, White) &&
+			!b.squareAttacked(6, White) {
+			moves = append(moves, Move{From: 4, To: 6})
 		}
-		if b.Castling&0b1000 != 0 { // Black queenside
-			if b.All&(1<<1|1<<2|1<<3) == 0 {
-				moves = append(moves, Move{From: sq, To: 2})
-			}
+
+		// Black queen side: e8 -> c8 (4 -> 2)
+		if b.Castling&0b1000 != 0 &&
+			b.All&(bit(1)|bit(2)|bit(3)) == 0 &&
+			!b.squareAttacked(4, White) &&
+			!b.squareAttacked(3, White) &&
+			!b.squareAttacked(2, White) {
+			moves = append(moves, Move{From: 4, To: 2})
 		}
 	}
 
