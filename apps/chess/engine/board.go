@@ -386,12 +386,7 @@ func (b *Board) unapplyMove() {
 // High-level MakeMove (game rules)
 // --------------------------
 func (b *Board) MakeMove(m Move) bool {
-	// 1. Pseudo-legal check
-	if !b.isPseudoLegal(m) {
-		return false
-	}
-
-	// Determine moving piece and captured piece before moving
+	// 1. Identify moving piece and captured piece
 	movingPiece := b.pieceOnSquare(m.From)
 	captured := b.pieceOnSquare(m.To)
 	promoted := m.Promotion
@@ -405,11 +400,15 @@ func (b *Board) MakeMove(m Move) bool {
 		m.Flags |= MoveCastle
 	}
 	if movingPiece == Pawn && captured == NoPiece && m.From%8 != m.To%8 {
-		// pawn moved diagonally but no capture -> en-passant
 		m.Flags |= MoveEP
 	}
 
-	// Save state for unapply
+	// 3. Efficient legality check BEFORE committing
+	if !b.isPseudoLegalEfficient(m) {
+		return false
+	}
+
+	// 4. Save current state for undo
 	prevSide := b.SideToMove
 	prevEP := b.EnPassant
 	prevCastling := b.Castling
@@ -417,13 +416,13 @@ func (b *Board) MakeMove(m Move) bool {
 	prevFull := b.FullMoveNumber
 	prevHash := b.Hash
 
-	// 3. Apply move
+	// 5. Apply move
 	b.applyMove(m)
 
-	// 4. Update Zobrist hash incrementally
+	// 6. Update hash
 	b.Hash = b.UpdateHash(m, prevSide, captured, promoted)
 
-	// 5. Save MoveState for undo
+	// 7. Save MoveState for undo
 	state := MoveState{
 		From:          m.From,
 		To:            m.To,
@@ -439,23 +438,10 @@ func (b *Board) MakeMove(m Move) bool {
 	}
 	b.MoveStack = append(b.MoveStack, state)
 
-	// 6. Flip side
+	// 8. Flip side
 	b.SideToMove ^= 1
 
-	// 7. Check legality: did mover leave own king in check?
-	if b.isKingInCheck(prevSide) {
-		// Restore state
-		b.SideToMove = prevSide
-		b.EnPassant = prevEP
-		b.Castling = prevCastling
-		b.HalfMoveClock = prevHalf
-		b.FullMoveNumber = prevFull
-		b.Hash = prevHash
-		b.unapplyMove()
-		return false
-	}
-
-	// 8. Fullmove update
+	// 9. Update fullmove number
 	if b.SideToMove == White {
 		b.FullMoveNumber++
 	}
