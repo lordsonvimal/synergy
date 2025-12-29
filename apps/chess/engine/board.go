@@ -495,6 +495,10 @@ func (b *Board) pieceOnSquare(sq uint8) Piece {
 
 // FEN returns the FEN string for the current board position using bitboards efficiently
 func (b *Board) FEN() string {
+	var fen strings.Builder
+	fen.Grow(100) // preallocate enough for worst-case FEN
+
+	// 1. Build temporary board array
 	var board [64]byte
 	for i := range board {
 		board[i] = '.'
@@ -511,8 +515,7 @@ func (b *Board) FEN() string {
 		}
 	}
 
-	var fen strings.Builder
-	fen.Grow(64)
+	// 2. Board part
 	for rank := 7; rank >= 0; rank-- {
 		empty := 0
 		for file := 0; file < 8; file++ {
@@ -522,59 +525,81 @@ func (b *Board) FEN() string {
 				empty++
 			} else {
 				if empty > 0 {
-					fen.WriteByte(byte('0' + empty))
+					fen.WriteByte('0' + byte(empty))
 					empty = 0
 				}
 				fen.WriteByte(ch)
 			}
 		}
 		if empty > 0 {
-			fen.WriteByte(byte('0' + empty))
+			fen.WriteByte('0' + byte(empty))
 		}
 		if rank > 0 {
 			fen.WriteByte('/')
 		}
 	}
 
-	// Side
+	// 3. Side to move
 	if b.SideToMove == White {
 		fen.WriteString(" w ")
 	} else {
 		fen.WriteString(" b ")
 	}
 
-	// Castling
-	c := ""
+	// 4. Castling rights
+	castling := ""
 	if b.Castling&0b0001 != 0 {
-		c += "K"
+		castling += "K"
 	}
 	if b.Castling&0b0010 != 0 {
-		c += "Q"
+		castling += "Q"
 	}
 	if b.Castling&0b0100 != 0 {
-		c += "k"
+		castling += "k"
 	}
 	if b.Castling&0b1000 != 0 {
-		c += "q"
+		castling += "q"
 	}
-	if c == "" {
-		c = "-"
+	if castling == "" {
+		castling = "-"
 	}
-	fen.WriteString(c)
+	fen.WriteString(castling)
 	fen.WriteByte(' ')
 
-	// En passant
+	// 5. En-passant square
 	if b.EnPassant != 255 {
 		file := b.EnPassant % 8
 		rank := b.EnPassant / 8
-		fmt.Fprintf(&fen, "%c%d ", 'a'+file, rank+1)
+		fen.WriteByte('a' + file)
+		fen.WriteByte('1' + rank)
 	} else {
-		fen.WriteString("- ")
+		fen.WriteByte('-')
+	}
+	fen.WriteByte(' ')
+
+	// 6. Halfmove and fullmove (manual conversion to bytes)
+	writeUint(&fen, uint64(b.HalfMoveClock))
+	fen.WriteByte(' ')
+	writeUint(&fen, uint64(b.FullMoveNumber))
+
+	return fen.String()
+}
+
+// Helper: write uint64 to builder without fmt
+func writeUint(fen *strings.Builder, n uint64) {
+	if n == 0 {
+		fen.WriteByte('0')
+		return
 	}
 
-	// Halfmove and fullmove
-	fmt.Fprintf(&fen, "%d %d", b.HalfMoveClock, b.FullMoveNumber)
-	return fen.String()
+	var buf [20]byte
+	i := 20
+	for n > 0 {
+		i--
+		buf[i] = '0' + byte(n%10)
+		n /= 10
+	}
+	fen.Write(buf[i:])
 }
 
 // --------------------------
