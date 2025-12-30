@@ -1,0 +1,28 @@
+package components
+
+import (
+	"fmt"
+	"github.com/lordsonvimal/synergy/apps/chess/engine"
+)
+
+templ RenderChessSquare(b *engine.Board, rank int, file int) {
+  // Use a helper variable for the dynamic part
+  {{ 
+    sq := uint8(rank*8 + file)
+    color, piece, ok := b.PieceAt(sq)
+
+    bg := "bg-gray-300"
+    if (rank+file)%2 == 0 {
+      bg = "bg-white"
+    }
+  }}
+
+  <td
+    class={ bg, "w-12 h-12 text-center align-middle text-2xl select-none" }
+    data-square={ fmt.Sprint(sq) }
+  >
+    if ok {
+      @RenderChessPiece(color, piece)
+    }
+  </td>
+}

@@ -1,0 +1,20 @@
+package pages
+
+import "github.com/lordsonvimal/synergy/apps/chess/game"
+import "github.com/lordsonvimal/synergy/apps/chess/ui/components"
+
+templ NewGamePage(g *game.Game) {
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>Chess Game</title>
+    <link href="/static/style.css" rel="stylesheet">
+    <script src="/static/chess.js"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen">
+    <div id="chessboard" class="m-4">
+      @components.RenderChessBoard(g.Board)
+    </div>
+  </body>
+  </html>
+}

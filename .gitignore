@@ -28,4 +28,4 @@ vitest.config.*.timestamp*
 
 logs
 
-.wal
+*.wal

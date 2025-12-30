@@ -1,0 +1,25 @@
+package components
+
+import "github.com/lordsonvimal/synergy/apps/chess/engine"
+
+templ RenderChessPiece(color engine.Color, piece engine.Piece) {
+	if color == engine.White {
+		switch piece {
+		case engine.Pawn:   ♙
+		case engine.Knight: ♘
+		case engine.Bishop: ♗
+		case engine.Rook:   ♖
+		case engine.Queen:  ♕
+		case engine.King:   ♔
+		}
+	} else {
+		switch piece {
+		case engine.Pawn:   ♟
+		case engine.Knight: ♞
+		case engine.Bishop: ♝
+		case engine.Rook:   ♜
+		case engine.Queen:  ♛
+		case engine.King:   ♚
+		}
+	}
+}

@@ -1,4 +1,4 @@
-package ui
+package pages
 
 import "github.com/lordsonvimal/synergy/apps/chess/game"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
@@ -20,7 +20,7 @@ templ GameModesPage(modes []game.GameMode) {
 
 			<div class="grid gap-4">
 				for _, mode := range modes {
-					<form method="POST" action="/game/new">
+					<form method="POST" action="/create-game">
 						<input type="hidden" name="mode" value={ mode.Name } />
 
 						<button
