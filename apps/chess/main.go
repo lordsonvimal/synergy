@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lordsonvimal/synergy/apps/chess/config"
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
+	"github.com/lordsonvimal/synergy/apps/chess/server"
 	"github.com/rs/zerolog/log"
 )
 
@@ -40,6 +41,8 @@ func main() {
 	router.Use(gin.Recovery())                                         // Use default recovery for panic logging/handling
 
 	router.StaticFile("/favicon.ico", "assets/favicon.ico")
+
+	server.InitRoutes(router)
 
 	srv := &http.Server{
 		Addr:         ":3001",
