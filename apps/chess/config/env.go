@@ -2,9 +2,7 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
@@ -36,20 +34,4 @@ func GetEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
-}
-
-// Make sure application is loaded with essential envs
-func ValidateRequiredEnv(ctx context.Context) {
-	required := []string{"WOPI_CLIENT_TOKEN_SECRET", "WOPI_APP_TOKEN_SECRET", "WOPI_HOST_URL", "WOPI_HOSTPAGE_TOKEN_SECRET", "WOPI_HOSTPAGE_TOKEN_ISSUER"}
-	for _, key := range required {
-		if GetEnv(key, "") == "" {
-			msg := fmt.Sprintf("FATAL: Required environment variable %s is not set", key)
-			logger.Fatal(ctx).Msg(msg)
-		}
-	}
-
-	// Validate HTTPS
-	if !strings.HasPrefix(os.Getenv("WOPI_HOST_URL"), "https://") {
-		logger.Fatal(ctx).Msg("FATAL: WOPI_HOST_URL must use HTTPS protocol")
-	}
 }

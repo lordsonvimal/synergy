@@ -23,7 +23,6 @@ func main() {
 	ctx = log.Logger.WithContext(ctx)
 
 	config.LoadEnv(ctx)
-	config.ValidateRequiredEnv(ctx)
 
 	mode := config.GetEnv("GIN_MODE", "")
 	isProduction := mode == "release"
@@ -40,6 +39,7 @@ func main() {
 	router.Use(logger.RedactedStructuredLogger(logger.GlobalLogger())) // Structured logging with token redaction (access_token, auth_token, etc.)
 	router.Use(gin.Recovery())                                         // Use default recovery for panic logging/handling
 
+	router.Static("/static", "./dist")
 	router.StaticFile("/favicon.ico", "assets/favicon.ico")
 
 	server.InitRoutes(router)

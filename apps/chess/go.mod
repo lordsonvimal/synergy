@@ -1,4 +1,4 @@
-module github.com/lordsonvimal/synergy
+module github.com/lordsonvimal/synergy/apps/chess
 
 go 1.25.5
 
@@ -12,7 +12,6 @@ require (
 	github.com/gin-contrib/requestid v1.0.5
 	github.com/gin-gonic/gin v1.11.0
 	github.com/joho/godotenv v1.5.1
-	github.com/lordsonvimal/synergy/apps/chess v0.0.0-20251230173934-b1e0a512916c
 	github.com/rs/zerolog v1.34.0
 )
 

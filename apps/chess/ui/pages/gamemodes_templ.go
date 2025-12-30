@@ -32,7 +32,7 @@ func GameModesPage(modes []game.GameMode) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><title>Select Game Mode</title><link href=\"/static/tailwind.css\" rel=\"stylesheet\"></head><body class=\"bg-gray-100 min-h-screen flex items-center justify-center\"><div class=\"w-full max-w-2xl p-6\"><h1 class=\"text-3xl font-bold text-center mb-6\">Choose a Game Mode</h1><div class=\"grid gap-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><title>Select Game Mode</title><link href=\"/static/style.css\" rel=\"stylesheet\"></head><body class=\"bg-gray-100 min-h-screen flex items-center justify-center\"><div class=\"w-full max-w-2xl p-6\"><h1 class=\"text-3xl font-bold text-center mb-6\">Choose a Game Mode</h1><div class=\"grid gap-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
