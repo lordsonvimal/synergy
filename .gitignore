@@ -27,3 +27,5 @@ vitest.config.*.timestamp*
 .git
 
 logs
+
+.wal
