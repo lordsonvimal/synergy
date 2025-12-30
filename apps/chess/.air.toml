@@ -1,0 +1,13 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o tmp/bin/main ."
+  bin = "tmp/bin/main"
+  delay = 100
+  exclude_dir = ["node_modules", "tmp", "assets", "dist"]
+  include_ext = ["go", "templ"]
+  stop_on_error = false
+
+[misc]
+  clean_on_exit = true

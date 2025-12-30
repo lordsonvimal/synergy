@@ -1,0 +1,12 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "templ generate --notify-proxy"
+  bin = "true" # We don't need to run a binary here, just the command
+  delay = 100
+  include_dir = ["assets"]
+  include_ext = ["js", "css"]
+
+[screen]
+  clear_on_rebuild = false
