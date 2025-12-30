@@ -1,0 +1,16 @@
+package ui
+
+import "github.com/lordsonvimal/synergy/apps/chess/game"
+
+templ GameModeCard(mode game.GameMode) {
+	<button
+		class="group bg-white border border-gray-200 rounded-xl p-5 text-left shadow-sm hover:shadow-md hover:border-indigo-500 transition"
+		data-on-click={ "selectMode('" + mode.Variant + "')" }
+	>
+		<div class="flex items-center justify-between">
+			<h2 class="text-lg font-semibold text-gray-800 group-hover:text-indigo-600">
+				{ mode.Name }
+			</h2>
+		</div>
+	</button>
+}

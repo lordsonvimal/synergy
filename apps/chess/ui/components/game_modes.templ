@@ -1,0 +1,18 @@
+package ui
+
+import "github.com/lordsonvimal/synergy/apps/chess/game"
+
+
+templ GameModeList(modes []game.GameMode) {
+	<div class="p-6">
+		<h1 class="text-xl font-bold mb-4">Select Game Mode</h1>
+
+		<ul class="space-y-2">
+			for _, m := range modes {
+				<li class="p-4 border rounded">
+					{ m.Name }
+				</li>
+			}
+		</ul>
+	</div>
+}

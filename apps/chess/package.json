@@ -1,0 +1,27 @@
+{
+  "name": "chess",
+  "version": "1.0.0",
+  "description": "multiplayer chess game",
+  "keywords": [
+    "chess",
+    "game",
+    "multiplayer",
+    "golang"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "github.com/lordsonvimal/synergy/apps/chess"
+  },
+  "license": "ISC",
+  "author": "lordson vimal",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "build": "tailwindcss build -o internal/static/css/tailwind.css --minify",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "tailwindcss": "^4.1.18"
+  }
+}
