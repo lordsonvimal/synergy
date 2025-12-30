@@ -37,7 +37,7 @@ func GameModesPage(modes []game.GameMode) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		for _, mode := range modes {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<form method=\"POST\" action=\"/create-game\"><input type=\"hidden\" name=\"mode\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<form method=\"POST\" action=\"/game\"><input type=\"hidden\" name=\"mode\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

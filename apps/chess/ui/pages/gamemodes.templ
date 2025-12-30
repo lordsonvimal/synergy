@@ -20,7 +20,7 @@ templ GameModesPage(modes []game.GameMode) {
 
 			<div class="grid gap-4">
 				for _, mode := range modes {
-					<form method="POST" action="/create-game">
+					<form method="POST" action="/game">
 						<input type="hidden" name="mode" value={ mode.Name } />
 
 						<button
