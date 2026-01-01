@@ -13,6 +13,7 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/config"
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
 	"github.com/lordsonvimal/synergy/apps/chess/server"
+	"github.com/lordsonvimal/synergy/apps/chess/store"
 	"github.com/rs/zerolog/log"
 )
 
@@ -35,9 +36,12 @@ func main() {
 
 	router := gin.New()
 
+	gameStore := store.NewGameStore()
+
 	router.Use(requestid.New())                                        // Add this for correlation IDs
 	router.Use(logger.RedactedStructuredLogger(logger.GlobalLogger())) // Structured logging with token redaction (access_token, auth_token, etc.)
 	router.Use(gin.Recovery())                                         // Use default recovery for panic logging/handling
+	router.Use(store.StoreContext(gameStore))                          // Add gameStore to context
 
 	router.Static("/static", "./dist")
 	router.StaticFile("/favicon.ico", "assets/favicon.ico")

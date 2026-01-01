@@ -4,17 +4,23 @@ import "github.com/lordsonvimal/synergy/apps/chess/game"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/components"
 
 templ NewGamePage(g *game.Game) {
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <title>Chess Game</title>
-    <link href="/static/style.css" rel="stylesheet">
-    <script src="/static/chess.js"></script>
-  </head>
-  <body class="bg-gray-100 min-h-screen">
-    <div id="chessboard" class="m-4">
-      @components.RenderChessBoard(g.Board)
-    </div>
-  </body>
-  </html>
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Chess Game</title>
+  <link href="/static/style.css" rel="stylesheet">
+  <script type="module"
+    src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js"></script>
+</head>
+
+<!-- Connect SSE live updates once in a page -->
+
+<body class="bg-gray-100 min-h-screen" data-init={ "@get('/live/chess/" + g.ID + "')" }>
+  <div id="chessboard" class="m-4">
+    @components.RenderChessBoard(g.Board)
+  </div>
+</body>
+
+</html>
 }

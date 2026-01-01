@@ -27,3 +27,7 @@ func CreateGame(c *gin.Context) {
 	// For now, render the chessboard page
 	Render(c, http.StatusOK, pages.NewGamePage(g))
 }
+
+func LiveChessUpdates(c *gin.Context) {
+
+}
