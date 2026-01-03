@@ -8,17 +8,20 @@ import (
 templ RenderChessSquare(g *game.Game, rank int, file int) {
 	// Use a helper variable for the dynamic part
 	{{
-		sq := uint8(rank*8 + file)
+		sq := uint8((7-rank)*8 + file)
 		color, piece, ok := g.Board.PieceAt(sq)
+
+		id := fmt.Sprintf("square-%d", sq)
 
 		bg := "bg-gray-300"
 		if (rank+file)%2 != 0 {
 			bg = "bg-white"
 		}
 
-		onClick := templ.JSExpression("@post('/game/" + g.ID + "/select', { square: " + fmt.Sprint(sq) + " })")
+		onClick := templ.JSExpression("@post('/game/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
 	}}
 	<td
+		id={ id }
 		class={ bg, "w-12 h-12 text-center align-middle text-2xl select-none" }
 		data-class={ templ.JSExpression(fmt.Sprintf(`
       ({
@@ -26,7 +29,6 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
         'bg-yellow-200': $possibleMoves.includes(%d)
       })
     `, sq, sq)) }
-		data-signals={ templ.JSExpression(fmt.Sprintf(`{ "square": %s}`, fmt.Sprint(sq))) }
 		data-on:click={ onClick }
 	>
 		if ok {

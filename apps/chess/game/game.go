@@ -1,11 +1,13 @@
 package game
 
 import (
+	"context"
 	"log"
 	"sync"
 
 	"github.com/google/uuid"
 	"github.com/lordsonvimal/synergy/apps/chess/engine"
+	"github.com/lordsonvimal/synergy/apps/chess/logger"
 )
 
 type SelectionState struct {
@@ -178,15 +180,16 @@ func (g *Game) ClearSelection() {
 	g.Selection = nil
 }
 
-func (g *Game) SelectSquare(square uint8) {
+func (g *Game) SelectSquare(ctx context.Context, square uint8) {
 	g.mu.Lock()
-	defer g.mu.Unlock()
 
 	color, _, ok := g.Board.PieceAt(square)
-
 	// If no piece or piece is not ours, clear selection
 	if !ok || color != g.Board.SideToMove {
 		g.Selection = nil
+		g.mu.Unlock()
+
+		logger.Info(ctx).Msg("Invalid piece")
 		return
 	}
 
@@ -203,4 +206,10 @@ func (g *Game) SelectSquare(square uint8) {
 		FromSquare: square,
 		Targets:    targets,
 	}
+
+	g.mu.Unlock()
+
+	logger.Info(ctx).
+		Int("target lengths", len(moves)).
+		Msg("SelectSquare EXIT: selected")
 }
