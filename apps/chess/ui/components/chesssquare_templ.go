@@ -10,10 +10,10 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import (
 	"fmt"
-	"github.com/lordsonvimal/synergy/apps/chess/engine"
+	"github.com/lordsonvimal/synergy/apps/chess/game"
 )
 
-func RenderChessSquare(b *engine.Board, rank int, file int) templ.Component {
+func RenderChessSquare(g *game.Game, rank int, file int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -35,12 +35,16 @@ func RenderChessSquare(b *engine.Board, rank int, file int) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		sq := uint8(rank*8 + file)
-		color, piece, ok := b.PieceAt(sq)
+		color, piece, ok := g.Board.PieceAt(sq)
 
 		bg := "bg-gray-300"
-		if (rank+file)%2 == 0 {
+		if (rank+file)%2 != 0 {
 			bg = "bg-white"
 		}
+
+		// Use backticks for the format string to avoid escaping double quotes
+		dataClass := fmt.Sprintf(`{"ring-4 ring-yellow-400": $selectedSquare==%d, "bg-yellow-200": $possibleMoves.includes(%d)}`, sq, sq)
+		onClick := fmt.Sprintf(`@post("/game/%s/select", {square: %d})`, g.ID, sq)
 		var templ_7745c5c3_Var2 = []any{bg, "w-12 h-12 text-center align-middle text-2xl select-none"}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var2...)
 		if templ_7745c5c3_Err != nil {
@@ -66,13 +70,39 @@ func RenderChessSquare(b *engine.Board, rank int, file int) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(sq))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/chesssquare.templ`, Line: 22, Col: 32}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/chesssquare.templ`, Line: 25, Col: 30}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" data-class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var5 string
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(dataClass)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/chesssquare.templ`, Line: 26, Col: 24}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" data-on-click=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var6 string
+		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(onClick)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/chesssquare.templ`, Line: 27, Col: 25}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -82,7 +112,7 @@ func RenderChessSquare(b *engine.Board, rank int, file int) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</td>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</td>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

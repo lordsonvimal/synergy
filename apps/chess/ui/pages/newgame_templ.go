@@ -37,19 +37,19 @@ func NewGamePage(g *game.Game) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs("@get('/live/chess/" + g.ID + "')")
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs("@get('/game/live/" + g.ID + "')")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/newgame.templ`, Line: 19, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/newgame.templ`, Line: 17, Col: 48}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><div id=\"chessboard\" class=\"m-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" data-signals='{\n    \"selectedSquare\": null, \"possibleMoves\": [] }'><div id=\"chessboard\" class=\"m-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = components.RenderChessBoard(g.Board).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.RenderChessBoard(g).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

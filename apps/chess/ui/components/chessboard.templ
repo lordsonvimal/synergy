@@ -1,13 +1,13 @@
 package components
 
-import "github.com/lordsonvimal/synergy/apps/chess/engine"
+import "github.com/lordsonvimal/synergy/apps/chess/game"
 
-templ RenderChessBoard(b *engine.Board) {
+templ RenderChessBoard(g *game.Game) {
 	<table class="border-separate border-spacing-0">
 		for rank := 7; rank >= 0; rank-- {
 			<tr>
 				for file := 0; file < 8; file++ {
-					@RenderChessSquare(b, rank, file)
+					@RenderChessSquare(g, rank, file)
 				}
 			</tr>
 		}

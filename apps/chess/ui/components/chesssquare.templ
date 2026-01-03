@@ -2,27 +2,32 @@ package components
 
 import (
 	"fmt"
-	"github.com/lordsonvimal/synergy/apps/chess/engine"
+	"github.com/lordsonvimal/synergy/apps/chess/game"
 )
 
-templ RenderChessSquare(b *engine.Board, rank int, file int) {
-  // Use a helper variable for the dynamic part
-  {{ 
-    sq := uint8(rank*8 + file)
-    color, piece, ok := b.PieceAt(sq)
+templ RenderChessSquare(g *game.Game, rank int, file int) {
+	// Use a helper variable for the dynamic part
+	{{
+		sq := uint8(rank*8 + file)
+		color, piece, ok := g.Board.PieceAt(sq)
 
-    bg := "bg-gray-300"
-    if (rank+file)%2 == 0 {
-      bg = "bg-white"
-    }
-  }}
+		bg := "bg-gray-300"
+		if (rank+file)%2 != 0 {
+			bg = "bg-white"
+		}
 
-  <td
-    class={ bg, "w-12 h-12 text-center align-middle text-2xl select-none" }
-    data-square={ fmt.Sprint(sq) }
-  >
-    if ok {
-      @RenderChessPiece(color, piece)
-    }
-  </td>
+		// Use backticks for the format string to avoid escaping double quotes
+		dataClass := fmt.Sprintf(`{"ring-4 ring-yellow-400": $selectedSquare==%d, "bg-yellow-200": $possibleMoves.includes(%d)}`, sq, sq)
+		onClick := fmt.Sprintf(`@post("/game/%s/select", {square: %d})`, g.ID, sq)
+	}}
+	<td
+		class={ bg, "w-12 h-12 text-center align-middle text-2xl select-none" }
+		data-square={ fmt.Sprint(sq) }
+		data-class={ dataClass }
+		data-on-click={ onClick }
+	>
+		if ok {
+			@RenderChessPiece(color, piece)
+		}
+	</td>
 }
