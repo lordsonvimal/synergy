@@ -15,6 +15,11 @@ type SelectionState struct {
 	Targets    []uint8
 }
 
+type SelectionSnapshot struct {
+	FromSquare int   `json:"selectedSquare"`
+	Targets    []int `json:"possibleMoves"`
+}
+
 type Game struct {
 	ID        string
 	Board     *engine.Board
@@ -159,6 +164,28 @@ func (g *Game) GetSelectionFrom() uint8 {
 		return 255 // Return invalid square if no selection
 	}
 	return g.Selection.FromSquare
+}
+
+func (g *Game) SelectionSnapshot() SelectionSnapshot {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	if g.Selection == nil {
+		return SelectionSnapshot{
+			FromSquare: 255, // No selection
+			Targets:    []int{},
+		}
+	}
+
+	moves := make([]int, len(g.Selection.Targets))
+	for i, t := range g.Selection.Targets {
+		moves[i] = int(t)
+	}
+
+	return SelectionSnapshot{
+		FromSquare: int(g.Selection.FromSquare),
+		Targets:    moves,
+	}
 }
 
 // IsTarget checks if the provided square is a valid move target for the current selection.

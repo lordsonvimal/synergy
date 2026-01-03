@@ -22,11 +22,11 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 	}}
 	<td
 		id={ id }
-		class={ bg, "w-12 h-12 text-center align-middle text-2xl select-none" }
+		class={ bg, "w-12 h-12 text-center align-middle text-2xl select-none relative" }
 		data-class={ templ.JSExpression(fmt.Sprintf(`
       ({
-        'ring-4 ring-yellow-400': $selectedSquare === %d,
-        'bg-yellow-200': $possibleMoves.includes(%d)
+        'ring-2 ring-inset ring-yellow-400': $selectedSquare === %d,
+        'bg-yellow-200\/60': $possibleMoves.includes(%d)
       })
     `, sq, sq)) }
 		data-on:click={ onClick }

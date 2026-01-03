@@ -3,7 +3,7 @@ package components
 import "github.com/lordsonvimal/synergy/apps/chess/game"
 
 templ RenderChessBoard(g *game.Game) {
-	<table class="border-separate border-spacing-0">
+	<table class="border-separate border-spacing-0" id="chessboard">
 		for rank := 7; rank >= 0; rank-- {
 			<tr>
 				for file := 0; file < 8; file++ {

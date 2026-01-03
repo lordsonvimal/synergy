@@ -1,41 +1,23 @@
 package server
 
 import (
-	"context"
-	"strings"
-	"sync"
+	"encoding/json"
 
+	"github.com/gin-gonic/gin"
 	"github.com/lordsonvimal/synergy/apps/chess/game"
-	"github.com/lordsonvimal/synergy/apps/chess/ui/components"
+	"github.com/starfederation/datastar-go/datastar"
 )
 
-// A simple registry to keep track of active SSE streams
-var (
-	streamsMu   sync.RWMutex
-	gameStreams = make(map[string][]chan string)
-)
+func broadcastUpdate(c *gin.Context, g *game.Game) error {
+	sse := datastar.NewSSE(c.Writer, c.Request)
 
-func broadcastUpdate(g *game.Game) {
-	// 1. Render the Templ component to a buffer
-	// We pass the game object which now contains the SelectionState
-	buf := new(strings.Builder)
-	components.RenderChessBoard(g).Render(context.Background(), buf)
-	html := buf.String()
+	selectionSnapshot := g.SelectionSnapshot()
 
-	// 2. Format as a Datastar Fragment
-	// This tells Datastar: "Find the element with this ID and replace its innerHTML"
-	sseEvent := "event: datastar-fragment\ndata: #chessboard innerHTML\n\n" + html + "\n\n"
-
-	// 3. Send to all listeners for this specific game
-	streamsMu.RLock()
-	listeners := gameStreams[g.ID]
-	streamsMu.RUnlock()
-
-	for _, ch := range listeners {
-		// Non-blocking send to prevent one slow client from hanging the server
-		select {
-		case ch <- sseEvent:
-		default:
-		}
+	b, err := json.Marshal(selectionSnapshot)
+	if err != nil {
+		return err
 	}
+
+	sse.PatchSignals(b)
+	return nil
 }

@@ -6,5 +6,4 @@ func InitRoutes(r *gin.Engine) {
 	r.GET("/", ShowGameModes)
 	r.POST("/game", CreateGame)
 	r.POST("/game/:gameID/select/:square", SelectSquare)
-	r.GET("/game/live/:gameID", LiveChessUpdates)
 }

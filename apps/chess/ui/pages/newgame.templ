@@ -14,11 +14,10 @@ templ NewGamePage(g *game.Game) {
 		<!-- Connect SSE live updates once in a page -->
 		<body
 			class="bg-gray-100 min-h-screen"
-			data-init={ "@get('/game/live/" + g.ID + "')" }
 			data-signals='{
     "selectedSquare": null, "possibleMoves": [] }'
 		>
-			<div id="chessboard" class="m-4">
+			<div class="m-4" id="chessboardcontainer">
 				@components.RenderChessBoard(g)
 			</div>
 		</body>

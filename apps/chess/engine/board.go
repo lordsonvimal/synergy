@@ -455,30 +455,11 @@ func (b *Board) MakeMove(m Move) bool {
 // Try move temporarily, check legality
 // --------------------------
 func (b *Board) TryMove(m Move) bool {
-	color := b.SideToMove
-
-	// Save state
-	prevEP := b.EnPassant
-	prevCastling := b.Castling
-	prevHalf := b.HalfMoveClock
-	prevFull := b.FullMoveNumber
-	prevHash := b.Hash
-
-	// Apply move temporarily
-	b.ApplyMove(m)
+	temp := *b // shallow copy
+	temp.ApplyMove(m)
 
 	// Check if king is safe
-	legal := !b.IsKingInCheck(color)
-
-	// Undo temporary move
-	b.EnPassant = prevEP
-	b.Castling = prevCastling
-	b.HalfMoveClock = prevHalf
-	b.FullMoveNumber = prevFull
-	b.Hash = prevHash
-	b.UnapplyMove()
-
-	return legal
+	return !b.IsKingInCheck(temp.SideToMove)
 }
 
 // Helper: get piece on a square

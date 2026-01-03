@@ -1,7 +1,6 @@
 package server
 
 import (
-	"io"
 	"net/http"
 	"strconv"
 
@@ -78,7 +77,10 @@ func SelectSquare(c *gin.Context) {
 		move := engine.Move{From: g.GetSelectionFrom(), To: square}
 		if g.ApplyMove(move, 0) {
 			g.ClearSelection()
-			broadcastUpdate(g)
+			err := broadcastUpdate(c, g)
+			if err != nil {
+				logger.Error(ctx).Err(err).Msg("Failed to broadcast update")
+			}
 			return
 		}
 	}
@@ -86,55 +88,8 @@ func SelectSquare(c *gin.Context) {
 	logger.Info(ctx).Uint8("selecting square", square).Msg("Selecting Square")
 	g.SelectSquare(ctx, square)
 
-	broadcastUpdate(g)
-}
-
-func LiveChessUpdates(c *gin.Context) {
-	gameID := c.Param("gameID")
-
-	// 1. Set SSE Headers
-	c.Header("Content-Type", "text/event-stream")
-	c.Header("Cache-Control", "no-cache")
-	c.Header("Connection", "keep-alive")
-	c.Header("X-Accel-Buffering", "no") // Essential for Nginx proxies
-
-	// 2. Create a client channel
-	// We use a buffered channel to prevent slow clients from blocking the broadcaster
-	clientChan := make(chan string, 10)
-
-	// 3. Register this client
-	streamsMu.Lock()
-	gameStreams[gameID] = append(gameStreams[gameID], clientChan)
-	streamsMu.Unlock()
-
-	// 4. Cleanup on disconnect
-	defer func() {
-		streamsMu.Lock()
-		defer streamsMu.Unlock()
-
-		// Remove this specific channel from the slice
-		listeners := gameStreams[gameID]
-		for i, ch := range listeners {
-			if ch == clientChan {
-				gameStreams[gameID] = append(listeners[:i], listeners[i+1:]...)
-				break
-			}
-		}
-		close(clientChan)
-	}()
-
-	// 5. Main Event Loop
-	c.Stream(func(w io.Writer) bool {
-		select {
-		case msg, ok := <-clientChan:
-			if !ok {
-				return false // Channel closed
-			}
-			// Write the raw Datastar fragment to the stream
-			c.Writer.WriteString(msg)
-			return true
-		case <-c.Request.Context().Done():
-			return false // Client disconnected
-		}
-	})
+	err = broadcastUpdate(c, g)
+	if err != nil {
+		logger.Error(ctx).Err(err).Msg("Failed to broadcast update")
+	}
 }
