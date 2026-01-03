@@ -77,9 +77,9 @@ func SelectSquare(c *gin.Context) {
 		move := engine.Move{From: g.GetSelectionFrom(), To: square}
 		if g.ApplyMove(move, 0) {
 			g.ClearSelection()
-			err := broadcastUpdate(c, g)
+			err := broadcastBoard(c, g)
 			if err != nil {
-				logger.Error(ctx).Err(err).Msg("Failed to broadcast update")
+				logger.Error(ctx).Err(err).Msg("Failed to broadcast board update")
 			}
 			return
 		}
@@ -88,8 +88,8 @@ func SelectSquare(c *gin.Context) {
 	logger.Info(ctx).Uint8("selecting square", square).Msg("Selecting Square")
 	g.SelectSquare(ctx, square)
 
-	err = broadcastUpdate(c, g)
+	err = broadcastSelection(c, g)
 	if err != nil {
-		logger.Error(ctx).Err(err).Msg("Failed to broadcast update")
+		logger.Error(ctx).Err(err).Msg("Failed to broadcast selection update")
 	}
 }
