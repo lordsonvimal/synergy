@@ -16,15 +16,17 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 			bg = "bg-white"
 		}
 
-		// Use backticks for the format string to avoid escaping double quotes
-		dataClass := fmt.Sprintf(`{"ring-4 ring-yellow-400": $selectedSquare==%d, "bg-yellow-200": $possibleMoves.includes(%d)}`, sq, sq)
-		onClick := fmt.Sprintf(`@post("/game/%s/select", {square: %d})`, g.ID, sq)
+		onClick := templ.JSExpression("@post('/game/" + g.ID + "/select', { square: " + fmt.Sprint(sq) + " })")
 	}}
 	<td
 		class={ bg, "w-12 h-12 text-center align-middle text-2xl select-none" }
-		data-square={ fmt.Sprint(sq) }
-		data-class={ dataClass }
-		data-on-click={ onClick }
+		data-class={ templ.JSExpression(fmt.Sprintf(`
+      ({
+        'ring-4 ring-yellow-400': $selectedSquare === %d,
+        'bg-yellow-200': $possibleMoves.includes(%d)
+      })
+    `, sq, sq)) }
+		data-on:click={ onClick }
 	>
 		if ok {
 			@RenderChessPiece(color, piece)

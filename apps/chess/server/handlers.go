@@ -1,11 +1,13 @@
 package server
 
 import (
+	"io"
 	"net/http"
-	"slices"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lordsonvimal/synergy/apps/chess/engine"
 	"github.com/lordsonvimal/synergy/apps/chess/game"
+	"github.com/lordsonvimal/synergy/apps/chess/store"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/pages"
 )
 
@@ -30,34 +32,82 @@ func CreateGame(c *gin.Context) {
 }
 
 func SelectSquare(c *gin.Context) {
-	game := MustGame(c)
+	repo, ok := store.GetRepoFromContext(c.Request.Context())
+	if !ok {
+		return
+	}
+
+	gameID, ok := c.Params.Get("gameID")
+	if !ok {
+		return
+	}
+
+	g, ok := repo.Get(gameID)
+	if !ok {
+		return
+	}
+
 	square := parseSquare(c)
 
-	// MOVE phase
-	if game.Selection.FromSquare != nil &&
-		slices.Contains(game.Selection.Targets, square) {
-
-		game.Engine.MakeMove(*game.Selection.FromSquare, square)
-		game.ClearSelection()
-
-		game.BroadcastBoard()
-		return
+	if g.HasSelection() && g.IsTarget(square) {
+		move := engine.Move{From: g.GetSelectionFrom(), To: square}
+		if g.ApplyMove(move, 0) {
+			g.ClearSelection()
+			broadcastUpdate(g)
+			return
+		}
 	}
 
-	// SELECTION phase
-	piece := game.Board.PieceAt(square)
-	if piece == nil {
-		game.ClearSelection()
-		game.BroadcastSelection()
-		return
-	}
-
-	targets := game.Engine.LegalMoves(square)
-	game.Selection.FromSquare = &square
-	game.Selection.Targets = targets
-	game.BroadcastSelection()
+	g.SelectSquare(square)
+	broadcastUpdate(g)
 }
 
 func LiveChessUpdates(c *gin.Context) {
+	gameID := c.Param("gameID")
 
+	// 1. Set SSE Headers
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("X-Accel-Buffering", "no") // Essential for Nginx proxies
+
+	// 2. Create a client channel
+	// We use a buffered channel to prevent slow clients from blocking the broadcaster
+	clientChan := make(chan string, 10)
+
+	// 3. Register this client
+	streamsMu.Lock()
+	gameStreams[gameID] = append(gameStreams[gameID], clientChan)
+	streamsMu.Unlock()
+
+	// 4. Cleanup on disconnect
+	defer func() {
+		streamsMu.Lock()
+		defer streamsMu.Unlock()
+
+		// Remove this specific channel from the slice
+		listeners := gameStreams[gameID]
+		for i, ch := range listeners {
+			if ch == clientChan {
+				gameStreams[gameID] = append(listeners[:i], listeners[i+1:]...)
+				break
+			}
+		}
+		close(clientChan)
+	}()
+
+	// 5. Main Event Loop
+	c.Stream(func(w io.Writer) bool {
+		select {
+		case msg, ok := <-clientChan:
+			if !ok {
+				return false // Channel closed
+			}
+			// Write the raw Datastar fragment to the stream
+			c.Writer.WriteString(msg)
+			return true
+		case <-c.Request.Context().Done():
+			return false // Client disconnected
+		}
+	})
 }

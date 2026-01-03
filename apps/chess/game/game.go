@@ -8,12 +8,18 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/engine"
 )
 
+type SelectionState struct {
+	FromSquare uint8
+	Targets    []uint8
+}
+
 type Game struct {
-	ID    string
-	Board *engine.Board
-	Clock GameClock
-	WAL   *WAL
-	Seq   uint64
+	ID        string
+	Board     *engine.Board
+	Clock     GameClock
+	WAL       *WAL
+	Selection *SelectionState
+	Seq       uint64
 
 	mu             sync.RWMutex
 	legalMoveCache map[engine.Color]bool // cache per side
@@ -133,4 +139,68 @@ func (g *Game) hasLegalMoves(color engine.Color) bool {
 	val := g.Board.HasLegalMoves(color)
 	g.legalMoveCache[color] = val
 	return val
+}
+
+// HasSelection returns true if a square is currently selected for the next move.
+func (g *Game) HasSelection() bool {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.Selection != nil
+}
+
+// GetSelectionFrom returns the currently selected square index.
+// Note: You should check HasSelection() before calling this.
+func (g *Game) GetSelectionFrom() uint8 {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	if g.Selection == nil {
+		return 255 // Return invalid square if no selection
+	}
+	return g.Selection.FromSquare
+}
+
+// IsTarget checks if the provided square is a valid move target for the current selection.
+func (g *Game) IsTarget(square uint8) bool {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	if g.Selection == nil {
+		return false
+	}
+	for _, t := range g.Selection.Targets {
+		if t == square {
+			return true
+		}
+	}
+	return false
+}
+
+func (g *Game) ClearSelection() {
+	g.Selection = nil
+}
+
+func (g *Game) SelectSquare(square uint8) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	color, _, ok := g.Board.PieceAt(square)
+
+	// If no piece or piece is not ours, clear selection
+	if !ok || color != g.Board.SideToMove {
+		g.Selection = nil
+		return
+	}
+
+	// Generate moves and update selection
+	// Assuming you implement GenerateMovesForSquare in your engine
+	moves := g.Board.GenerateMovesForSquare(square)
+
+	targets := make([]uint8, 0, len(moves))
+	for _, m := range moves {
+		targets = append(targets, m.To)
+	}
+
+	g.Selection = &SelectionState{
+		FromSquare: square,
+		Targets:    targets,
+	}
 }

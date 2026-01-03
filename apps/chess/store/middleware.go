@@ -19,3 +19,8 @@ func StoreContext(repo GameRepository) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func GetRepoFromContext(ctx context.Context) (GameRepository, bool) {
+	repo, ok := ctx.Value(ctxkeys.GameRepoKey).(GameRepository)
+	return repo, ok
+}
