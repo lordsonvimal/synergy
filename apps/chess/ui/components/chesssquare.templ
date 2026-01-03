@@ -26,6 +26,7 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
         'bg-yellow-200': $possibleMoves.includes(%d)
       })
     `, sq, sq)) }
+		data-signals={ templ.JSExpression(fmt.Sprintf(`{ "square": %s}`, fmt.Sprint(sq))) }
 		data-on:click={ onClick }
 	>
 		if ok {
