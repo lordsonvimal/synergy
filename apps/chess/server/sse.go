@@ -30,8 +30,7 @@ func broadcastBoard(c *gin.Context, g *game.Game) error {
 	buf := new(strings.Builder)
 	components.RenderChessBoard(g).Render(c.Request.Context(), buf)
 
-	sse.PatchElements(
-		`<div id="chessboardcontainer">` + buf.String() + `</div>`,
-	)
-	return nil
+	sse.PatchElements(buf.String())
+
+	return broadcastSelection(c, g)
 }
