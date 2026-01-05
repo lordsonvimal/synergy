@@ -466,7 +466,7 @@ func (b *Board) TryMove(m Move) bool {
 	temp.ApplyMove(m)
 
 	// Check if king is safe
-	return !b.IsKingInCheck(temp.SideToMove)
+	return !temp.IsKingInCheck(temp.SideToMove)
 }
 
 // Helper: get piece on a square

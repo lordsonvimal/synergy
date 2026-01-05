@@ -300,7 +300,7 @@ func (b *Board) IsKingInCheck(color Color) bool {
 	// Find king square as bitboard
 	kingBB := b.Pieces[color][King]
 	if kingBB == 0 {
-		panic("king missing on the board")
+		return false // should not happen in a valid game
 	}
 
 	kingSq := uint8(bits.TrailingZeros64(uint64(kingBB))) // position 0..63
@@ -564,17 +564,4 @@ func (b *Board) GenerateCaptures() []Move {
 	}
 
 	return moves
-}
-
-// --------------------------
-// Pseudo-legal validation for all moves
-// --------------------------
-func (b *Board) isPseudoLegal(m Move) bool {
-	moves := b.GeneratePseudoLegalMoves()
-	for _, mv := range moves {
-		if mv.From == m.From && mv.To == m.To && mv.Promotion == m.Promotion {
-			return true
-		}
-	}
-	return false
 }

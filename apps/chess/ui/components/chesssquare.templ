@@ -6,7 +6,6 @@ import (
 )
 
 templ RenderChessSquare(g *game.Game, rank int, file int) {
-	// Use a helper variable for the dynamic part
 	{{
 		// rank 0, file 0 now equals 0 (A1)
 		// rank 7, file 0 now equals 56 (A8)
@@ -24,16 +23,16 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 	}}
 	<td
 		id={ id }
-		class={ bg, "w-12 h-12 leading-none font-['DejaVu_Sans']"}
+		class={ bg, "w-12 h-12 leading-none font-['DejaVu_Sans']" }
 		data-on:click={ onClick }
 	>
 		<div
 			class="w-12 h-12 flex items-center justify-center text-2xl select-none relative"
 			data-class={ templ.JSExpression(fmt.Sprintf(`
 			(() => {
-				const isSelected = $selectedSquare === %d;
-				const isTarget   = $possibleMoves.includes(%d);
-
+				const square = %d;
+				const isSelected = $selectedSquare === square;
+				const isTarget   = $possibleMoves.includes(square);
 				return {
 					'outline outline-1': isSelected || isTarget,
 					'outline-blue-700': isSelected,
@@ -41,7 +40,7 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 					'outline-blue-400': isTarget
 				};
 			})()
-			`, sq, sq)) }
+			`, sq)) }
 		>
 			if ok {
 				@RenderChessPiece(color, piece)
