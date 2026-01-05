@@ -118,12 +118,12 @@ func (b *Board) Reset() {
 	b.Pieces[Black][Bishop] = 0x2400000000000000
 
 	// Queens
-	b.Pieces[White][Queen] = 0x0000000000000008
-	b.Pieces[Black][Queen] = 0x0800000000000000
+	b.Pieces[White][Queen] = 0x0000000000000010
+	b.Pieces[Black][Queen] = 0x1000000000000000
 
 	// Kings
-	b.Pieces[White][King] = 0x0000000000000010
-	b.Pieces[Black][King] = 0x1000000000000000
+	b.Pieces[White][King] = 0x0000000000000008
+	b.Pieces[Black][King] = 0x0800000000000000
 
 	b.updateOccupancy()
 

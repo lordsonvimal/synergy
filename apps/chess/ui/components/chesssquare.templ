@@ -22,17 +22,28 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 	}}
 	<td
 		id={ id }
-		class={ bg, "w-12 h-12 text-center align-middle text-2xl select-none relative" }
-		data-class={ templ.JSExpression(fmt.Sprintf(`
-      ({
-        'ring-2 ring-inset ring-yellow-400': $selectedSquare === %d,
-        'bg-yellow-200/30': $possibleMoves.includes(%d)
-      })
-    `, sq, sq)) }
+		class={ bg, "w-12 h-12"}
 		data-on:click={ onClick }
 	>
-		if ok {
-			@RenderChessPiece(color, piece)
-		}
+		<div
+			class="w-12 h-12 flex items-center justify-center text-2xl select-none relative"
+			data-class={ templ.JSExpression(fmt.Sprintf(`
+			(() => {
+				const isSelected = $selectedSquare === %d;
+				const isTarget   = $possibleMoves.includes(%d);
+
+				return {
+					'outline outline-1': isSelected || isTarget,
+					'outline-blue-700': isSelected,
+					'bg-blue-200/30': isTarget,
+					'outline-blue-400': isTarget
+				};
+			})()
+			`, sq, sq)) }
+		>
+			if ok {
+				@RenderChessPiece(color, piece)
+			}
+		</div>
 	</td>
 }
