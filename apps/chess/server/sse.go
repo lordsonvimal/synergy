@@ -11,23 +11,8 @@ import (
 	"github.com/starfederation/datastar-go/datastar"
 )
 
-// Broadcast the current selection state to the client
-func broadcastSelection(c *gin.Context, g *game.Game) error {
-	sse := datastar.NewSSE(c.Writer, c.Request)
-
-	selectionSnapshot := g.SelectionSnapshot()
-
-	b, err := json.Marshal(selectionSnapshot)
-	if err != nil {
-		return err
-	}
-
-	sse.PatchSignals(b)
-	return nil
-}
-
 // Broadcast the updated board state to the client
-func broadcastBoard(c *gin.Context, g *game.Game) error {
+func broadcastBoard(c *gin.Context, g *game.Game, signals *ui_store.ChessBoardSignals) error {
 	sse := datastar.NewSSE(c.Writer, c.Request)
 
 	buf := new(strings.Builder)
@@ -35,11 +20,11 @@ func broadcastBoard(c *gin.Context, g *game.Game) error {
 
 	sse.PatchElements(buf.String())
 
-	return broadcastSelection(c, g)
+	return broadcastSignals(c, signals)
 }
 
 // Show promotion UI for selecting a piece
-func broadcastPromotion(c *gin.Context, signals *ui_store.ChessBoardSignals) error {
+func broadcastSignals(c *gin.Context, signals *ui_store.ChessBoardSignals) error {
 	sse := datastar.NewSSE(c.Writer, c.Request)
 
 	b, err := json.Marshal(signals)

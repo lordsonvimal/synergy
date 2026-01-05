@@ -75,22 +75,19 @@ func SelectSquare(c *gin.Context) {
 		return
 	}
 
+	signals := ui_store.NewChessBoardSignals()
+	datastar.ReadSignals(c.Request, signals)
+
+	logger.Info(ctx).Bool("has selection", g.HasSelection()).Uint8("isTarget", square).Msg("Handler: Moving Piece")
 	if g.HasSelection() && g.IsTarget(square) {
-		// TODO: Pass correct promotion piece
 		move := engine.Move{From: g.GetSelectionFrom(), To: square, Promotion: engine.NoPiece}
-
-		signals := ui_store.NewChessBoardSignals()
-		datastar.ReadSignals(c.Request, signals)
-
 		promoteWithPiece := signals.Promotion && signals.PromotionPiece != engine.NoPiece
 
 		// Is the selected move a promotion?
 		if g.IsPromotionMove(move) && !promoteWithPiece {
-			signals.Promotion = true
-			signals.PromotedSquare = square
-			signals.SelectedSquare = square
-			signals.PossibleMoves = []uint8{}
-			err := broadcastPromotion(c, signals)
+			signals.EnablePromotion(square)
+
+			err := broadcastSignals(c, signals)
 			if err != nil {
 				logger.Error(ctx).Err(err).Msg("Failed to broadcast promotion signal")
 			}
@@ -102,31 +99,26 @@ func SelectSquare(c *gin.Context) {
 			move.Promotion = signals.PromotionPiece
 		}
 		if g.ApplyMove(move, 0) {
-			g.ClearSelection()
-			err := broadcastBoard(c, g)
+			signals.UpdateFromGame(g)
+			if promoteWithPiece {
+				signals.ClearPromotion()
+			}
+
+			err := broadcastBoard(c, g, signals)
 			if err != nil {
 				logger.Error(ctx).Err(err).Msg("Failed to broadcast board update")
 			}
-
-			// Clear promotion signals if any
-			if promoteWithPiece {
-				signals.ClearPromotion()
-				signals.ClearSelection()
-
-				err = broadcastPromotion(c, signals)
-				if err != nil {
-					logger.Error(ctx).Err(err).Msg("Failed to broadcast promotion clear")
-				}
-			}
-
 			return
+
+		} else {
+			logger.Info(ctx).Msg("Invalid move attempted")
 		}
 	}
 
 	logger.Info(ctx).Uint8("selecting square", square).Msg("Selecting Square")
 	g.SelectSquare(ctx, square)
-
-	err = broadcastSelection(c, g)
+	signals.UpdateFromGame(g)
+	err = broadcastSignals(c, signals)
 	if err != nil {
 		logger.Error(ctx).Err(err).Msg("Failed to broadcast selection update")
 	}

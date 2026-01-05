@@ -12,8 +12,9 @@ import (
 type Color uint8
 
 const (
-	White Color = 0
-	Black Color = 1
+	White   Color = 0
+	Black   Color = 1
+	NoColor Color = 255
 )
 
 const ColorNB = 2

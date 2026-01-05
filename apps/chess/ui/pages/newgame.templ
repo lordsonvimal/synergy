@@ -18,8 +18,13 @@ templ NewGamePage(g *game.Game) {
 			class="bg-gray-100 h-full"
 			data-signals={ templ.JSONString(ui_store.NewChessBoardSignals()) }
 		>
-			<div class="m-4 h-full" id="chessboardcontainer">
-				@components.RenderChessBoard(g)
+			<div class="flex gap-4 h-full">
+				<section class="flex-1">
+					@components.RenderChessBoard(g)
+				</section>
+				<aside>
+					@components.GameInfoPanel()
+				</aside>
 			</div>
 		</body>
 	</html>

@@ -159,7 +159,6 @@ func (b *Board) generateBishopMoves(sq uint8, color Color) []Move {
 	var moves []Move
 	occ := b.All &^ (uint64(1) << sq)
 	attacks := BishopAttacks(sq, occ) &^ b.Occupancy[color]
-	PrintBB(attacks)
 	for bb := attacks; bb != 0; {
 		to := PopLSB(&bb)
 
@@ -304,42 +303,7 @@ func (b *Board) IsKingInCheck(color Color) bool {
 	}
 
 	kingSq := uint8(bits.TrailingZeros64(uint64(kingBB))) // position 0..63
-
-	// Opponent pawn attacks
-	if color == White {
-		if kingBB&PawnAttacks(Black, kingSq) != 0 {
-			return true
-		}
-	} else {
-		if kingBB&PawnAttacks(White, kingSq) != 0 {
-			return true
-		}
-	}
-
-	// Knight attacks
-	if kingBB&KnightAttacks[kingSq]&b.Pieces[opp][Knight] != 0 {
-		return true
-	}
-
-	// King attacks (rare)
-	if kingBB&KingAttacks[kingSq]&b.Pieces[opp][King] != 0 {
-		return true
-	}
-
-	// Sliding pieces
-	all := b.All
-
-	// Rook + Queen orthogonal attacks
-	if (RookAttacks(kingSq, all) & (b.Pieces[opp][Rook] | b.Pieces[opp][Queen])) != 0 {
-		return true
-	}
-
-	// Bishop + Queen diagonal attacks
-	if (BishopAttacks(kingSq, all) & (b.Pieces[opp][Bishop] | b.Pieces[opp][Queen])) != 0 {
-		return true
-	}
-
-	return false
+	return b.squareAttacked(kingSq, opp)
 }
 
 // --------------------------
@@ -564,4 +528,16 @@ func (b *Board) GenerateCaptures() []Move {
 	}
 
 	return moves
+}
+
+func (b *Board) IsThreefoldRepetition() bool {
+	// Count how many times current position hash occurred
+	// You can store a map[uint64]int in Board or WAL for efficiency
+	return false
+}
+
+func (b *Board) IsInsufficientMaterial() bool {
+	// Return true if neither side has enough material to checkmate
+	// Examples: K vs K, K+N vs K, K+B vs K
+	return false
 }
