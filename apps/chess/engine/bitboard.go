@@ -1,5 +1,7 @@
 package engine
 
+import "fmt"
+
 // --------------------------
 // Bit helpers
 // --------------------------
@@ -118,4 +120,24 @@ func init() {
 		}
 		FileMask[f] = mask
 	}
+}
+
+func PrintBB(bb uint64) {
+	fmt.Println("+---+---+---+---+---+---+---+---+")
+	// Start from rank 7 (top) down to rank 0 (bottom)
+	for r := 7; r >= 0; r-- {
+		fmt.Print("|")
+		for f := 0; f < 8; f++ {
+			sq := r*8 + f
+			if (bb & (1 << sq)) != 0 {
+				fmt.Print(" X |")
+			} else {
+				fmt.Print(" . |")
+			}
+		}
+		fmt.Printf(" %d\n", r+1) // Rank number
+		fmt.Println("+---+---+---+---+---+---+---+---+")
+	}
+	fmt.Println("  a   b   c   d   e   f   g   h")
+	fmt.Printf("Bitboard: 0x%016X\n\n", bb)
 }

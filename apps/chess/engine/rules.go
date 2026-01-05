@@ -155,8 +155,9 @@ func (b *Board) generateKnightMoves(sq uint8, color Color) []Move {
 // --------------------------
 func (b *Board) generateBishopMoves(sq uint8, color Color) []Move {
 	var moves []Move
-	attacks := BishopAttacks(sq, b.All) &^ b.Occupancy[color]
-
+	occ := b.All &^ (uint64(1) << sq)
+	attacks := bishopAttacksOnTheFly(int(sq), occ) &^ b.Occupancy[color]
+	PrintBB(attacks)
 	for bb := attacks; bb != 0; {
 		to := PopLSB(&bb)
 

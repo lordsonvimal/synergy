@@ -30,12 +30,14 @@ func PawnAttacks(color Color, sq uint8) uint64 {
 // BishopAttacks generates all squares a bishop attacks from sq given occupancy
 func RookAttacks(sq uint8, occ uint64) uint64 {
 	m := RookMagics[sq]
-	index := ((occ & m.Mask) * m.Magic) >> m.Shift
-	return m.Attacks[index]
+	occ &= m.Mask
+	index := (occ * m.Magic) >> m.Shift
+	return RookTable[sq][index]
 }
 
 func BishopAttacks(sq uint8, occ uint64) uint64 {
 	m := BishopMagics[sq]
-	index := ((occ & m.Mask) * m.Magic) >> m.Shift
-	return m.Attacks[index]
+	occ &= m.Mask
+	index := (occ * m.Magic) >> m.Shift
+	return BishopTable[sq][index]
 }
