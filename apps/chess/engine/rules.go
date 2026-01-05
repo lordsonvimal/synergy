@@ -1,6 +1,8 @@
 package engine
 
-import "math/bits"
+import (
+	"math/bits"
+)
 
 const NoSquare uint8 = 64
 
@@ -156,7 +158,7 @@ func (b *Board) generateKnightMoves(sq uint8, color Color) []Move {
 func (b *Board) generateBishopMoves(sq uint8, color Color) []Move {
 	var moves []Move
 	occ := b.All &^ (uint64(1) << sq)
-	attacks := bishopAttacksOnTheFly(int(sq), occ) &^ b.Occupancy[color]
+	attacks := BishopAttacks(sq, occ) &^ b.Occupancy[color]
 	PrintBB(attacks)
 	for bb := attacks; bb != 0; {
 		to := PopLSB(&bb)
@@ -181,7 +183,7 @@ func (b *Board) generateBishopMoves(sq uint8, color Color) []Move {
 // --------------------------
 func (b *Board) generateRookMoves(sq uint8, color Color) []Move {
 	var moves []Move
-	attacks := rookAttacksOnTheFly(int(sq), b.All) &^ b.Occupancy[color]
+	attacks := RookAttacks(sq, b.All) &^ b.Occupancy[color]
 
 	for bb := attacks; bb != 0; {
 		to := PopLSB(&bb)
@@ -247,56 +249,42 @@ func (b *Board) generateKingMoves(sq uint8, color Color) []Move {
 	// Castling
 	// -----------------
 	if color == White {
-		// White king side: e1 -> g1 (60 -> 62)
+		// White King is on sq 4 (e1)
+		// King side: e1 -> g1 (4 -> 6)
 		if b.Castling&0b0001 != 0 &&
-			b.All&(bit(61)|bit(62)) == 0 &&
-			!b.squareAttacked(60, Black) &&
-			!b.squareAttacked(61, Black) &&
-			!b.squareAttacked(62, Black) {
-			moves = append(moves, Move{
-				From:  60,
-				To:    62,
-				Flags: MoveCastle,
-			})
+			b.All&(bit(5)|bit(6)) == 0 &&
+			!b.squareAttacked(4, Black) &&
+			!b.squareAttacked(5, Black) &&
+			!b.squareAttacked(6, Black) {
+			moves = append(moves, Move{From: 4, To: 6, Flags: MoveCastle})
 		}
 
-		// White queen side: e1 -> c1 (60 -> 58)
+		// Queen side: e1 -> c1 (4 -> 2)
 		if b.Castling&0b0010 != 0 &&
-			b.All&(bit(57)|bit(58)|bit(59)) == 0 &&
-			!b.squareAttacked(60, Black) &&
-			!b.squareAttacked(59, Black) &&
-			!b.squareAttacked(58, Black) {
-			moves = append(moves, Move{
-				From:  60,
-				To:    58,
-				Flags: MoveCastle,
-			})
+			b.All&(bit(1)|bit(2)|bit(3)) == 0 &&
+			!b.squareAttacked(4, Black) &&
+			!b.squareAttacked(3, Black) &&
+			!b.squareAttacked(2, Black) {
+			moves = append(moves, Move{From: 4, To: 2, Flags: MoveCastle})
 		}
 	} else {
-		// Black king side: e8 -> g8 (4 -> 6)
+		// Black King is on sq 60 (e8)
+		// King side: e8 -> g8 (60 -> 62)
 		if b.Castling&0b0100 != 0 &&
-			b.All&(bit(5)|bit(6)) == 0 &&
-			!b.squareAttacked(4, White) &&
-			!b.squareAttacked(5, White) &&
-			!b.squareAttacked(6, White) {
-			moves = append(moves, Move{
-				From:  4,
-				To:    6,
-				Flags: MoveCastle,
-			})
+			b.All&(bit(61)|bit(62)) == 0 &&
+			!b.squareAttacked(60, White) &&
+			!b.squareAttacked(61, White) &&
+			!b.squareAttacked(62, White) {
+			moves = append(moves, Move{From: 60, To: 62, Flags: MoveCastle})
 		}
 
-		// Black queen side: e8 -> c8 (4 -> 2)
+		// Queen side: e8 -> c8 (60 -> 58)
 		if b.Castling&0b1000 != 0 &&
-			b.All&(bit(1)|bit(2)|bit(3)) == 0 &&
-			!b.squareAttacked(4, White) &&
-			!b.squareAttacked(3, White) &&
-			!b.squareAttacked(2, White) {
-			moves = append(moves, Move{
-				From:  4,
-				To:    2,
-				Flags: MoveCastle,
-			})
+			b.All&(bit(57)|bit(58)|bit(59)) == 0 &&
+			!b.squareAttacked(60, White) &&
+			!b.squareAttacked(59, White) &&
+			!b.squareAttacked(58, White) {
+			moves = append(moves, Move{From: 60, To: 58, Flags: MoveCastle})
 		}
 	}
 

@@ -118,12 +118,12 @@ func (b *Board) Reset() {
 	b.Pieces[Black][Bishop] = 0x2400000000000000
 
 	// Queens
-	b.Pieces[White][Queen] = 0x0000000000000010
-	b.Pieces[Black][Queen] = 0x1000000000000000
+	b.Pieces[White][Queen] = 0x0000000000000008
+	b.Pieces[Black][Queen] = 0x0800000000000000
 
 	// Kings
-	b.Pieces[White][King] = 0x0000000000000008
-	b.Pieces[Black][King] = 0x0800000000000000
+	b.Pieces[White][King] = 0x0000000000000010
+	b.Pieces[Black][King] = 0x1000000000000000
 
 	b.updateOccupancy()
 
@@ -239,18 +239,18 @@ func (b *Board) ApplyMove(m Move) {
 	// --------------------
 	if m.Flags&MoveCastle != 0 {
 		switch m.To {
-		case 62: // White king side
-			b.Pieces[White][Rook] &^= bit(63)
-			b.Pieces[White][Rook] |= bit(61)
-		case 58: // White queen side
-			b.Pieces[White][Rook] &^= bit(56)
-			b.Pieces[White][Rook] |= bit(59)
-		case 6: // Black king side
-			b.Pieces[Black][Rook] &^= bit(7)
-			b.Pieces[Black][Rook] |= bit(5)
-		case 2: // Black queen side
-			b.Pieces[Black][Rook] &^= bit(0)
-			b.Pieces[Black][Rook] |= bit(3)
+		case 6: // White king side
+			b.Pieces[White][Rook] &^= bit(7)
+			b.Pieces[White][Rook] |= bit(5)
+		case 2: // White queen side
+			b.Pieces[White][Rook] &^= bit(0)
+			b.Pieces[White][Rook] |= bit(3)
+		case 62: // Black king side
+			b.Pieces[Black][Rook] &^= bit(63)
+			b.Pieces[Black][Rook] |= bit(61)
+		case 58: // Black queen side
+			b.Pieces[Black][Rook] &^= bit(56)
+			b.Pieces[Black][Rook] |= bit(59)
 		}
 	}
 
