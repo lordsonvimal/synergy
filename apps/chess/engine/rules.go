@@ -181,7 +181,7 @@ func (b *Board) generateBishopMoves(sq uint8, color Color) []Move {
 // --------------------------
 func (b *Board) generateRookMoves(sq uint8, color Color) []Move {
 	var moves []Move
-	attacks := RookAttacks(sq, b.All) &^ b.Occupancy[color]
+	attacks := rookAttacksOnTheFly(int(sq), b.All) &^ b.Occupancy[color]
 
 	for bb := attacks; bb != 0; {
 		to := PopLSB(&bb)

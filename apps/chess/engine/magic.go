@@ -83,19 +83,17 @@ func bishopMask(sq int) uint64 {
 	var mask uint64
 	rank, file := sq/8, sq%8
 
-	// Directions: NE, NW, SE, SW
-	dr := []int{1, 1, -1, -1}
-	df := []int{1, -1, 1, -1}
-
-	for i := 0; i < 4; i++ {
-		r, f := rank+dr[i], file+df[i]
-		// We stop BEFORE the edge (r=0, r=7, f=0, f=7)
-		// because blockers on the edge don't change the reachable squares
-		for r > 0 && r < 7 && f > 0 && f < 7 {
-			mask |= 1 << (r*8 + f)
-			r += dr[i]
-			f += df[i]
-		}
+	for r, f := rank+1, file+1; r < 7 && f < 7; r, f = r+1, f+1 {
+		mask |= 1 << (r*8 + f)
+	}
+	for r, f := rank+1, file-1; r < 7 && f > 0; r, f = r+1, f-1 {
+		mask |= 1 << (r*8 + f)
+	}
+	for r, f := rank-1, file+1; r > 0 && f < 7; r, f = r-1, f+1 {
+		mask |= 1 << (r*8 + f)
+	}
+	for r, f := rank-1, file-1; r > 0 && f > 0; r, f = r-1, f-1 {
+		mask |= 1 << (r*8 + f)
 	}
 	return mask
 }
