@@ -203,6 +203,26 @@ func (g *Game) IsTarget(square uint8) bool {
 	return false
 }
 
+func (g *Game) IsPromotionMove(move engine.Move) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	color, piece, _ := g.Board.PieceAt(move.From)
+	if piece != engine.Pawn {
+		return false
+	}
+
+	if !g.Board.TryMove(move) {
+		return false
+	}
+
+	rank := move.To / 8
+	if color == engine.White {
+		return rank == 7
+	}
+
+	return rank == 0
+}
+
 func (g *Game) ClearSelection() {
 	g.Selection = nil
 }

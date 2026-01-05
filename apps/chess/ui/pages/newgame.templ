@@ -2,22 +2,23 @@ package pages
 
 import "github.com/lordsonvimal/synergy/apps/chess/game"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/components"
+import "github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 
 templ NewGamePage(g *game.Game) {
 	<!DOCTYPE html>
-	<html>
+	<html class="h-full">
 		<head>
 			<title>Chess Game</title>
 			<link href="/static/style.css" rel="stylesheet"/>
+			<link rel="preload" href="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js" as="script"/>
 			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js"></script>
 		</head>
 		<!-- Connect SSE live updates once in a page -->
 		<body
-			class="bg-gray-100 min-h-screen"
-			data-signals='{
-    "selectedSquare": null, "possibleMoves": [] }'
+			class="bg-gray-100 h-full"
+			data-signals={ templ.JSONString(ui_store.NewChessBoardSignals()) }
 		>
-			<div class="m-4" id="chessboardcontainer">
+			<div class="m-4 h-full" id="chessboardcontainer">
 				@components.RenderChessBoard(g)
 			</div>
 		</body>

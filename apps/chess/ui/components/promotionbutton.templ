@@ -1,0 +1,20 @@
+package components
+
+import (
+	"fmt"
+	"github.com/lordsonvimal/synergy/apps/chess/engine"
+	"github.com/lordsonvimal/synergy/apps/chess/game"
+)
+
+templ PromotionButton(g *game.Game, piece engine.Piece) {
+	{{
+		color := g.Board.SideToMove
+		onClick := templ.JSExpression(fmt.Sprintf(`$promotionPiece = %d; @post('/game/%s/select/' + $promotedSquare)`, piece, g.ID))
+	}}
+	<button
+		class="w-12 h-12 text-3xl hover:bg-gray-200 rounded"
+		data-on:click={ onClick }
+	>
+		@RenderChessPiece(color, piece)
+	</button>
+}

@@ -3,13 +3,16 @@ package components
 import "github.com/lordsonvimal/synergy/apps/chess/game"
 
 templ RenderChessBoard(g *game.Game) {
-	<table class="border-separate border-spacing-0" id="chessboard">
-		for rank := 7; rank >= 0; rank-- {
-			<tr>
-				for file := 0; file < 8; file++ {
-					@RenderChessSquare(g, rank, file)
-				}
-			</tr>
-		}
-	</table>
+	<div class="relative h-full flex items-center justify-center" id="chessboard">
+		<table class="border-separate border-spacing-0">
+			for rank := 7; rank >= 0; rank-- {
+				<tr>
+					for file := 0; file < 8; file++ {
+						@RenderChessSquare(g, rank, file)
+					}
+				</tr>
+			}
+		</table>
+	</div>
+	@RenderPromotionOverlay(g)
 }

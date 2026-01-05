@@ -10,6 +10,8 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
 	"github.com/lordsonvimal/synergy/apps/chess/store"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/pages"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
+	"github.com/starfederation/datastar-go/datastar"
 )
 
 func ShowGameModes(c *gin.Context) {
@@ -76,12 +78,47 @@ func SelectSquare(c *gin.Context) {
 	if g.HasSelection() && g.IsTarget(square) {
 		// TODO: Pass correct promotion piece
 		move := engine.Move{From: g.GetSelectionFrom(), To: square, Promotion: engine.NoPiece}
+
+		signals := ui_store.NewChessBoardSignals()
+		datastar.ReadSignals(c.Request, signals)
+
+		promoteWithPiece := signals.Promotion && signals.PromotionPiece != engine.NoPiece
+
+		// Is the selected move a promotion?
+		if g.IsPromotionMove(move) && !promoteWithPiece {
+			signals.Promotion = true
+			signals.PromotedSquare = square
+			signals.SelectedSquare = square
+			signals.PossibleMoves = []uint8{}
+			err := broadcastPromotion(c, signals)
+			if err != nil {
+				logger.Error(ctx).Err(err).Msg("Failed to broadcast promotion signal")
+			}
+			return
+		}
+
+		// Update move with promotion piece if already selected
+		if promoteWithPiece {
+			move.Promotion = signals.PromotionPiece
+		}
 		if g.ApplyMove(move, 0) {
 			g.ClearSelection()
 			err := broadcastBoard(c, g)
 			if err != nil {
 				logger.Error(ctx).Err(err).Msg("Failed to broadcast board update")
 			}
+
+			// Clear promotion signals if any
+			if promoteWithPiece {
+				signals.ClearPromotion()
+				signals.ClearSelection()
+
+				err = broadcastPromotion(c, signals)
+				if err != nil {
+					logger.Error(ctx).Err(err).Msg("Failed to broadcast promotion clear")
+				}
+			}
+
 			return
 		}
 	}
