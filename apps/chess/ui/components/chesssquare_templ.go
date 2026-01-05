@@ -102,15 +102,14 @@ func RenderChessSquare(g *game.Game, rank int, file int) templ.Component {
 				const isSelected = $selectedSquare === square;
 				const isTarget   = $possibleMoves.includes(square);
 				return {
-					'outline outline-1': isSelected || isTarget,
-					'outline-blue-700': isSelected,
-					'bg-blue-200/30': isTarget,
-					'outline-blue-400': isTarget
+					'ring ring-inset ring-1': isSelected || isTarget,
+					'ring-blue-600 bg-blue-200/30': isTarget,
+					'ring-yellow-400 bg-yellow-200/30': isSelected
 				};
 			})()
 			`, sq)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/chesssquare.templ`, Line: 43, Col: 10}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/chesssquare.templ`, Line: 42, Col: 10}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
