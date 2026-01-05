@@ -194,6 +194,10 @@ func (b *Board) ApplyMove(m Move) {
 		}
 	}
 
+	if moved == NoPiece {
+		panic(fmt.Sprintf("ApplyMove: no piece found on square %d", m.From))
+	}
+
 	// --------------------
 	// Capture handling
 	// --------------------
@@ -222,6 +226,9 @@ func (b *Board) ApplyMove(m Move) {
 	// Promotion / normal move
 	// --------------------
 	if m.Flags&MovePromo != 0 {
+		if m.Promotion == NoPiece {
+			panic("ApplyMove: promotion move has no Promotion piece set")
+		}
 		b.Pieces[color][m.Promotion] |= toMask
 	} else {
 		b.Pieces[color][moved] |= toMask

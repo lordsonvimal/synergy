@@ -68,13 +68,14 @@ func SelectSquare(c *gin.Context) {
 	square := uint8(squareUInt64)
 
 	g, ok := repo.Get(gameID)
-	logger.Info(ctx).Bool("game found", ok).Msg("Handler: SelectSquare - Get Game")
+	logger.Info(ctx).Bool("game found", ok).Uint8("square", square).Msg("Handler: SelectSquare - Get Game Square")
 	if !ok {
 		return
 	}
 
 	if g.HasSelection() && g.IsTarget(square) {
-		move := engine.Move{From: g.GetSelectionFrom(), To: square}
+		// TODO: Pass correct promotion piece
+		move := engine.Move{From: g.GetSelectionFrom(), To: square, Promotion: engine.NoPiece}
 		if g.ApplyMove(move, 0) {
 			g.ClearSelection()
 			err := broadcastBoard(c, g)

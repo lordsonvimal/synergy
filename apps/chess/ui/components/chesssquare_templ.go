@@ -84,7 +84,7 @@ func RenderChessSquare(g *game.Game, rank int, file int) templ.Component {
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(fmt.Sprintf(`
       ({
         'ring-2 ring-inset ring-yellow-400': $selectedSquare === %d,
-        'bg-yellow-200\/60': $possibleMoves.includes(%d)
+        'bg-yellow-200/30': $possibleMoves.includes(%d)
       })
     `, sq, sq)))
 		if templ_7745c5c3_Err != nil {
