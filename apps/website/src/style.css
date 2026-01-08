@@ -70,3 +70,16 @@
   background-color: #334155 !important;
   color: var(--text-main) !important;
 }
+
+/* Force Material Icons to respect Tailwind's display utilities */
+.material-icons.hidden {
+  display: none !important;
+}
+
+.dark .material-icons.dark\:hidden {
+  display: none !important;
+}
+
+.dark .material-icons.dark\:block {
+  display: inline-block !important;
+}

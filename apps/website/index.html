@@ -35,49 +35,6 @@
     }
   </style>
   <script type="module" src="./src/main.js"></script>
-
-  <script defer>
-    // Theme Logic
-    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-
-    document.addEventListener('DOMContentLoaded', function () {
-
-      // Hamburger Logic
-      const btn = document.getElementById('hamburger-btn');
-      const menu = document.getElementById('mobile-menu');
-      const icon = document.getElementById('hamburger-icon');
-      const links = document.querySelectorAll('.mobile-link');
-
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isHidden = menu.classList.contains('hidden');
-        menu.classList.toggle('hidden');
-        icon.textContent = isHidden ? 'close' : 'menu';
-        icon.style.color = isHidden ? '#ef4444' : '';
-      });
-
-      // Dark Mode Toggle Logic
-      const themeToggleBtn = document.getElementById('theme-toggle');
-
-      themeToggleBtn.addEventListener('click', function () {
-        // 1. Toggle the 'dark' class on <html>
-        if (document.documentElement.classList.contains('dark')) {
-          document.documentElement.classList.remove('dark');
-          localStorage.setItem('color-theme', 'light');
-        } else {
-          document.documentElement.classList.add('dark');
-          localStorage.setItem('color-theme', 'dark');
-        }
-
-        // Note: The icons will now flip automatically because of 
-        // the 'dark:hidden' and 'dark:block' classes in the HTML!
-      });
-    });
-  </script>
 </head>
 
 <body class="bg-gray-50 text-gray-800">
@@ -102,17 +59,22 @@
           Call Us
         </a>
 
-        <button id="theme-toggle" type="button"
+        <button name="theme-toggle" type="button"
           class="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-          <span id="theme-toggle-dark-icon" class="material-icons dark:hidden">dark_mode</span>
+          <span name="theme-toggle-dark-icon" class="material-icons dark:hidden">dark_mode</span>
 
-          <span id="theme-toggle-light-icon" class="material-icons hidden dark:block text-yellow-400">light_mode</span>
+          <span name="theme-toggle-light-icon"
+            class="material-icons hidden dark:block text-yellow-400">light_mode</span>
         </button>
       </div>
 
       <div class="md:hidden flex items-center space-x-4">
-        <button id="theme-toggle-mobile" onclick="document.getElementById('theme-toggle').click()" class="text-muted">
-          <span class="material-icons">contrast</span>
+        <button name="theme-toggle" type="button"
+          class="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          <span name="theme-toggle-dark-icon" class="material-icons dark:hidden">dark_mode</span>
+
+          <span name="theme-toggle-light-icon"
+            class="material-icons hidden dark:block text-yellow-400">light_mode</span>
         </button>
 
         <button id="hamburger-btn" class="p-2 text-muted focus:outline-none bg-gray-100 dark:bg-gray-700 rounded-lg">
