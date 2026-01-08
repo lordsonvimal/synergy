@@ -7,6 +7,20 @@
 
   --text-base: var(--text-main);
   --text-muted: var(--text-dim);
+
+  --animate-float: float 5s ease-in-out infinite;
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-20px);
+    }
+  }
 }
 
 @layer base {
@@ -18,30 +32,38 @@
     --text-main: #1f2937;
     --text-dim: #4b5563;
     --accent: #1e40af;
-    /* Deep Blue */
+    --gradient-start: #00b4d8;
+    --gradient-end: #0077b6;
   }
 
   .dark {
     /* Dark Mode - High Contrast */
     --bg: #0f172a;
-    /* Slate 900 */
     --nav: #1e293b;
-    /* Slate 800 */
     --card: #334155;
-    /* Slate 700 */
     --text-main: #f8fafc;
-    /* Slate 50 (White) */
     --text-dim: #cbd5e1;
-    /* Slate 300 (Light Gray) */
     --accent: #38bdf8;
-    /* Sky Blue (Highly visible on dark) */
+    --gradient-start: #1e293b;
+    --gradient-end: #0f172a;
   }
 
   body {
+    font-family: 'Quicksand', sans-serif;
+    scroll-behavior: smooth;
     background-color: var(--bg);
     color: var(--text-main);
     @apply transition-colors duration-300;
   }
+}
+
+.heading-font {
+  font-family: 'Fredoka One', cursive;
+}
+
+.course-card:hover {
+  transform: scale(1.05);
+  transition: all 0.1s ease-in-out;
 }
 
 /* LEGIBILITY FIXES:
@@ -82,4 +104,8 @@
 
 .dark .material-icons.dark\:block {
   display: inline-block !important;
+}
+
+.bg-gradient-kids {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
 }

@@ -98,31 +98,59 @@
     </div>
   </nav>
 
-  <header class="bg-gradient-kids text-white py-16 px-6">
-    <div class="container mx-auto flex flex-col md:flex-row items-center">
+  <header class="bg-gradient-kids text-white py-16 px-6 relative overflow-hidden transition-colors duration-500">
+    <div class="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+
+    <div class="container mx-auto flex flex-col md:flex-row items-center relative z-10">
       <div class="md:w-1/2 text-center md:text-left">
+        <div
+          class="inline-flex items-center space-x-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 border border-white/30">
+          <span class="material-icons text-yellow-300 text-sm">stars</span>
+          <span class="text-xs font-bold tracking-widest uppercase">Premium Learning Center</span>
+        </div>
+
         <h2 class="text-4xl md:text-6xl heading-font mb-6 leading-tight">
-          Where Small Steps Lead to <span class="text-yellow-300 underline">Giant Leaps!</span>
+          Where Small Steps Lead to <span
+            class="text-yellow-300 underline decoration-wavy decoration-2 underline-offset-8">Giant Leaps!</span>
         </h2>
-        <p class="text-lg mb-8 opacity-90">
-          Empowering the children of Nagercoil and Kanyakumari with Phonics, Coding, and Mental Math. Designed for ages
-          3 to 15.
+
+        <p class="text-lg mb-10 text-white/90 max-w-lg leading-relaxed">
+          Join the most trusted academy in Kanyakumari. We specialize in Phonics, Mental Math, and Coding for kids aged
+          3 to 15. Enroll your child today for a brighter tomorrow.
         </p>
-        <div class="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
-          <a href="#contact"
-            class="bg-white text-blue-600 px-8 py-3 rounded-2xl font-bold text-lg shadow-xl hover:bg-yellow-100 transition">Book
-            Free Demo</a>
-          <div class="flex items-center justify-center space-x-2">
-            <span class="material-icons">location_on</span>
-            <span class="font-semibold">Nagercoil Center</span>
+
+        <div class="flex flex-col sm:flex-row justify-center md:justify-start items-center gap-5">
+          <a href="#courses"
+            class="group bg-yellow-400 hover:bg-yellow-500 text-blue-900 px-10 py-4 rounded-2xl font-bold text-xl shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center">
+            Enroll Now
+            <span class="material-icons ml-2 group-hover:translate-x-1 transition-transform">arrow_forward</span>
+          </a>
+
+          <div class="flex flex-col items-center md:items-start">
+            <div class="flex items-center space-x-2 text-white font-semibold">
+              <span class="material-icons text-yellow-300">location_on</span>
+              <span>Pilankalai</span>
+            </div>
+            <span class="text-sm text-white/70 ml-6 italic leading-none">Opp. Win Win Tuition Center</span>
           </div>
         </div>
       </div>
-      <div class="md:w-1/2 mt-12 md:mt-0 flex justify-center">
-        <div class="bg-white p-4 rounded-3xl rotate-3 shadow-2xl">
-          <div class="bg-yellow-400 rounded-2xl p-10">
-            <span class="material-icons text-white text-9xl">rocket_launch</span>
-          </div>
+
+      <div class="md:w-1/2 mt-16 md:mt-0 flex justify-center relative">
+        <div class="relative w-full max-w-lg">
+          <img src="./src/assets/illustration.jpg" alt="Kids Learning in Kanyakumari"
+            class="w-full h-auto drop-shadow-[0_35px_35px_rgba(0,0,0,0.3)] rounded-3xl">
+          <!-- <div
+            class="absolute top-10 right-10 bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-xl -rotate-12 animate-pulse hidden sm:block">
+            <span class="material-icons text-blue-600 block text-3xl">abacus</span>
+            <span class="text-[10px] font-bold text-gray-500 uppercase block mt-1">Maths</span>
+          </div> -->
+
+          <!-- <div
+            class="absolute bottom-20 left-0 bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-xl rotate-12 animate-pulse delay-700 hidden sm:block">
+            <span class="material-icons text-green-500 block text-3xl">code</span>
+            <span class="text-[10px] font-bold text-gray-500 uppercase block mt-1">Coding</span>
+          </div> -->
         </div>
       </div>
     </div>
