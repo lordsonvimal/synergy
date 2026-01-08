@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Everwise Crest | Kids Academy Kanyakumari</title>
+
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@400;600&display=swap"
+    rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Quicksand', sans-serif;
+      scroll-behavior: smooth;
+    }
+
+    .heading-font {
+      font-family: 'Fredoka One', cursive;
+    }
+
+    .course-card:hover {
+      transform: scale(1.03);
+      transition: all 0.3s ease-in-out;
+    }
+
+    .bg-gradient-kids {
+      background: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
+    }
+
+    /* Smooth transition for theme switching */
+    body {
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+  </style>
+  <script type="module" src="./src/main.js"></script>
+
+  <script defer>
+    // Theme Logic
+    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+      // Hamburger Logic
+      const btn = document.getElementById('hamburger-btn');
+      const menu = document.getElementById('mobile-menu');
+      const icon = document.getElementById('hamburger-icon');
+      const links = document.querySelectorAll('.mobile-link');
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = menu.classList.contains('hidden');
+        menu.classList.toggle('hidden');
+        icon.textContent = isHidden ? 'close' : 'menu';
+        icon.style.color = isHidden ? '#ef4444' : '';
+      });
+
+      // Dark Mode Toggle Logic
+      const themeToggleBtn = document.getElementById('theme-toggle');
+
+      themeToggleBtn.addEventListener('click', function () {
+        // 1. Toggle the 'dark' class on <html>
+        if (document.documentElement.classList.contains('dark')) {
+          document.documentElement.classList.remove('dark');
+          localStorage.setItem('color-theme', 'light');
+        } else {
+          document.documentElement.classList.add('dark');
+          localStorage.setItem('color-theme', 'dark');
+        }
+
+        // Note: The icons will now flip automatically because of 
+        // the 'dark:hidden' and 'dark:block' classes in the HTML!
+      });
+    });
+  </script>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+
+  <nav class="bg-surface text-base shadow-md sticky top-0 z-50 transition-colors duration-300">
+    <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+
+      <div class="flex items-center space-x-2 cursor-pointer">
+        <span class="material-icons text-yellow-500 text-4xl">emoji_events</span>
+        <div>
+          <h1 class="text-xl heading-font text-blue-600 leading-none">EVERWISE CREST</h1>
+          <p class="text-xs font-bold text-muted tracking-tighter uppercase">Kanyakumari District</p>
+        </div>
+      </div>
+
+      <div class="hidden md:flex items-center space-x-8 font-semibold text-muted">
+        <a href="#courses" class="hover:text-blue-500 transition">Courses</a>
+        <a href="#about" class="hover:text-blue-500 transition">About</a>
+        <a href="#contact" class="hover:text-blue-500 transition">Contact</a>
+        <a href="tel:+91..."
+          class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-md hover:bg-blue-700 transition">
+          Call Us
+        </a>
+
+        <button id="theme-toggle" type="button"
+          class="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          <span id="theme-toggle-dark-icon" class="material-icons dark:hidden">dark_mode</span>
+
+          <span id="theme-toggle-light-icon" class="material-icons hidden dark:block text-yellow-400">light_mode</span>
+        </button>
+      </div>
+
+      <div class="md:hidden flex items-center space-x-4">
+        <button id="theme-toggle-mobile" onclick="document.getElementById('theme-toggle').click()" class="text-muted">
+          <span class="material-icons">contrast</span>
+        </button>
+
+        <button id="hamburger-btn" class="p-2 text-muted focus:outline-none bg-gray-100 dark:bg-gray-700 rounded-lg">
+          <span class="material-icons text-3xl block" id="hamburger-icon">menu</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="mobile-menu"
+      class="hidden md:hidden bg-surface border-t border-gray-100 dark:border-gray-700 overflow-hidden transition-all duration-300">
+      <div class="flex flex-col px-6 py-6 space-y-4">
+        <a href="#courses" class="mobile-link text-lg font-bold text-blue-800 dark:text-blue-400">Our Courses</a>
+        <a href="#about" class="mobile-link text-lg font-bold text-blue-800 dark:text-blue-400">About Us</a>
+        <a href="#contact" class="mobile-link text-lg font-bold text-blue-800 dark:text-blue-400">Find Us</a>
+        <hr class="border-gray-200 dark:border-gray-600">
+        <a href="tel:+919876543210"
+          class="flex items-center justify-center bg-yellow-500 text-white px-5 py-4 rounded-2xl font-bold shadow-lg">
+          <span class="material-icons mr-2">phone</span> CALL TO ENROLL
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="bg-gradient-kids text-white py-16 px-6">
+    <div class="container mx-auto flex flex-col md:flex-row items-center">
+      <div class="md:w-1/2 text-center md:text-left">
+        <h2 class="text-4xl md:text-6xl heading-font mb-6 leading-tight">
+          Where Small Steps Lead to <span class="text-yellow-300 underline">Giant Leaps!</span>
+        </h2>
+        <p class="text-lg mb-8 opacity-90">
+          Empowering the children of Nagercoil and Kanyakumari with Phonics, Coding, and Mental Math. Designed for ages
+          3 to 15.
+        </p>
+        <div class="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
+          <a href="#contact"
+            class="bg-white text-blue-600 px-8 py-3 rounded-2xl font-bold text-lg shadow-xl hover:bg-yellow-100 transition">Book
+            Free Demo</a>
+          <div class="flex items-center justify-center space-x-2">
+            <span class="material-icons">location_on</span>
+            <span class="font-semibold">Nagercoil Center</span>
+          </div>
+        </div>
+      </div>
+      <div class="md:w-1/2 mt-12 md:mt-0 flex justify-center">
+        <div class="bg-white p-4 rounded-3xl rotate-3 shadow-2xl">
+          <div class="bg-yellow-400 rounded-2xl p-10">
+            <span class="material-icons text-white text-9xl">rocket_launch</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section id="courses" class="py-20 container mx-auto px-6">
+    <div class="text-center mb-16">
+      <h3 class="text-3xl md:text-4xl heading-font text-blue-800 mb-4">Explore Our Fun Courses</h3>
+      <p class="text-gray-500">Specially curated for various age groups between 3 and 15</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div class="bg-white p-8 rounded-3xl shadow-lg border-b-8 border-blue-400 course-card">
+        <span class="material-icons text-blue-500 text-5xl mb-4">record_voice_over</span>
+        <h4 class="text-2xl heading-font text-gray-800 mb-2">Phonics & Spell Bee</h4>
+        <p class="text-gray-600">Building vocabulary and pronunciation skills from a young age.</p>
+      </div>
+
+      <div class="bg-white p-8 rounded-3xl shadow-lg border-b-8 border-yellow-400 course-card">
+        <span class="material-icons text-yellow-500 text-5xl mb-4">calculate</span>
+        <h4 class="text-2xl heading-font text-gray-800 mb-2">Mental Math</h4>
+        <p class="text-gray-600">Arithmetic made easy and lightning fast with fun logic games.</p>
+      </div>
+
+      <div class="bg-white p-8 rounded-3xl shadow-lg border-b-8 border-green-400 course-card">
+        <span class="material-icons text-green-500 text-5xl mb-4">html</span>
+        <h4 class="text-2xl heading-font text-gray-800 mb-2">Web Development</h4>
+        <p class="text-gray-600">Kids learn to create their first website using code and creativity.</p>
+      </div>
+
+      <div class="bg-white p-8 rounded-3xl shadow-lg border-b-8 border-purple-400 course-card">
+        <span class="material-icons text-purple-500 text-5xl mb-4">sports_esports</span>
+        <h4 class="text-2xl heading-font text-gray-800 mb-2">Game Development</h4>
+        <p class="text-gray-600">Turn gamers into creators! Building 2D and 3D games.</p>
+      </div>
+
+      <div class="bg-white p-8 rounded-3xl shadow-lg border-b-8 border-red-400 course-card">
+        <span class="material-icons text-red-500 text-5xl mb-4">extension</span>
+        <h4 class="text-2xl heading-font text-gray-800 mb-2">Chess Academy</h4>
+        <p class="text-gray-600">Enhancing strategic thinking and focus for young grandmasters.</p>
+      </div>
+
+      <div
+        class="bg-blue-600 p-8 rounded-3xl shadow-lg flex flex-col justify-center items-center text-white text-center">
+        <h4 class="text-2xl heading-font mb-4">Ready to start?</h4>
+        <p class="mb-6">Join 200+ kids in Kanyakumari district today!</p>
+        <a href="#contact" class="bg-white text-blue-600 px-6 py-2 rounded-full font-bold">Enrol Today</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-yellow-50 py-16 px-6">
+    <div class="container mx-auto flex flex-col md:flex-row items-center gap-12">
+      <div class="md:w-1/2">
+        <h3 class="text-3xl heading-font text-gray-800 mb-6">Our Centers in Kanyakumari</h3>
+        <div class="space-y-6">
+          <div class="flex items-start space-x-4">
+            <span class="material-icons text-blue-500 mt-1">location_on</span>
+            <div>
+              <p class="font-bold text-lg text-blue-800">Nagercoil (Main Hub)</p>
+              <p class="text-gray-600 italic leading-snug text-sm">Near Anna Stadium, Water Tank Road, Nagercoil.</p>
+            </div>
+          </div>
+          <div class="flex items-start space-x-4">
+            <span class="material-icons text-blue-500 mt-1">location_on</span>
+            <div>
+              <p class="font-bold text-lg text-blue-800">Marthandam</p>
+              <p class="text-gray-600 italic leading-snug text-sm">Opp. Bus Stand, 2nd Floor, Marthandam.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="md:w-1/2">
+        <div class="bg-white p-2 rounded-3xl shadow-xl overflow-hidden">
+          <div class="bg-blue-100 h-64 rounded-2xl flex items-center justify-center">
+            <span class="material-icons text-blue-400 text-7xl">map</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="contact" class="bg-gray-900 text-white py-12 px-6">
+    <div class="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 border-b border-gray-800 pb-12">
+      <div>
+        <h4 class="text-2xl heading-font text-yellow-500 mb-4">Everwise Crest</h4>
+        <p class="text-gray-400 leading-relaxed">Dedicated to providing world-class skill training for the future
+          leaders of Kanyakumari district.</p>
+      </div>
+      <div>
+        <h5 class="font-bold mb-4 uppercase tracking-widest text-sm text-gray-500">Contact Us</h5>
+        <p class="mb-2 flex items-center gap-2"><span class="material-icons text-sm">phone</span> +91 98765 43210</p>
+        <p class="flex items-center gap-2"><span class="material-icons text-sm">email</span> hello@everwisecrest.com</p>
+      </div>
+      <div>
+        <h5 class="font-bold mb-4 uppercase tracking-widest text-sm text-gray-500">Quick Links</h5>
+        <ul class="text-gray-400 space-y-2">
+          <li><a href="#courses" class="hover:text-yellow-500">All Courses</a></li>
+          <li><a href="#" class="hover:text-yellow-500">Success Stories</a></li>
+          <li><a href="#" class="hover:text-yellow-500">Center Locations</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="pt-8 text-center text-gray-600 text-xs">
+      &copy; 2026 Everwise Crest Academy. Locally owned in Nagercoil, Tamil Nadu.
+    </div>
+  </footer>
+
+</body>
+
+</html>

@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface: var(--nav);
+  --color-main: var(--bg);
+  --color-card: var(--card);
+
+  --text-base: var(--text-main);
+  --text-muted: var(--text-dim);
+}
+
+@layer base {
+  :root {
+    /* Light Mode */
+    --bg: #f9fafb;
+    --nav: #ffffff;
+    --card: #ffffff;
+    --text-main: #1f2937;
+    --text-dim: #4b5563;
+    --accent: #1e40af;
+    /* Deep Blue */
+  }
+
+  .dark {
+    /* Dark Mode - High Contrast */
+    --bg: #0f172a;
+    /* Slate 900 */
+    --nav: #1e293b;
+    /* Slate 800 */
+    --card: #334155;
+    /* Slate 700 */
+    --text-main: #f8fafc;
+    /* Slate 50 (White) */
+    --text-dim: #cbd5e1;
+    /* Slate 300 (Light Gray) */
+    --accent: #38bdf8;
+    /* Sky Blue (Highly visible on dark) */
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text-main);
+    @apply transition-colors duration-300;
+  }
+}
+
+/* LEGIBILITY FIXES:
+  These rules specifically target the hardcoded classes in your HTML
+  to ensure they flip color when the .dark class is active.
+*/
+.dark .text-blue-600,
+.dark .text-blue-800,
+.dark .mobile-link {
+  color: var(--accent) !important;
+}
+
+.dark .text-muted,
+.dark .text-gray-400,
+.dark .text-gray-600 {
+  color: var(--text-dim) !important;
+}
+
+/* Fix for the horizontal line in mobile menu */
+.dark hr {
+  border-color: #334155 !important;
+}
+
+/* Fix for the hamburger icon background if needed */
+.dark #hamburger-btn {
+  background-color: #334155 !important;
+  color: var(--text-main) !important;
+}
