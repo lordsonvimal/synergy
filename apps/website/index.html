@@ -27,7 +27,7 @@
             class="heading-font text-base sm:text-2xl lg:text-3xl tracking-wide text-blue-600 group-hover:opacity-90 transition">
             EVERWISE CREST</h1>
           <p
-            class="hidden sm:block text-[11px] lg:text-[12px] tracking-wider text-[color:var(--text-dim)] transition-colors duration-200 group-hover:text-[color:var(--text-main)]">
+            class="hidden sm:block text-[11px] lg:text-[12px] tracking-wider text-[color:var(--text-dim)] transition-colors duration-200 group-hover:text-base">
             Learning with Care, Growing with Confidence
           </p>
         </div>
@@ -53,32 +53,89 @@
 
       <div class="md:hidden flex items-center space-x-4">
         <button name="theme-toggle" type="button"
-          class="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          class="flex items-center justify-center p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
           <span name="theme-toggle-dark-icon" class="material-icons dark:hidden">dark_mode</span>
 
           <span name="theme-toggle-light-icon"
             class="material-icons hidden dark:block text-yellow-400">light_mode</span>
         </button>
 
-        <button id="hamburger-btn" class="p-2 text-muted focus:outline-none bg-gray-100 dark:bg-gray-700 rounded-lg">
-          <span class="material-icons text-3xl block" id="hamburger-icon">menu</span>
+        <button id="hamburger-btn" aria-label="Toggle navigation menu" aria-expanded="false" class="flex items-center justify-center p-2 rounded-lg bg-card text-muted hover:bg-section
+          focus-visible:outline-none
+          focus-visible:ring-2
+          focus-visible:ring-accent
+          transition
+        ">
+          <span class="material-icons text-3xl block">
+            menu
+          </span>
         </button>
       </div>
     </div>
 
     <div id="mobile-menu"
-      class="hidden md:hidden bg-surface border-t border-gray-100 dark:border-gray-700 overflow-hidden transition-all duration-300">
+      class="hidden md:hidden bg-surface border-t border-gray-200 border-divider overflow-hidden transition-all duration-300">
       <div class="flex flex-col px-6 py-6 space-y-4">
-        <a href="#courses" class="mobile-link text-lg font-bold text-blue-800 dark:text-blue-400">Our Courses</a>
-        <a href="#about" class="mobile-link text-lg font-bold text-blue-800 dark:text-blue-400">About Us</a>
-        <a href="#contact" class="mobile-link text-lg font-bold text-blue-800 dark:text-blue-400">Find Us</a>
-        <hr class="border-gray-200 dark:border-gray-600">
-        <a href="tel:+919876543210"
-          class="flex items-center justify-center bg-yellow-500 text-white px-5 py-4 rounded-2xl font-bold shadow-lg">
-          <span class="material-icons mr-2">phone</span> CALL TO ENROLL
+
+        <a href="#courses" class="
+    mobile-link
+    text-lg font-bold
+    text-base
+    px-4 py-3
+    rounded-xl
+    hover:bg-section
+    active:bg-section
+    transition
+  ">
+          Our Courses
         </a>
+
+        <a href="#about" class="
+    mobile-link
+    text-lg font-bold
+    text-base
+    px-4 py-3
+    rounded-xl
+    hover:bg-section
+    active:bg-section
+    transition
+  ">
+          About Us
+        </a>
+
+        <a href="#contact" class="
+    mobile-link
+    text-lg font-bold
+    text-base
+    px-4 py-3
+    rounded-xl
+    hover:bg-section
+    active:bg-section
+    transition
+  ">
+          Find Us
+        </a>
+
+        <hr class="border-gray-200 border-divider">
+
+        <a href="tel:+919876543210" class="
+        flex items-center justify-center
+        bg-accent
+        text-white
+        px-5 py-4
+        rounded-2xl
+        font-bold
+        shadow-lg
+        hover:opacity-90
+        transition
+      ">
+          <span class="material-icons mr-2">phone</span>
+          CALL TO ENROLL
+        </a>
+
       </div>
     </div>
+
   </nav>
 
   <header class="bg-gradient-kids text-white py-16 px-6 relative overflow-hidden transition-colors duration-500">
@@ -104,7 +161,7 @@
 
         <div class="flex flex-col sm:flex-row justify-center md:justify-start items-center gap-5">
           <a href="#courses"
-            class="group bg-yellow-400 hover:bg-yellow-500 text-blue-900 px-10 py-4 rounded-2xl font-bold text-xl shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center">
+            class="group bg-yellow-400 hover:bg-yellow-500 text-blue-900 px-10 py-4 rounded-2xl font-bold text-xl shadow-2xl transition-all hover:scale-100 active:scale-95 flex items-center">
             Enroll Now
             <span class="material-icons ml-2 group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </a>
@@ -128,48 +185,83 @@
     </div>
   </header>
 
-  <section id="courses" class="py-20 container mx-auto px-6">
+  <section id="courses" class="py-20 px-6 bg-section transition-colors">
+    <!-- Section Header -->
     <div class="text-center mb-16">
-      <h3 class="text-3xl md:text-4xl heading-font text-blue-800 mb-4">Explore Our Fun Courses</h3>
-      <p class="text-gray-500">Specially curated for various age groups between 3 and 15</p>
+      <h3 class="text-3xl md:text-4xl heading-font text-accent mb-4">
+        Explore Our Fun Courses
+      </h3>
+      <p class="text-base">
+        Specially curated for various age groups between 3 and 15
+      </p>
     </div>
 
+    <!-- Courses Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      <div class="bg-white p-8 rounded-3xl shadow-lg border-b-8 border-blue-400 course-card">
-        <span class="material-icons text-blue-500 text-5xl mb-4">record_voice_over</span>
-        <h4 class="text-2xl heading-font text-gray-800 mb-2">Phonics & Spell Bee</h4>
-        <p class="text-gray-600">Building vocabulary and pronunciation skills from a young age.</p>
-      </div>
-
-      <div class="bg-white p-8 rounded-3xl shadow-lg border-b-8 border-yellow-400 course-card">
-        <span class="material-icons text-yellow-500 text-5xl mb-4">calculate</span>
-        <h4 class="text-2xl heading-font text-gray-800 mb-2">Mental Math</h4>
-        <p class="text-gray-600">Arithmetic made easy and lightning fast with fun logic games.</p>
-      </div>
-
-      <div class="bg-white p-8 rounded-3xl shadow-lg border-b-8 border-green-400 course-card">
-        <span class="material-icons text-green-500 text-5xl mb-4">html</span>
-        <h4 class="text-2xl heading-font text-gray-800 mb-2">Web Development</h4>
-        <p class="text-gray-600">Kids learn to create their first website using code and creativity.</p>
-      </div>
-
-      <div class="bg-white p-8 rounded-3xl shadow-lg border-b-8 border-purple-400 course-card">
-        <span class="material-icons text-purple-500 text-5xl mb-4">sports_esports</span>
-        <h4 class="text-2xl heading-font text-gray-800 mb-2">Game Development</h4>
-        <p class="text-gray-600">Turn gamers into creators! Building 2D and 3D games.</p>
-      </div>
-
-      <div class="bg-white p-8 rounded-3xl shadow-lg border-b-8 border-red-400 course-card">
-        <span class="material-icons text-red-500 text-5xl mb-4">extension</span>
-        <h4 class="text-2xl heading-font text-gray-800 mb-2">Chess Academy</h4>
-        <p class="text-gray-600">Enhancing strategic thinking and focus for young grandmasters.</p>
-      </div>
-
+      <!-- Phonics -->
       <div
-        class="bg-blue-600 p-8 rounded-3xl shadow-lg flex flex-col justify-center items-center text-white text-center">
+        class="course-card p-8 rounded-3xl shadow-lg border-b-8 border-blue-400 dark:border-blue-600 bg-card transition-transform transform hover:scale-100">
+        <span class="material-icons text-blue-500 dark:text-blue-400 text-5xl mb-4">record_voice_over</span>
+        <h4 class="text-2xl heading-font text-base transition-colors mb-2">Phonics &
+          Spell Bee</h4>
+        <p class="text-muted">
+          Building vocabulary and pronunciation skills from a young age.
+        </p>
+      </div>
+
+      <!-- Mental Math -->
+      <div
+        class="course-card p-8 rounded-3xl shadow-lg border-b-8 border-yellow-400 dark:border-yellow-500 bg-card transition-transform transform hover:scale-100">
+        <span class="material-icons text-yellow-500 dark:text-yellow-400 text-5xl mb-4">calculate</span>
+        <h4 class="text-2xl heading-font text-base transition-colors mb-2">Mental Math
+        </h4>
+        <p class="text-muted">
+          Arithmetic made easy and lightning fast with fun logic games.
+        </p>
+      </div>
+
+      <!-- Web Development -->
+      <div
+        class="course-card p-8 rounded-3xl shadow-lg border-b-8 border-green-400 dark:border-green-500 bg-card transition-transform transform hover:scale-100">
+        <span class="material-icons text-green-500 dark:text-green-400 text-5xl mb-4">html</span>
+        <h4 class="text-2xl heading-font text-base transition-colors mb-2">Web
+          Development</h4>
+        <p class="text-muted">
+          Kids learn to create their first website using code and creativity.
+        </p>
+      </div>
+
+      <!-- Game Development -->
+      <div
+        class="course-card p-8 rounded-3xl shadow-lg border-b-8 border-purple-400 dark:border-purple-500 bg-card transition-transform transform hover:scale-100">
+        <span class="material-icons text-purple-500 dark:text-purple-400 text-5xl mb-4">sports_esports</span>
+        <h4 class="text-2xl heading-font text-base transition-colors mb-2">Game
+          Development</h4>
+        <p class="text-muted">
+          Turn gamers into creators! Building 2D and 3D games.
+        </p>
+      </div>
+
+      <!-- Chess Academy -->
+      <div
+        class="course-card p-8 rounded-3xl shadow-lg border-b-8 border-red-400 dark:border-red-500 bg-card transition-transform transform hover:scale-100">
+        <span class="material-icons text-red-500 dark:text-red-400 text-5xl mb-4">extension</span>
+        <h4 class="text-2xl heading-font text-base transition-colors mb-2">Chess
+          Academy</h4>
+        <p class="text-muted">
+          Enhancing strategic thinking and focus for young grandmasters.
+        </p>
+      </div>
+
+      <!-- CTA Card -->
+      <div
+        class="p-8 rounded-3xl shadow-lg flex flex-col justify-center items-center text-white text-center bg-[color:var(--accent)] dark:bg-[color:var(--accent)] transition-transform transform hover:scale-100">
         <h4 class="text-2xl heading-font mb-4">Ready to start?</h4>
-        <p class="mb-6">Join 200+ kids in Kanyakumari district today!</p>
-        <a href="#contact" class="bg-white text-blue-600 px-6 py-2 rounded-full font-bold">Enrol Today</a>
+        <p class="mb-6">Join our growing community of curious young learners.</p>
+        <a href="#contact"
+          class="bg-white text-[color:var(--accent)] px-6 py-2 rounded-full font-bold hover:bg-gray-200 transition">
+          Enroll Today
+        </a>
       </div>
     </div>
   </section>

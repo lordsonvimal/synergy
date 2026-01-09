@@ -1,47 +1,36 @@
 @import "tailwindcss";
 
 @theme {
-  --color-surface: var(--nav);
   --color-main: var(--bg);
+  --color-surface: var(--nav);
   --color-card: var(--card);
-
+  --color-section: var(--section-bg);
   --text-base: var(--text-main);
   --text-muted: var(--text-dim);
-
   --animate-float: float 5s ease-in-out infinite;
-
-  @keyframes float {
-
-    0%,
-    100% {
-      transform: translateY(0);
-    }
-
-    50% {
-      transform: translateY(-20px);
-    }
-  }
 }
 
 @layer base {
   :root {
-    /* Light Mode */
+    /* Light mode */
     --bg: #f9fafb;
     --nav: #ffffff;
     --card: #ffffff;
+    --section-bg: #f3f4f6;
     --text-main: #1f2937;
     --text-dim: #4b5563;
-    --accent: #1e40af;
+    --accent: #38bdf8;
     --gradient-start: #00b4d8;
     --gradient-end: #0077b6;
   }
 
   .dark {
-    /* Dark Mode - High Contrast */
+    /* Dark mode */
     --bg: #0f172a;
     --nav: #1e293b;
-    --card: #334155;
-    --text-main: #f8fafc;
+    --card: #2f3f55;
+    --section-bg: #1f354a;
+    --text-main: #e5eaf0;
     --text-dim: #cbd5e1;
     --accent: #38bdf8;
     --gradient-start: #1e293b;
@@ -50,12 +39,47 @@
 
   body {
     font-family: 'Quicksand', sans-serif;
-    scroll-behavior: smooth;
     background-color: var(--bg);
     color: var(--text-main);
+    scroll-behavior: smooth;
     @apply transition-colors duration-300;
   }
 }
+
+@layer utilities {
+
+  .border-divider {
+    border-color: color-mix(in srgb, var(--text-dim) 25%, transparent);
+  }
+
+  /* Text */
+  .text-base {
+    color: var(--text-main);
+  }
+
+  .text-muted {
+    color: var(--text-dim);
+  }
+
+  /* Backgrounds */
+  .bg-card {
+    background-color: var(--card);
+  }
+
+  .bg-section {
+    background-color: var(--section-bg);
+  }
+
+  /* Accent */
+  .text-accent {
+    color: var(--accent);
+  }
+
+  .bg-accent {
+    background-color: var(--accent);
+  }
+}
+
 
 .heading-font {
   font-family: 'Fredoka One', cursive;
@@ -66,31 +90,16 @@
   transition: all 0.1s ease-in-out;
 }
 
-/* LEGIBILITY FIXES:
-  These rules specifically target the hardcoded classes in your HTML
-  to ensure they flip color when the .dark class is active.
-*/
-.dark .text-blue-600,
-.dark .text-blue-800,
-.dark .mobile-link {
-  color: var(--accent) !important;
-}
+@keyframes float {
 
-.dark .text-muted,
-.dark .text-gray-400,
-.dark .text-gray-600 {
-  color: var(--text-dim) !important;
-}
+  0%,
+  100% {
+    transform: translateY(0);
+  }
 
-/* Fix for the horizontal line in mobile menu */
-.dark hr {
-  border-color: #334155 !important;
-}
-
-/* Fix for the hamburger icon background if needed */
-.dark #hamburger-btn {
-  background-color: #334155 !important;
-  color: var(--text-main) !important;
+  50% {
+    transform: translateY(-20px);
+  }
 }
 
 /* Force Material Icons to respect Tailwind's display utilities */
