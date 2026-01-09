@@ -118,3 +118,8 @@
 .bg-gradient-kids {
   background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
 }
+
+.icon-badge {
+  @apply w-16 h-16 rounded-2xl flex items-center justify-center mb-5 shadow-sm;
+  background-color: color-mix(in srgb, currentColor 12%, transparent);
+}
