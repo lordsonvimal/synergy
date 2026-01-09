@@ -9,31 +9,6 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@400;600&display=swap"
     rel="stylesheet">
-
-  <style>
-    body {
-      font-family: 'Quicksand', sans-serif;
-      scroll-behavior: smooth;
-    }
-
-    .heading-font {
-      font-family: 'Fredoka One', cursive;
-    }
-
-    .course-card:hover {
-      transform: scale(1.03);
-      transition: all 0.3s ease-in-out;
-    }
-
-    .bg-gradient-kids {
-      background: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
-    }
-
-    /* Smooth transition for theme switching */
-    body {
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-  </style>
   <script type="module" src="./src/main.js"></script>
 </head>
 
@@ -42,19 +17,27 @@
   <nav class="bg-surface text-base shadow-md sticky top-0 z-50 transition-colors duration-300">
     <div class="container mx-auto px-6 py-4 flex justify-between items-center">
 
-      <div class="flex items-center space-x-2 cursor-pointer">
-        <span class="material-icons text-yellow-500 text-4xl">emoji_events</span>
-        <div>
-          <h1 class="text-xl heading-font text-blue-600 leading-none">EVERWISE CREST</h1>
-          <p class="text-xs font-bold text-muted tracking-tighter uppercase">Kanyakumari District</p>
+      <div class="group flex items-center space-x-3 cursor-pointer">
+        <div class="bg-white p-2 rounded-full shadow-md border border-gray-200">
+          <img src="./src/assets/everwise_crest_logo_final.svg" alt="Everwise Crest Logo"
+            class="w-8 h-8 sm:w-14 sm:h-14">
+        </div>
+        <div class="flex flex-col gap-1">
+          <h1
+            class="heading-font text-base sm:text-2xl lg:text-3xl tracking-wide text-blue-600 group-hover:opacity-90 transition">
+            EVERWISE CREST</h1>
+          <p
+            class="hidden sm:block text-[11px] lg:text-[12px] tracking-wider text-[color:var(--text-dim)] transition-colors duration-200 group-hover:text-[color:var(--text-main)]">
+            Learning with Care, Growing with Confidence
+          </p>
         </div>
       </div>
 
-      <div class="hidden md:flex items-center space-x-8 font-semibold text-muted">
+      <div class="hidden md:flex items-center space-x-4 lg:space-x-8 font-semibold text-muted">
         <a href="#courses" class="hover:text-blue-500 transition">Courses</a>
         <a href="#about" class="hover:text-blue-500 transition">About</a>
         <a href="#contact" class="hover:text-blue-500 transition">Contact</a>
-        <a href="tel:+91..."
+        <a href="tel:+919488590545"
           class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-md hover:bg-blue-700 transition">
           Call Us
         </a>
@@ -110,13 +93,13 @@
         </div>
 
         <h2 class="text-4xl md:text-6xl heading-font mb-6 leading-tight">
-          Where Small Steps Lead to <span
-            class="text-yellow-300 underline decoration-wavy decoration-2 underline-offset-8">Giant Leaps!</span>
+          Where Learning Begins with <span
+            class="text-yellow-300 underline decoration-wavy decoration-2 underline-offset-8">Joy & Confidence</span>
         </h2>
 
         <p class="text-lg mb-10 text-white/90 max-w-lg leading-relaxed">
-          Join the most trusted academy in Kanyakumari. We specialize in Phonics, Mental Math, and Coding for kids aged
-          3 to 15. Enroll your child today for a brighter tomorrow.
+          We believe children learn best when they feel happy, supported, and inspired. Our academy focuses on joyful
+          learning experiences that help young minds grow confidently, at their own pace and with care.
         </p>
 
         <div class="flex flex-col sm:flex-row justify-center md:justify-start items-center gap-5">
@@ -131,7 +114,7 @@
               <span class="material-icons text-yellow-300">location_on</span>
               <span>Pilankalai</span>
             </div>
-            <span class="text-sm text-white/70 ml-6 italic leading-none">Opp. Win Win Tuition Center</span>
+            <span class="text-sm text-white/70 ml-6 italic leading-none">Kanyakumari, Tamil Nadu</span>
           </div>
         </div>
       </div>
@@ -140,17 +123,6 @@
         <div class="relative w-full max-w-lg">
           <img src="./src/assets/illustration.jpg" alt="Kids Learning in Kanyakumari"
             class="w-full h-auto drop-shadow-[0_35px_35px_rgba(0,0,0,0.3)] rounded-3xl">
-          <!-- <div
-            class="absolute top-10 right-10 bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-xl -rotate-12 animate-pulse hidden sm:block">
-            <span class="material-icons text-blue-600 block text-3xl">abacus</span>
-            <span class="text-[10px] font-bold text-gray-500 uppercase block mt-1">Maths</span>
-          </div> -->
-
-          <!-- <div
-            class="absolute bottom-20 left-0 bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-xl rotate-12 animate-pulse delay-700 hidden sm:block">
-            <span class="material-icons text-green-500 block text-3xl">code</span>
-            <span class="text-[10px] font-bold text-gray-500 uppercase block mt-1">Coding</span>
-          </div> -->
         </div>
       </div>
     </div>
