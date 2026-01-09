@@ -17,6 +17,9 @@
     --nav: #ffffff;
     --card: #ffffff;
     --section-bg: #f3f4f6;
+    --contact-bg: #a8e8df;
+    --contact-heading: #0f3b38;
+    --contact-value: #174845;
     --text-main: #1f2937;
     --text-dim: #4b5563;
     --accent: #38bdf8;
@@ -30,6 +33,9 @@
     --nav: #1e293b;
     --card: #2f3f55;
     --section-bg: #1f354a;
+    --contact-bg: #124945;
+    --contact-heading: #a0e0d8;
+    --contact-value: #cde6e1;
     --text-main: #e5eaf0;
     --text-dim: #cbd5e1;
     --accent: #38bdf8;
@@ -47,6 +53,14 @@
 }
 
 @layer utilities {
+
+  .contact-heading {
+    color: var(--contact-heading);
+  }
+
+  .contact-value {
+    color: var(--contact-value);
+  }
 
   .border-divider {
     border-color: color-mix(in srgb, var(--text-dim) 25%, transparent);

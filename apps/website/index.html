@@ -178,7 +178,7 @@
 
       <div class="md:w-1/2 mt-16 md:mt-0 flex justify-center relative">
         <div class="relative w-full max-w-lg">
-          <img src="./src/assets/illustration.jpg" alt="Kids Learning in Kanyakumari"
+          <img src="./src/assets/illustration_1.svg" alt="Kids Learning in Kanyakumari"
             class="w-full h-auto drop-shadow-[0_35px_35px_rgba(0,0,0,0.3)] rounded-3xl">
         </div>
       </div>
@@ -276,8 +276,7 @@
         class="p-8 rounded-3xl shadow-lg flex flex-col justify-center items-center text-white text-center bg-[color:var(--accent)] dark:bg-[color:var(--accent)] transition-transform transform hover:scale-100">
         <h4 class="text-2xl heading-font mb-4">Ready to start?</h4>
         <p class="mb-6">Join our growing community of curious young learners.</p>
-        <a href="#contact"
-          class="bg-white text-[color:var(--accent)] px-6 py-2 rounded-full font-bold hover:bg-gray-200 transition">
+        <a href="#contact" class="bg-white text-accent px-6 py-2 rounded-full font-bold hover:bg-gray-700 transition">
           Enroll Today
         </a>
       </div>
@@ -339,48 +338,48 @@
   </section>
 
 
-  <section id="contact" class="py-20 px-6 bg-section transition-colors">
+  <section id="contact" class="py-20 px-6 bg-[color:var(--contact-bg)] transition-colors shadow-inner">
     <div class="text-center mb-16">
-      <h3 class="text-3xl md:text-4xl heading-font text-accent mb-4">
+      <h3 class="text-3xl md:text-4xl heading-font contact-heading mb-4">
         Get in Touch
       </h3>
-      <p class="text-base text-muted">
+      <p class="contact-value">
         We'd love to hear from you! Reach out via phone, social media, or visit us.
       </p>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+    <div class="max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-start mx-auto">
       <!-- Contact Info -->
       <div class="space-y-8">
         <div class="flex items-center space-x-4">
-          <span class="material-icons text-4xl text-accent">phone</span>
+          <span class="material-icons text-4xl contact-heading">phone</span>
           <div>
-            <h5 class="text-xl font-semibold text-base">Phone</h5>
-            <p class="text-muted">+91 94885 90545</p>
+            <h5 class="text-xl font-semibold contact-heading">Phone</h5>
+            <p class="contact-value">+91 94885 90545</p>
           </div>
         </div>
 
         <div class="flex items-center space-x-4">
-          <span class="material-icons text-4xl text-accent">location_on</span>
+          <span class="material-icons text-4xl contact-heading">location_on</span>
           <div>
-            <h5 class="text-xl font-semibold text-base">Address</h5>
-            <p class="text-muted">Everwise Crest, Pilankalai, Kanyakumari, Tamil Nadu, India</p>
+            <h5 class="text-xl font-semibold contact-heading">Address</h5>
+            <p class="contact-value">Everwise Crest, Pilankalai, Kanyakumari, Tamil Nadu, India</p>
           </div>
         </div>
 
         <div class="flex items-center space-x-4">
-          <span class="material-icons text-4xl text-accent">photo_camera</span>
+          <span class="material-icons text-4xl contact-heading">photo_camera</span>
           <div>
-            <h5 class="text-xl font-semibold text-base">Instagram</h5>
-            <p class="text-muted">@everwisecrest</p>
+            <h5 class="text-xl font-semibold contact-heading">Instagram</h5>
+            <p class="contact-value">@everwisecrest</p>
           </div>
         </div>
 
         <div class="flex items-center space-x-4">
-          <span class="material-icons text-4xl text-accent">ondemand_video</span>
+          <span class="material-icons text-4xl contact-heading">ondemand_video</span>
           <div>
-            <h5 class="text-xl font-semibold text-base">YouTube</h5>
-            <p class="text-muted">Everwise Crest Channel</p>
+            <h5 class="text-xl font-semibold contact-heading">YouTube</h5>
+            <p class="contact-value">Everwise Crest Channel</p>
           </div>
         </div>
       </div>
@@ -404,20 +403,29 @@
       </div>
       <div>
         <h5 class="font-bold mb-4 uppercase tracking-widest text-sm text-gray-500">Contact Us</h5>
-        <p class="mb-2 flex items-center gap-2"><span class="material-icons text-sm">phone</span> +91 98765 43210</p>
-        <p class="flex items-center gap-2"><span class="material-icons text-sm">email</span> hello@everwisecrest.com</p>
+        <ul class="text-gray-400 space-y-2">
+          <li>
+            <p class="mb-2 flex items-center gap-2"><span class="material-icons text-sm">phone</span> +91 94885 90545
+            </p>
+          </li>
+          <li>
+            <p class="flex items-center gap-2"><span class="material-icons text-sm">email</span>
+              contact@everwisecrest.com
+            </p>
+          </li>
+
+        </ul>
       </div>
       <div>
         <h5 class="font-bold mb-4 uppercase tracking-widest text-sm text-gray-500">Quick Links</h5>
         <ul class="text-gray-400 space-y-2">
           <li><a href="#courses" class="hover:text-yellow-500">All Courses</a></li>
-          <li><a href="#" class="hover:text-yellow-500">Success Stories</a></li>
-          <li><a href="#" class="hover:text-yellow-500">Center Locations</a></li>
+          <li><a href="#" class="hover:text-yellow-500">Events</a></li>
         </ul>
       </div>
     </div>
-    <div class="pt-8 text-center text-gray-600 text-xs">
-      &copy; 2026 Everwise Crest Academy. Locally owned in Nagercoil, Tamil Nadu.
+    <div class="pt-8 text-center text-gray-400">
+      &copy; 2026 Everwise Crest
     </div>
   </footer>
 
