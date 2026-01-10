@@ -1,6 +1,6 @@
 [build]
 base = "apps/website"
-command = "npm install && npm run build"
+command = "yarn build"
 publish = "dist"
 
 [context.production.environment]
