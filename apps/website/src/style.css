@@ -142,3 +142,7 @@
   @apply w-16 h-16 rounded-2xl flex items-center justify-center mb-5 shadow-sm;
   background-color: color-mix(in srgb, currentColor 12%, transparent);
 }
+
+html {
+  scroll-behavior: smooth;
+}
