@@ -1,0 +1,3 @@
+package enrollment
+
+// Table: enrollments

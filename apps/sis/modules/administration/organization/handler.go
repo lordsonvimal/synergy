@@ -1,0 +1,3 @@
+package organization
+
+// Table: organizations

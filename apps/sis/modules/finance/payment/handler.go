@@ -1,0 +1,3 @@
+package payment
+
+// Table: payments
