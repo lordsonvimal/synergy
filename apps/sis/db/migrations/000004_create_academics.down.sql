@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS enrollments;
+DROP TABLE IF EXISTS sections;
+DROP TABLE IF EXISTS courses;
+DROP TABLE IF EXISTS academic_terms;
