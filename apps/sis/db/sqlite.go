@@ -7,7 +7,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func InitSQLiteDB(path string) (*sql.DB, error) {
+func InitSQLiteDB() (*sql.DB, error) {
+	path := "./db/sis.db"
 	return OpenSQLiteDB(path)
 }
 
@@ -23,11 +24,16 @@ func OpenSQLiteDB(path string) (*sql.DB, error) {
 	}
 
 	// SQLite works best with a single writer
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 	db.SetConnMaxLifetime(0)
 
 	if err := configureSQLite(db); err != nil {
+		return nil, err
+	}
+
+	// Quick health check
+	if err := db.Ping(); err != nil {
 		return nil, err
 	}
 

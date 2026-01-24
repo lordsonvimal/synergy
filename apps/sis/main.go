@@ -11,6 +11,7 @@ import (
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/lordsonvimal/synergy/apps/sis/config"
+	"github.com/lordsonvimal/synergy/apps/sis/db"
 	"github.com/lordsonvimal/synergy/apps/sis/logger"
 	"github.com/lordsonvimal/synergy/apps/sis/server"
 	"github.com/rs/zerolog/log"
@@ -32,6 +33,12 @@ func main() {
 	if isProduction {
 		gin.SetMode(gin.ReleaseMode)
 	}
+
+	database, err := db.InitSQLiteDB()
+	if err != nil {
+		logger.Fatal(ctx).Err(err).Msg("Failed to initialize SQLite database")
+	}
+	defer database.Close()
 
 	router := gin.New()
 
