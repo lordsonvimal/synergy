@@ -1,0 +1,50 @@
+package dashboard
+
+import (
+	"github.com/lordsonvimal/synergy/apps/sis/modules/administration/organization"
+	"strconv"
+)
+
+templ RenderDashboard(m Metrics, orgs []organization.OrgStat) {
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<meta charset="UTF-8"/>
+			<title>SIS Dashboard</title>
+			<link href="/static/style.css" rel="stylesheet"/>
+		</head>
+		<body class="bg-gray-100 p-6">
+			<h1 class="text-2xl font-bold mb-6">Dashboard</h1>
+			<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+				@organization.RenderStat("Students", strconv.Itoa(m.TotalStudents))
+				@organization.RenderStat("Courses", strconv.Itoa(m.TotalCourses))
+				@organization.RenderStat("Fees Collected", m.FeesCollected)
+				@organization.RenderStat("Pending Fees", m.FeesPending)
+			</div>
+			<main class="bg-white rounded shadow p-6">
+				<div class="flex justify-between mb-4">
+					<h2 class="text-xl font-semibold">Organizations</h2>
+					@organization.RenderCreateOrgForm()
+				</div>
+				<table class="w-full border">
+					<thead class="bg-gray-50">
+						<tr>
+							<th class="p-2 border">Name</th>
+							<th class="p-2 border">Type</th>
+							<th class="p-2 border">Students</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, o := range orgs {
+							<tr class="text-center">
+								<td class="p-2 border">{ o.Name }</td>
+								<td class="p-2 border capitalize">{ o.Type }</td>
+								<td class="p-2 border">{ strconv.Itoa(o.StudentCount) }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</main>
+		</body>
+	</html>
+}

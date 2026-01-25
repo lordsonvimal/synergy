@@ -1,0 +1,26 @@
+package organization
+
+templ RenderCreateOrgForm() {
+	<form
+		method="POST"
+		action="/organizations"
+		class="flex gap-2"
+	>
+		<input
+			name="name"
+			placeholder="Org name"
+			class="border p-2 rounded"
+			required
+		/>
+		<select name="type" class="border p-2 rounded">
+			<option value="school">School</option>
+			<option value="institute">Institute</option>
+			<option value="college">College</option>
+		</select>
+		<button
+			class="bg-blue-600 text-white px-4 rounded"
+		>
+			Add
+		</button>
+	</form>
+}

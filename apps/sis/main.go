@@ -14,6 +14,7 @@ import (
 	"github.com/lordsonvimal/synergy/apps/sis/db"
 	"github.com/lordsonvimal/synergy/apps/sis/logger"
 	"github.com/lordsonvimal/synergy/apps/sis/server"
+	"github.com/lordsonvimal/synergy/apps/sis/shared/appctx"
 	"github.com/rs/zerolog/log"
 )
 
@@ -45,6 +46,7 @@ func main() {
 	router.Use(requestid.New())                                        // Add this for correlation IDs
 	router.Use(logger.RedactedStructuredLogger(logger.GlobalLogger())) // Structured logging with token redaction (access_token, auth_token, etc.)
 	router.Use(gin.Recovery())                                         // Use default recovery for panic logging/handling
+	router.Use(appctx.Middleware(database))
 
 	router.Static("/static", "./dist")
 	router.StaticFile("/favicon.ico", "assets/favicon.ico")
