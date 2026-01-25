@@ -3,5 +3,5 @@
 ### Migration
 
 ```sql
-migrate -database "sqlite3://sis.db" -path db/migrations up
+migrate -database "sqlite3://./db/sis.db" -path db/migrations up
 ```
