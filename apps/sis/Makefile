@@ -4,7 +4,7 @@ live/server:
 
 # run tailwindcss to generate the styles.css bundle in watch mode.
 live/tailwind:
-	npx @tailwindcss/cli -i ./ui/styles/style.css -o ./dist/style.css --content "./**/*.templ,./**/*.go" --watch
+	npx @tailwindcss/cli -i ./ui/styles/style.css -o ./dist/style.css --config ./tailwind.config.js --watch
 
 # run esbuild to generate the index.js bundle in watch mode.
 live/esbuild:

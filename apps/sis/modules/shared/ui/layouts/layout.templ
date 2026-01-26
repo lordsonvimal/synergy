@@ -2,16 +2,82 @@ package layouts
 
 templ Layout(title string) {
 	<!DOCTYPE html>
-	<html>
+	<html class="h-full">
 		<head>
 			<meta charset="UTF-8"/>
 			<title>{ title }</title>
 			<link href="/static/style.css" rel="stylesheet"/>
+			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.7/bundles/datastar.js"></script>
 		</head>
-		<body class="bg-gray-100 p-6">
-			<main>
-				{ children... }
-			</main>
+		<body class="bg-gray-50 h-full" data-store='{ "sidebarOpen": false }'>
+			<div class="flex h-full">
+				<!-- Sidebar -->
+				<aside
+					id="sidebar"
+					class="fixed md:relative h-full w-64 shrink-0 bg-slate-800 text-slate-100 transform transition-transform duration-200 -translate-x-full md:translate-x-0"
+					data-class="{ 'translate-x-0': $sidebarOpen, '-translate-x-full': !$sidebarOpen }"
+				>
+					<div class="flex border-b border-slate-700 items-center justify-between p-4">
+						<div class="text-lg font-bold">
+							SIS
+						</div>
+						<!-- Close button (mobile only) -->
+						<button
+							class="md:hidden text-xl cursor-pointer"
+							data-on:click="$sidebarOpen = false"
+							aria-label="Close sidebar"
+						>
+							✕
+						</button>
+					</div>
+					<nav class="p-4 space-y-2 text-primary-100">
+						<a
+							href="/"
+							class="block px-4 py-2 rounded hover:bg-slate-600"
+						>
+							Dashboard
+						</a>
+						<a
+							href="/organizations"
+							class="block px-4 py-2 rounded hover:bg-slate-600"
+						>
+							Organizations
+						</a>
+						<a
+							href="/students"
+							class="block px-4 py-2 rounded hover:bg-slate-600"
+						>
+							Students
+						</a>
+						<a
+							href="/courses"
+							class="block px-4 py-2 rounded hover:bg-slate-600"
+						>
+							Courses
+						</a>
+						<a
+							href="/fees"
+							class="block px-4 py-2 rounded hover:bg-slate-600"
+						>
+							Fees
+						</a>
+					</nav>
+				</aside>
+				<!-- Main content -->
+				<div class="flex-1 flex flex-col">
+					<!-- Top bar (mobile) -->
+					<header class="md:hidden bg-white shadow p-4 flex items-center">
+						<button data-on:click="$sidebarOpen = !$sidebarOpen" class="mr-4 cursor-pointer">
+							☰
+						</button>
+						<h1 class="font-semibold">{ title }</h1>
+					</header>
+					<!-- Page content -->
+					<main class="flex-1 overflow-y-auto p-6">
+						{ children... }
+					</main>
+				</div>
+			</div>
 		</body>
 	</html>
 }

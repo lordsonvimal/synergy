@@ -29,7 +29,7 @@ func RenderCreateOrgForm() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<form method=\"POST\" action=\"/organizations\" class=\"flex gap-2\"><input name=\"name\" placeholder=\"Org name\" class=\"border p-2 rounded\" required> <select name=\"type\" class=\"border p-2 rounded\"><option value=\"school\">School</option> <option value=\"institute\">Institute</option></select> <button class=\"bg-blue-600 text-white px-4 rounded\">Add</button></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<form method=\"POST\" action=\"/organizations\" class=\"flex gap-2\"><input name=\"name\" placeholder=\"Org name\" class=\"border border-slate-600 p-2 rounded\" required> <select name=\"type\" class=\"border border-slate-600 p-2 rounded\"><option value=\"school\">School</option> <option value=\"institute\">Institute</option></select> <button class=\"bg-blue-600 text-gray-50 px-4 rounded cursor-pointer hover:bg-primary-700\">Add</button></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

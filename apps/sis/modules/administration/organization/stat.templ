@@ -3,8 +3,8 @@ package organization
 import "fmt"
 
 templ RenderStat(title string, value any) {
-	<div class="bg-white p-4 rounded shadow text-center">
-		<div class="text-gray-500 text-sm">{ title }</div>
-		<div class="text-2xl font-bold mt-1">{ fmt.Sprintf("%v", value) }</div>
+	<div class="bg-surface p-4 rounded shadow text-center">
+		<div class="text-gray-600 text-sm">{ title }</div>
+		<div class="text-gray-900 text-2xl font-bold mt-1">{ fmt.Sprintf("%v", value) }</div>
 	</div>
 }

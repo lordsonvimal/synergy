@@ -67,7 +67,7 @@ func RenderDashboard(m Metrics, orgs []organization.OrgStat) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><section class=\"bg-white rounded shadow p-6\"><div class=\"flex justify-between mb-4\"><h2 class=\"text-xl font-semibold\">Organizations</h2>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><section class=\"bg-surface rounded shadow p-6 border border-surface\"><div class=\"flex justify-between mb-4\"><h2 class=\"text-xl font-semibold text-surface\">Organizations</h2>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -75,45 +75,45 @@ func RenderDashboard(m Metrics, orgs []organization.OrgStat) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><table class=\"w-full border\"><thead class=\"bg-gray-50\"><tr><th class=\"p-2 border\">Name</th><th class=\"p-2 border\">Type</th><th class=\"p-2 border\">Students</th></tr></thead> <tbody>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><table class=\"w-full border border-surface\"><thead class=\"bg-gray-50 dark:bg-slate-800\"><tr><th class=\"p-2 border border-surface text-surface\">Name</th><th class=\"p-2 border border-surface text-surface\">Type</th><th class=\"p-2 border border-surface text-surface\">Students</th></tr></thead> <tbody>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, o := range orgs {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<tr class=\"text-center\"><td class=\"p-2 border\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<tr class=\"text-center text-surface\"><td class=\"p-2 border border-surface\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(o.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `shared/dashboard/dashboard.templ`, Line: 34, Col: 38}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `shared/dashboard/dashboard.templ`, Line: 34, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</td><td class=\"p-2 border capitalize\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</td><td class=\"p-2 border border-surface capitalize\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(o.Type)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `shared/dashboard/dashboard.templ`, Line: 35, Col: 49}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `shared/dashboard/dashboard.templ`, Line: 35, Col: 64}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</td><td class=\"p-2 border\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</td><td class=\"p-2 border border-surface\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(o.StudentCount))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `shared/dashboard/dashboard.templ`, Line: 36, Col: 60}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `shared/dashboard/dashboard.templ`, Line: 36, Col: 75}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
