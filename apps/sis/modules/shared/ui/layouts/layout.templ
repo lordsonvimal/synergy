@@ -10,7 +10,7 @@ templ Layout(title string) {
 			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.7/bundles/datastar.js"></script>
 		</head>
 		<body class="bg-gray-50 h-full" data-store='{ "sidebarOpen": false, "path": "" }' data-init="$path = window.location.pathname">
-			<div class="flex h-full">
+			<div id="app-content-root" class="flex h-full">
 				<!-- Sidebar -->
 				<aside
 					id="sidebar"
@@ -88,6 +88,7 @@ templ Layout(title string) {
 					</main>
 				</div>
 			</div>
+			<div id="app-modal-root"></div>
 		</body>
 	</html>
 }
