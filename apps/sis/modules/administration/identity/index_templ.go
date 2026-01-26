@@ -43,7 +43,7 @@ func RenderIndexPage(users []UserInfo) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex justify-between items-baseline\"><h1 class=\"text-2xl font-bold mb-6\">Users</h1><button data-on:click=\"@get('/users/new')\" class=\"btn btn-primary\">New User</button></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex justify-between items-baseline\"><h1 class=\"text-2xl font-bold mb-6\">Users</h1><button class=\"active:scale-95 px-4 py-2 bg-blue-600 text-primary-50 rounded hover:bg-blue-700 transition cursor-pointer\" data-on:click=\"@get('/users/new')\">New User</button></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
