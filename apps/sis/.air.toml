@@ -6,7 +6,7 @@ tmp_dir = "tmp"
   bin = "tmp/bin/main"
   delay = 100
   exclude_dir = ["node_modules", "tmp", "assets", "dist"]
-  include_ext = ["go", "templ"]
+  include_ext = ["go"]
   stop_on_error = false
 
 [misc]
