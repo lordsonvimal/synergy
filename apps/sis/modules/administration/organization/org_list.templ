@@ -8,20 +8,20 @@ templ RenderOrgList(orgs []OrgStat) {
 			<h2 class="text-xl font-semibold text-surface">Organizations</h2>
 			@RenderCreateOrgForm()
 		</div>
-		<table class="w-full border border-surface">
-			<thead class="bg-gray-50 dark:bg-slate-800">
+		<table class="min-w-full border border-slate-200 bg-white">
+			<thead class="bg-slate-100">
 				<tr>
-					<th class="p-2 border border-surface text-surface">Name</th>
-					<th class="p-2 border border-surface text-surface">Type</th>
-					<th class="p-2 border border-surface text-surface">Students</th>
+					<th class="px-4 py-2 text-left text-sm font-semibold">Name</th>
+					<th class="px-4 py-2 text-left text-sm font-semibold">Type</th>
+					<th class="px-4 py-2 text-left text-sm font-semibold">Students</th>
 				</tr>
 			</thead>
 			<tbody>
 				for _, o := range orgs {
 					<tr class="text-center text-surface">
-						<td class="p-2 border border-surface">{ o.Name }</td>
-						<td class="p-2 border border-surface capitalize">{ o.Type }</td>
-						<td class="p-2 border border-surface">{ strconv.Itoa(o.StudentCount) }</td>
+						<td class="px-4 py-2 text-left text-sm text-slate-700">{ o.Name }</td>
+						<td class="px-4 py-2 text-left text-sm text-slate-700 capitalize">{ o.Type }</td>
+						<td class="px-4 py-2 text-left text-sm text-slate-700">{ strconv.Itoa(o.StudentCount) }</td>
 					</tr>
 				}
 			</tbody>

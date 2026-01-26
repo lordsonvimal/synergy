@@ -1,0 +1,65 @@
+package identity
+
+templ RenderUsersList(users []UserInfo) {
+	<table class="min-w-full border border-slate-200 bg-white">
+		<thead class="bg-slate-100">
+			<tr>
+				<th class="px-4 py-2 text-left text-sm font-semibold">ID</th>
+				<th class="px-4 py-2 text-left text-sm font-semibold">Name</th>
+				<th class="px-4 py-2 text-left text-sm font-semibold">Roles</th>
+				<th class="px-4 py-2 text-left text-sm font-semibold">Courses</th>
+				<th class="px-4 py-2 text-left text-sm font-semibold">Status</th>
+				<th class="px-4 py-2 text-left text-sm font-semibold">Parent Contact</th>
+			</tr>
+		</thead>
+		<tbody>
+			for _, user := range users {
+				<tr class="hover:bg-slate-50">
+					<td class="px-4 py-2 text-sm text-slate-700">
+						{ user.UserID }
+					</td>
+					<td class="px-4 py-2 font-medium text-slate-800">
+						{ user.Name }
+					</td>
+					<td class="px-4 py-2">
+						<div class="flex flex-wrap gap-1">
+							for _, role := range user.Roles {
+								<span class="px-2 py-0.5 text-xs rounded bg-slate-200 text-slate-800">
+									{ role }
+								</span>
+							}
+						</div>
+					</td>
+					<td class="px-4 py-2 text-sm text-slate-700">
+						{ user.CourseCount }
+					</td>
+					<td class="px-4 py-2">
+						if user.IsActive {
+							<span class="px-2 py-0.5 text-xs rounded bg-green-100 text-green-800">
+								Active
+							</span>
+						} else {
+							<span class="px-2 py-0.5 text-xs rounded bg-red-100 text-red-800">
+								Inactive
+							</span>
+						}
+					</td>
+					<td class="px-4 py-2 text-sm text-slate-700">
+						if user.ParentName != nil {
+							<div class="flex flex-col">
+								<span class="font-medium">{ *user.ParentName }</span>
+								if user.ParentEmail != nil {
+									<span class="text-xs text-slate-500">
+										{ *user.ParentEmail }
+									</span>
+								}
+							</div>
+						} else {
+							<span class="text-xs text-slate-400">—</span>
+						}
+					</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
