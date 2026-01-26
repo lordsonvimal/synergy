@@ -1,0 +1,16 @@
+package modal
+
+templ RenderModalRoot() {
+	<div
+		id="app-modal-root"
+		data-signals='{ "_modalStack": [] }'
+		data-on:keydown__window.escape="
+      console.log($_modalStack);
+			if ($_modalStack.length > 0) {
+				const element = $_modalStack.pop();
+        element.remove();
+			}
+		"
+		tabindex="0"
+	></div>
+}

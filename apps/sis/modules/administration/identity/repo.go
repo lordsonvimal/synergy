@@ -5,6 +5,18 @@ import (
 	"strings"
 )
 
+// OrganizationOption represents an organization dropdown item
+type OrganizationOption struct {
+	ID   int64
+	Name string
+}
+
+// RoleOption represents a role dropdown item
+type RoleOption struct {
+	ID   int64
+	Name string
+}
+
 type UserInfo struct {
 	UserID      int64
 	Name        string
@@ -78,4 +90,51 @@ func (r *UserRepository) GetAllUsersAcrossOrganizations() ([]UserInfo, error) {
 	}
 
 	return result, rows.Err()
+}
+
+func (r *UserRepository) GetAllOrganizations() ([]OrganizationOption, error) {
+	rows, err := r.db.Query(`
+		SELECT id, name
+		FROM organizations
+		ORDER BY name
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orgs []OrganizationOption
+	for rows.Next() {
+		var o OrganizationOption
+		if err := rows.Scan(&o.ID, &o.Name); err != nil {
+			return nil, err
+		}
+		orgs = append(orgs, o)
+	}
+
+	return orgs, rows.Err()
+}
+
+// GetAllRoles fetches all roles
+func (r *UserRepository) GetAllRoles() ([]RoleOption, error) {
+	rows, err := r.db.Query(`
+		SELECT id, name
+		FROM roles
+		ORDER BY name
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var roles []RoleOption
+	for rows.Next() {
+		var ro RoleOption
+		if err := rows.Scan(&ro.ID, &ro.Name); err != nil {
+			return nil, err
+		}
+		roles = append(roles, ro)
+	}
+
+	return roles, rows.Err()
 }

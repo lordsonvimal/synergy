@@ -1,5 +1,7 @@
 package layouts
 
+import "github.com/lordsonvimal/synergy/apps/sis/modules/shared/ui/components/modal"
+
 templ Layout(title string) {
 	<!DOCTYPE html>
 	<html class="h-full">
@@ -88,7 +90,7 @@ templ Layout(title string) {
 					</main>
 				</div>
 			</div>
-			<div id="app-modal-root"></div>
+			@modal.RenderModalRoot()
 		</body>
 	</html>
 }

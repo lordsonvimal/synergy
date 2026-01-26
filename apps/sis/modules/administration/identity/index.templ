@@ -4,7 +4,10 @@ import "github.com/lordsonvimal/synergy/apps/sis/modules/shared/ui/layouts"
 
 templ RenderIndexPage(users []UserInfo) {
 	@layouts.Layout("Users") {
-		<h1 class="text-2xl font-bold mb-6">Users</h1>
+		<div class="flex justify-between items-baseline">
+			<h1 class="text-2xl font-bold mb-6">Users</h1>
+			<button data-on:click="@get('/users/new')" class="btn btn-primary">New User</button>
+		</div>
 		@RenderUsersList(users)
 	}
 }

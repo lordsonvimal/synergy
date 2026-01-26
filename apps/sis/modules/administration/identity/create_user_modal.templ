@@ -1,0 +1,12 @@
+package identity
+
+import "github.com/lordsonvimal/synergy/apps/sis/modules/shared/ui/components/modal"
+
+templ RenderCreateUserModal(orgs []OrganizationOption, roles []RoleOption) {
+	@modal.RenderModal(modal.ModalConfig{
+		ID:    "create-user-modal",
+		Title: "Create New User",
+		Body:  RenderCreateUserWithRelationsForm(orgs, roles),
+		Show:  true,
+	})
+}

@@ -1,65 +1,68 @@
-package components
+package modal
 
-templ Modal(
-	id string,
-	openVar string,
-	header templ.Component,
-	body templ.Component,
-	footer templ.Component,
-) {
+import "fmt"
+
+type ModalConfig struct {
+	ID    string
+	Title string
+
+	Header  templ.Component
+	Body    templ.Component
+	Footer  templ.Component
+	Show    bool
+	Persist bool
+}
+
+templ RenderModal(cfg ModalConfig) {
 	<div
-		data-show={ "$" + openVar }
-		data-target="#app-modal-root"
-		data-on:keydown.escape={ "$" + openVar + " = false" }
-		tabindex="0"
+		id={ cfg.ID }
+		data-signals={ fmt.Sprintf(`{"_modalId": "%s", "_open": %t, "_x": 0, "_y": 0, "_persist": %t}`, cfg.ID, cfg.Show, cfg.Persist) }
+		data-show="$_open"
+		data-init="
+      el.focus();
+			if ($_open && !$_persist) {
+				$_modalStack.push(el);
+			}
+		"
 		class="fixed inset-0 flex items-center justify-center"
 	>
 		<!-- Backdrop -->
 		<div
 			class="absolute inset-0 bg-black/40"
-			data-on:click={ "$" + openVar + " = false" }
+			data-on:click="
+        if (!$_persist) {
+          const element = document.getElementById($_modalId);
+          element.remove();
+          $_open = false;
+          $_modalStack.pop();
+        }
+			"
 		></div>
-		<!-- Modal -->
-		<div
-			class="relative bg-white rounded shadow-xl w-full max-w-lg"
-			style="top: 0px; left: 0px;"
-			data-store='{ "x": 0, "y": 0, "dragging": false }'
-			data-style="{ transform: `translate(${ $x }px, ${ $y }px)` }"
-		>
-			<!-- Header (draggable) -->
-			<div
-				class="cursor-move border-b px-4 py-3 flex items-center justify-between select-none"
-				data-on:pointerdown="
-					$dragging = true;
-					$startX = event.clientX - $x;
-					$startY = event.clientY - $y;
-				"
-				data-on:pointermove="
-					if ($dragging) {
-						$x = event.clientX - $startX;
-						$y = event.clientY - $startY;
-					}
-				"
-				data-on:pointerup="$dragging = false"
-				data-on:pointerleave="$dragging = false"
-			>
-				header...
-				<button
-					class="text-xl leading-none"
-					data-on:click={ "$" + openVar + " = false" }
-					aria-label="Close"
-				>
-					✕
-				</button>
+		<div class="relative bg-white rounded shadow-xl w-full max-w-lg">
+			<div class="cursor-move border-b border-gray-200 px-4 py-3 flex justify-between">
+				<h3>{ cfg.Title }</h3>
+				if cfg.Header != nil {
+					@cfg.Header
+				}
+				if !cfg.Persist {
+					<button
+						data-on:click="
+              const element = document.getElementById($_modalId);
+              element.remove();
+              $_open = false;
+              $_modalStack.pop();
+            "
+					>✕</button>
+				}
 			</div>
-			<!-- Body -->
 			<div class="p-4">
-				body...
+				@cfg.Body
 			</div>
-			<!-- Footer -->
-			<div class="border-t px-4 py-3 flex justify-end gap-2">
-				footer...
-			</div>
+			if cfg.Footer != nil {
+				<div class="border-t px-4 py-3">
+					@cfg.Footer
+				</div>
+			}
 		</div>
 	</div>
 }

@@ -1,0 +1,138 @@
+package identity
+
+templ RenderCreateUserWithRelationsForm(
+	orgs []OrganizationOption,
+	roles []RoleOption,
+) {
+	<form
+		method="post"
+		action="/users/create"
+		class="space-y-6"
+	>
+		<!-- ================= User Info ================= -->
+		<section class="space-y-4">
+			<h3 class="font-semibold text-lg">User Details</h3>
+			<input
+				type="email"
+				name="email"
+				placeholder="Email"
+				required
+				class="w-full rounded border px-3 py-2"
+			/>
+			<input
+				type="text"
+				name="name"
+				placeholder="Full name"
+				required
+				class="w-full rounded border px-3 py-2"
+			/>
+			<input
+				type="password"
+				name="password"
+				placeholder="Password"
+				required
+				class="w-full rounded border px-3 py-2"
+			/>
+			<label class="flex items-center gap-2 text-sm">
+				<input type="checkbox" name="is_active" value="1" checked/>
+				Active
+			</label>
+		</section>
+		<!-- ================= Roles ================= -->
+		<section class="space-y-4">
+			<h3 class="font-semibold text-lg">Roles</h3>
+			<div
+				data-store='{ "rows": [ {} ] }'
+				class="space-y-3"
+			>
+				<template data-for="(row, i) in $rows">
+					<div class="flex gap-2">
+						<select
+							name="roles[][organization_id]"
+							class="flex-1 rounded border px-2 py-1"
+							required
+						>
+							<option value="">Organization</option>
+							for _, org := range orgs {
+								<option value={ org.ID }>{ org.Name }</option>
+							}
+						</select>
+						<select
+							name="roles[][role_id]"
+							class="flex-1 rounded border px-2 py-1"
+							required
+						>
+							<option value="">Role</option>
+							for _, r := range roles {
+								<option value={ r.ID }>{ r.Name }</option>
+							}
+						</select>
+						<button
+							type="button"
+							class="px-2"
+							data-on:click="$rows.splice(i, 1)"
+						>✕</button>
+					</div>
+				</template>
+				<button
+					type="button"
+					class="text-sm text-blue-600"
+					data-on:click="$rows.push({})"
+				>
+					+ Add role
+				</button>
+			</div>
+		</section>
+		<!-- ================= Parents / Guardians ================= -->
+		<section class="space-y-4">
+			<h3 class="font-semibold text-lg">Parents / Guardians</h3>
+			<div
+				data-store='{ "relations": [ {} ] }'
+				class="space-y-3"
+			>
+				<template data-for="(r, i) in $relations">
+					<div class="grid grid-cols-3 gap-2">
+						<select
+							name="relations[][relationship_type]"
+							class="rounded border px-2 py-1"
+							required
+						>
+							<option value="">Relation</option>
+							<option value="father">Father</option>
+							<option value="mother">Mother</option>
+							<option value="guardian">Guardian</option>
+						</select>
+						<input
+							type="email"
+							name="relations[][email]"
+							placeholder="Email"
+							class="rounded border px-2 py-1"
+						/>
+						<input
+							type="text"
+							name="relations[][name]"
+							placeholder="Name"
+							class="rounded border px-2 py-1"
+						/>
+					</div>
+				</template>
+				<button
+					type="button"
+					class="text-sm text-blue-600"
+					data-on:click="$relations.push({})"
+				>
+					+ Add parent / guardian
+				</button>
+			</div>
+		</section>
+		<!-- ================= Submit ================= -->
+		<div class="flex justify-end gap-2 pt-4">
+			<button
+				type="submit"
+				class="rounded bg-blue-600 px-5 py-2 text-white"
+			>
+				Create User
+			</button>
+		</div>
+	</form>
+}
