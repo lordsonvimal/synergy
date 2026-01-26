@@ -1,0 +1,28 @@
+package course
+
+templ RenderCoursesList(courses []CourseInfo) {
+	<table class="min-w-full border border-slate-200 bg-white">
+		<thead class="bg-slate-100">
+			<tr>
+				<th class="px-4 py-2 text-left text-sm font-semibold">Course ID</th>
+				<th class="px-4 py-2 text-left text-sm font-semibold">Course Name</th>
+				<th class="px-4 py-2 text-left text-sm font-semibold">Enrolled Students</th>
+			</tr>
+		</thead>
+		<tbody>
+			for _, course := range courses {
+				<tr class="hover:bg-slate-50">
+					<td class="px-4 py-2 text-sm text-slate-700">
+						{ course.CourseID }
+					</td>
+					<td class="px-4 py-2 font-medium text-slate-800">
+						{ course.Name }
+					</td>
+					<td class="px-4 py-2 text-sm text-slate-700">
+						{ course.StudentCount }
+					</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
