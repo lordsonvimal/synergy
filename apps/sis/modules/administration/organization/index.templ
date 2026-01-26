@@ -1,0 +1,10 @@
+package organization
+
+import "github.com/lordsonvimal/synergy/apps/sis/modules/shared/ui/layouts"
+
+templ RenderIndexPage(orgs []OrgStat) {
+	@layouts.Layout("Organizations") {
+		<h1 class="text-2xl font-bold mb-6">Organizations</h1>
+		@RenderOrgList(orgs)
+	}
+}
