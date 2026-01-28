@@ -16,7 +16,7 @@ type ModalConfig struct {
 templ RenderModal(cfg ModalConfig) {
 	<div
 		id={ cfg.ID }
-		data-signals={ fmt.Sprintf(`{"_modalId": "%s", "_open": %t, "_x": 0, "_y": 0, "_persist": %t}`, cfg.ID, cfg.Show, cfg.Persist) }
+		data-signals={ fmt.Sprintf(`{"_modalId": "%s", "_open": %t, "_x": 0, "_y": 0, "_persist": %t, "_dragging": false, "_pointerId": 0, "_startX": 0, "_startY": 0}`, cfg.ID, cfg.Show, cfg.Persist) }
 		data-show="$_open"
 		data-init="
       el.focus();
@@ -25,6 +25,22 @@ templ RenderModal(cfg ModalConfig) {
 			}
 		"
 		class="fixed inset-0 flex items-center justify-center"
+		data-on:pointermove__window="
+			if ($_dragging && event.pointerId === $_pointerId) {
+				$_x = event.clientX - $_startX;
+				$_y = event.clientY - $_startY;
+			}
+		"
+		data-on:pointerup__window="
+			if (event.pointerId === $_pointerId) {
+				$_dragging = false;
+				$_pointerId = null;
+			}
+		"
+		data-on:pointercancel__window="
+			$_dragging = false;
+			$_pointerId = null;
+		"
 	>
 		<!-- Backdrop -->
 		<div
@@ -38,14 +54,30 @@ templ RenderModal(cfg ModalConfig) {
         }
 			"
 		></div>
-		<div class="relative bg-white rounded shadow-xl w-full max-w-lg">
-			<div class="cursor-move border-b border-gray-200 px-4 py-3 flex justify-between">
+		<div
+			class="relative bg-white rounded shadow-xl w-full max-w-lg"
+			data-style:transform="'translate(' + $_x + 'px, ' + $_y + 'px)'"
+		>
+			<div
+				class="cursor-move border-b border-gray-200 px-4 py-3 flex justify-between"
+				data-on:pointerdown="
+					if (event.target.closest('button')) return;
+					$_dragging = true;
+					$_pointerId = event.pointerId;
+					el.setPointerCapture(event.pointerId);
+					$_startX = event.clientX - $_x;
+					$_startY = event.clientY - $_y;
+				"
+				style="touch-action: none"
+			>
 				<h3>{ cfg.Title }</h3>
 				if cfg.Header != nil {
 					@cfg.Header
 				}
 				if !cfg.Persist {
 					<button
+						class="cursor-pointer"
+						data-on:pointerdown.stop="event.stopPropagation()"
 						data-on:click="
               const element = document.getElementById($_modalId);
               element.remove();

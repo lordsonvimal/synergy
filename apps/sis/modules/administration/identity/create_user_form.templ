@@ -33,7 +33,7 @@ templ RenderCreateUserWithRelationsForm(
 				required
 				class="w-full rounded border px-3 py-2"
 			/>
-			<label class="flex items-center gap-2 text-sm">
+			<label class="flex items-center gap-2 text-sm cursor-pointer">
 				<input type="checkbox" name="is_active" value="1" checked/>
 				Active
 			</label>
@@ -69,14 +69,14 @@ templ RenderCreateUserWithRelationsForm(
 						</select>
 						<button
 							type="button"
-							class="px-2"
+							class="px-2 cursor-pointer"
 							data-on:click="$rows.splice(i, 1)"
 						>✕</button>
 					</div>
 				</template>
 				<button
 					type="button"
-					class="text-sm text-blue-600"
+					class="text-sm text-blue-600 cursor-pointer"
 					data-on:click="$rows.push({})"
 				>
 					+ Add role
@@ -94,7 +94,7 @@ templ RenderCreateUserWithRelationsForm(
 					<div class="grid grid-cols-3 gap-2">
 						<select
 							name="relations[][relationship_type]"
-							class="rounded border px-2 py-1"
+							class="rounded border px-2 py-1 cursor-pointer"
 							required
 						>
 							<option value="">Relation</option>
@@ -118,7 +118,7 @@ templ RenderCreateUserWithRelationsForm(
 				</template>
 				<button
 					type="button"
-					class="text-sm text-blue-600"
+					class="text-sm text-blue-600 cursor-pointer"
 					data-on:click="$relations.push({})"
 				>
 					+ Add parent / guardian
@@ -129,7 +129,7 @@ templ RenderCreateUserWithRelationsForm(
 		<div class="flex justify-end gap-2 pt-4">
 			<button
 				type="submit"
-				class="rounded bg-blue-600 px-5 py-2 text-white"
+				class="rounded bg-blue-600 px-5 py-2 text-white cursor-pointer"
 			>
 				Create User
 			</button>
