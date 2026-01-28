@@ -41,6 +41,22 @@ func removeDuplicateRoles(roles []UserRoleForm) []UserRoleForm {
 	return filtered
 }
 
+func PatchUsersTable(sse *datastar.ServerSentEventGenerator, users []UserInfo) error {
+	buf := new(strings.Builder)
+	RenderUsersList(users).Render(sse.Context(), buf)
+	err := sse.PatchElements(
+		buf.String(),
+		datastar.WithSelector("#user-list-table"),
+		datastar.WithMode(datastar.ElementPatchModeOuter),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func handleGetUsers(c *gin.Context) {
 	// Implementation for retrieving list of users
 	app := appctx.Get(c)
@@ -53,19 +69,45 @@ func handleGetUsers(c *gin.Context) {
 	RenderIndexPage(users).Render(c.Request.Context(), c.Writer)
 }
 
+func handleDeleteUser(c *gin.Context) {
+	// Implementation for deleting a user
+	userIDParam := c.Param("id")
+	var userID int64
+	_, err := fmt.Sscanf(userIDParam, "%d", &userID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid user ID"))
+		return
+	}
+
+	app := appctx.Get(c)
+	repo := NewUserRepository(app.DB)
+	if err := repo.DeleteUser(userID); err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	// Create a Server-Sent Event writer
+	sse := datastar.NewSSE(c.Writer, c.Request)
+	// err = sse.PatchElements(
+	// 	"",
+	// 	datastar.WithMode(datastar.ElementPatchModeRemove),
+	// 	datastar.WithSelector(fmt.Sprintf("#user-row-%d", userID)),
+	// )
+	// if err != nil {
+	// 	c.Error(err)
+	// 	c.AbortWithError(http.StatusInternalServerError, err)
+	// }
+	users, _ := repo.GetAllUsersAcrossOrganizations()
+	logger.Info(c.Request.Context()).Interface("users", users).Msgf("Fetched %d users after deletion", len(users))
+	PatchUsersTable(sse, users)
+}
+
 func handleGetUser(c *gin.Context) {
 	// Implementation for retrieving a single user
 }
 
 func handleCreateUser(c *gin.Context) {
 	// Implementation for creating a user
-	// form := &UserForm{}
-	// if err := datastar.ReadSignals(c.Request, form); err != nil {
-	// 	logger.Error(c.Request.Context()).Err(err).Msg("Unable to read signals")
-	// 	c.AbortWithError(http.StatusBadRequest, err)
-	// 	return
-	// }
-
 	var form UserForm
 
 	if err := c.ShouldBind(&form); err != nil {
@@ -96,13 +138,7 @@ func handleCreateUser(c *gin.Context) {
 	}
 
 	users, _ := repo.GetAllUsersAcrossOrganizations()
-	buf := new(strings.Builder)
-	RenderUsersList(users).Render(c.Request.Context(), buf)
-	sse.PatchElements(
-		buf.String(),
-		datastar.WithSelector("#user-list-table"),
-		datastar.WithMode(datastar.ElementPatchModeReplace),
-	)
+	PatchUsersTable(sse, users)
 }
 
 func handleShowUserCreateForm(c *gin.Context) {

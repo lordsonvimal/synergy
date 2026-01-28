@@ -9,5 +9,6 @@ func InitRoutes(r *gin.Engine) {
 		identityGroup.GET("/:id", handleGetUser)
 		identityGroup.GET("/new", handleShowUserCreateForm)
 		identityGroup.POST("/create", handleCreateUser)
+		identityGroup.DELETE("/:id", handleDeleteUser)
 	}
 }

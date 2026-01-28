@@ -36,6 +36,11 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
+func (r *UserRepository) DeleteUser(userID int64) error {
+	_, err := r.db.Exec(`DELETE FROM users WHERE id = ?`, userID)
+	return err
+}
+
 func (r *UserRepository) GetAllUsersAcrossOrganizations() ([]UserInfo, error) {
 	rows, err := r.db.Query(`
 		SELECT
