@@ -1,10 +1,27 @@
 -- 1. Seed Roles (Essential System Data)
 -- Using OR IGNORE to prevent duplicates on 'name' UNIQUE constraint
-INSERT OR IGNORE INTO roles (name, description) VALUES 
+INSERT OR IGNORE INTO roles (name, description) VALUES
+-- System
 ('super_admin', 'Full system access and organization management'),
 ('org_admin', 'Administrative access to a specific organization'),
-('teacher', 'Access to manage assigned courses and students'),
-('student', 'Access to view enrolled courses and personal metrics');
+-- Academic
+('academic_coordinator', 'Manages courses, sections, and academic terms'),
+('teacher', 'Manages assigned courses and students'),
+('class_teacher', 'Primary teacher responsible for a section'),
+('teaching_assistant', 'Assists teachers with academic activities'),
+('student', 'Access to enrolled courses and personal metrics'),
+-- Finance
+('accountant', 'Manages invoices, payments, and financial reports'),
+('fee_manager', 'Handles fee setup, concessions, and collections'),
+-- Operations
+('receptionist', 'Manages admissions, inquiries, and front desk tasks'),
+('admissions_officer', 'Handles student onboarding and enrollment'),
+('attendance_manager', 'Manages attendance records'),
+-- External
+('parent', 'Access to child academic progress'),
+('guardian', 'Limited student-related access'),
+-- Support
+('it_support', 'Technical and system support');
 
 -- 2. Seed Academic Terms (Initial Setup)
 -- Set one term as active by default

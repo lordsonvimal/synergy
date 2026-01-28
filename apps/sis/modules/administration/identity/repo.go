@@ -2,6 +2,7 @@ package identity
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 )
 
@@ -42,21 +43,20 @@ func (r *UserRepository) GetAllUsersAcrossOrganizations() ([]UserInfo, error) {
 			u.name,
 			GROUP_CONCAT(DISTINCT r.name) AS roles,
 			u.is_active,
-			COUNT(DISTINCT e.course_id) AS course_count,
+			COUNT(DISTINCT e.section_id) AS course_count,
 			MIN(p.name) AS parent_name,
 			MIN(p.email) AS parent_email
 		FROM users u
-		JOIN memberships m ON m.user_id = u.id
-		JOIN roles r ON r.id = m.role_id
+		LEFT JOIN memberships m ON m.user_id = u.id
+		LEFT JOIN roles r ON r.id = m.role_id
 		LEFT JOIN enrollments e ON e.user_id = u.id
-		LEFT JOIN user_relationships ur
-			ON ur.user_id = u.id
-			AND ur.relationship_type IN ('parent', 'guardian')
+		LEFT JOIN user_relationships ur ON ur.user_id = u.id
 		LEFT JOIN users p ON p.id = ur.related_user_id
 		GROUP BY u.id
-		ORDER BY u.name
+		ORDER BY u.id ASC;
 	`)
 	if err != nil {
+		fmt.Println("Error fetching users:", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -137,4 +137,47 @@ func (r *UserRepository) GetAllRoles() ([]RoleOption, error) {
 	}
 
 	return roles, rows.Err()
+}
+
+func (r *UserRepository) CreateUser(form *UserForm) (err error) {
+	fmt.Println("Creating user:", form.Name, form.Email, form.Phone, form.IsActive, form.Roles)
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	res, err := tx.Exec(`
+		INSERT INTO users (name, email, phone, is_active)
+		VALUES (?, ?, ?, ?)
+	`, form.Name, form.Email, form.Phone, form.IsActive)
+	if err != nil {
+		return err
+	}
+
+	userID, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Created userId:", userID)
+
+	for _, role := range form.Roles {
+		_, err = tx.Exec(`
+			INSERT INTO memberships (user_id, role_id, organization_id)
+			VALUES (?, ?, ?)
+		`, userID, role.RoleID, role.OrganizationID)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	return err
 }

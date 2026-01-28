@@ -55,11 +55,12 @@ templ RenderModal(cfg ModalConfig) {
 			"
 		></div>
 		<div
-			class="relative bg-white rounded shadow-xl w-full max-w-lg"
+			class="relative bg-white rounded shadow-xl w-full max-w-lg max-h-[calc(100vh-2rem)] flex flex-col"
 			data-style:transform="'translate(' + $_x + 'px, ' + $_y + 'px)'"
 		>
+			<!-- Header (fixed) -->
 			<div
-				class="cursor-move border-b border-gray-200 px-4 py-3 flex justify-between"
+				class="cursor-move border-b border-gray-200 px-4 py-3 flex justify-between shrink-0 items-center"
 				data-on:pointerdown="
 					if (event.target.closest('button')) return;
 					$_dragging = true;
@@ -87,11 +88,12 @@ templ RenderModal(cfg ModalConfig) {
 					>✕</button>
 				}
 			</div>
-			<div class="p-4">
+			<!-- Body (scrollable) -->
+			<div class="p-4 overflow-y-auto flex-1 min-h-0">
 				@cfg.Body
 			</div>
 			if cfg.Footer != nil {
-				<div class="border-t px-4 py-3">
+				<div class="border-t border-gray-200 px-4 py-3 shrink-0">
 					@cfg.Footer
 				</div>
 			}

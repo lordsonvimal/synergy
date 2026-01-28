@@ -5,134 +5,121 @@ templ RenderCreateUserWithRelationsForm(
 	roles []RoleOption,
 ) {
 	<form
-		method="post"
-		action="/users/create"
+		id="create-user-form"
+		data-signals='{ "phone": "", "_fetching": false }'
 		class="space-y-6"
 	>
 		<!-- ================= User Info ================= -->
 		<section class="space-y-4">
 			<h3 class="font-semibold text-lg">User Details</h3>
 			<input
-				type="email"
-				name="email"
-				placeholder="Email"
-				required
-				class="w-full rounded border px-3 py-2"
-			/>
-			<input
+				autofocus
+				data-bind="name"
 				type="text"
 				name="name"
 				placeholder="Full name"
 				required
-				class="w-full rounded border px-3 py-2"
+				class="w-full rounded border border-gray-200 px-3 py-2"
 			/>
 			<input
-				type="password"
-				name="password"
-				placeholder="Password"
-				required
-				class="w-full rounded border px-3 py-2"
+				data-bind="email"
+				type="email"
+				name="email"
+				placeholder="Email"
+				class="w-full rounded border border-gray-200 px-3 py-2"
+			/>
+			<input
+				type="tel"
+				name="phone"
+				data-on:input="
+					const val = event.target.value.replace(/[^\d]/g, '').slice(0, 10);
+					event.target.value = val;
+					$phone = val;
+				"
+				placeholder="Phone number (optional)"
+				class="w-full rounded border border-gray-200 px-3 py-2"
 			/>
 			<label class="flex items-center gap-2 text-sm cursor-pointer">
-				<input type="checkbox" name="is_active" value="1" checked/>
+				<input data-bind="active" type="checkbox" name="is_active" value="1" checked/>
 				Active
 			</label>
 		</section>
-		<!-- ================= Roles ================= -->
+		<!-- ================= Org + Role ================= -->
 		<section class="space-y-4">
-			<h3 class="font-semibold text-lg">Roles</h3>
-			<div
-				data-store='{ "rows": [ {} ] }'
-				class="space-y-3"
-			>
-				<template data-for="(row, i) in $rows">
-					<div class="flex gap-2">
-						<select
-							name="roles[][organization_id]"
-							class="flex-1 rounded border px-2 py-1"
-							required
-						>
-							<option value="">Organization</option>
-							for _, org := range orgs {
-								<option value={ org.ID }>{ org.Name }</option>
-							}
-						</select>
-						<select
-							name="roles[][role_id]"
-							class="flex-1 rounded border px-2 py-1"
-							required
-						>
-							<option value="">Role</option>
-							for _, r := range roles {
-								<option value={ r.ID }>{ r.Name }</option>
-							}
-						</select>
-						<button
-							type="button"
-							class="px-2 cursor-pointer"
-							data-on:click="$rows.splice(i, 1)"
-						>✕</button>
-					</div>
-				</template>
+			<div class="flex items-center gap-4">
+				<h3 class="font-semibold text-lg">Roles</h3>
 				<button
 					type="button"
 					class="text-sm text-blue-600 cursor-pointer"
-					data-on:click="$rows.push({})"
+					data-on:click="
+						const tpl = document.getElementById('role-row-template');
+						const node = tpl.content.cloneNode(true);
+						document.getElementById('roles-container').appendChild(node);
+					"
 				>
 					+ Add role
 				</button>
 			</div>
-		</section>
-		<!-- ================= Parents / Guardians ================= -->
-		<section class="space-y-4">
-			<h3 class="font-semibold text-lg">Parents / Guardians</h3>
-			<div
-				data-store='{ "relations": [ {} ] }'
-				class="space-y-3"
-			>
-				<template data-for="(r, i) in $relations">
-					<div class="grid grid-cols-3 gap-2">
-						<select
-							name="relations[][relationship_type]"
-							class="rounded border px-2 py-1 cursor-pointer"
-							required
-						>
-							<option value="">Relation</option>
-							<option value="father">Father</option>
-							<option value="mother">Mother</option>
-							<option value="guardian">Guardian</option>
-						</select>
-						<input
-							type="email"
-							name="relations[][email]"
-							placeholder="Email"
-							class="rounded border px-2 py-1"
-						/>
-						<input
-							type="text"
-							name="relations[][name]"
-							placeholder="Name"
-							class="rounded border px-2 py-1"
-						/>
-					</div>
-				</template>
-				<button
-					type="button"
-					class="text-sm text-blue-600 cursor-pointer"
-					data-on:click="$relations.push({})"
-				>
-					+ Add parent / guardian
-				</button>
+			<div id="roles-container" class="space-y-3">
+				<!-- first role row -->
+				<div class="flex gap-2 role-row">
+					<select
+						name="roles[][organization_id]"
+						class="flex-1 rounded border px-2 py-1"
+						required
+					>
+						for _, org := range orgs {
+							<option value={ org.ID }>{ org.Name }</option>
+						}
+					</select>
+					<select
+						name="roles[][role_id]"
+						class="flex-1 rounded border px-2 py-1"
+						required
+					>
+						for _, role := range roles {
+							<option value={ role.ID }>{ role.Name }</option>
+						}
+					</select>
+					<button
+						type="button"
+						class="px-2 text-red-600 cursor-pointer"
+						data-on:click="event.target.closest('.role-row').remove()"
+					>
+						✕
+					</button>
+				</div>
 			</div>
 		</section>
-		<!-- ================= Submit ================= -->
-		<div class="flex justify-end gap-2 pt-4">
-			<button
-				type="submit"
-				class="rounded bg-blue-600 px-5 py-2 text-white cursor-pointer"
-			>
-				Create User
-			</button>
-		</div>
+		<!-- ================= Template For Roles + Organizations ================= -->
+		<template id="role-row-template">
+			<div class="flex gap-2 role-row">
+				<select
+					name="roles[][organization_id]"
+					class="flex-1 rounded border px-2 py-1"
+					required
+				>
+					for _, org := range orgs {
+						<option value={ org.ID }>{ org.Name }</option>
+					}
+				</select>
+				<select
+					name="roles[][role_id]"
+					class="flex-1 rounded border px-2 py-1"
+					required
+				>
+					for _, role := range roles {
+						<option value={ role.ID }>{ role.Name }</option>
+					}
+				</select>
+				<button
+					type="button"
+					class="px-2 text-red-600 cursor-pointer"
+					data-on:click="event.target.closest('.role-row').remove()"
+				>
+					✕
+				</button>
+			</div>
+		</template>
 	</form>
 }

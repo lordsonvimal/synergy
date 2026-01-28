@@ -8,9 +8,7 @@ package identity
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/lordsonvimal/synergy/apps/sis/modules/shared/ui/components/modal"
-
-func RenderCreateUserModal(orgs []OrganizationOption, roles []RoleOption) templ.Component {
+func RenderUserFormSubmitButton() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -31,13 +29,7 @@ func RenderCreateUserModal(orgs []OrganizationOption, roles []RoleOption) templ.
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = modal.RenderModal(modal.ModalConfig{
-			ID:     "create-user-modal",
-			Title:  "Create New User",
-			Body:   RenderCreateUserWithRelationsForm(orgs, roles),
-			Footer: RenderUserFormSubmitButton(),
-			Show:   true,
-		}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex justify-end\"><button data-on:click=\"@post('/users/create', { contentType: 'form', selector: '#create-user-form' })\" data-indicator=\"_fetching\" data-attr:disabled=\"$_fetching\" type=\"submit\" class=\"px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400\">Create User</button></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

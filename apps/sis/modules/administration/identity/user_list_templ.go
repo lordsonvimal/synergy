@@ -29,7 +29,7 @@ func RenderUsersList(users []UserInfo) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<table class=\"min-w-full border border-slate-200 bg-white\"><thead class=\"bg-slate-100\"><tr><th class=\"px-4 py-2 text-left text-sm font-semibold\">ID</th><th class=\"px-4 py-2 text-left text-sm font-semibold\">Name</th><th class=\"px-4 py-2 text-left text-sm font-semibold\">Roles</th><th class=\"px-4 py-2 text-left text-sm font-semibold\">Courses</th><th class=\"px-4 py-2 text-left text-sm font-semibold\">Status</th><th class=\"px-4 py-2 text-left text-sm font-semibold\">Parent Contact</th></tr></thead> <tbody>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<table class=\"min-w-full border border-slate-200 bg-white\" id=\"user-list-table\"><thead class=\"bg-slate-100\"><tr><th class=\"px-4 py-2 text-left text-sm font-semibold\">ID</th><th class=\"px-4 py-2 text-left text-sm font-semibold\">Name</th><th class=\"px-4 py-2 text-left text-sm font-semibold\">Roles</th><th class=\"px-4 py-2 text-left text-sm font-semibold\">Courses</th><th class=\"px-4 py-2 text-left text-sm font-semibold\">Status</th><th class=\"px-4 py-2 text-left text-sm font-semibold\">Parent Contact</th></tr></thead> <tbody>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

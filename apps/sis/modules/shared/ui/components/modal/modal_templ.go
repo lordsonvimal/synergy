@@ -68,14 +68,14 @@ func RenderModal(cfg ModalConfig) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" data-show=\"$_open\" data-init=\"\n      el.focus();\n\t\t\tif ($_open && !$_persist) {\n\t\t\t\t$_modalStack.push(el);\n\t\t\t}\n\t\t\" class=\"fixed inset-0 flex items-center justify-center\" data-on:pointermove__window=\"\n\t\t\tif ($_dragging && event.pointerId === $_pointerId) {\n\t\t\t\t$_x = event.clientX - $_startX;\n\t\t\t\t$_y = event.clientY - $_startY;\n\t\t\t}\n\t\t\" data-on:pointerup__window=\"\n\t\t\tif (event.pointerId === $_pointerId) {\n\t\t\t\t$_dragging = false;\n\t\t\t\t$_pointerId = null;\n\t\t\t}\n\t\t\" data-on:pointercancel__window=\"\n\t\t\t$_dragging = false;\n\t\t\t$_pointerId = null;\n\t\t\"><!-- Backdrop --><div class=\"absolute inset-0 bg-black/40\" data-on:click=\"\n        if (!$_persist) {\n          const element = document.getElementById($_modalId);\n          element.remove();\n          $_open = false;\n          $_modalStack.pop();\n        }\n\t\t\t\"></div><div class=\"relative bg-white rounded shadow-xl w-full max-w-lg\" data-style:transform=\"'translate(' + $_x + 'px, ' + $_y + 'px)'\"><div class=\"cursor-move border-b border-gray-200 px-4 py-3 flex justify-between\" data-on:pointerdown=\"\n\t\t\t\t\tif (event.target.closest('button')) return;\n\t\t\t\t\t$_dragging = true;\n\t\t\t\t\t$_pointerId = event.pointerId;\n\t\t\t\t\tel.setPointerCapture(event.pointerId);\n\t\t\t\t\t$_startX = event.clientX - $_x;\n\t\t\t\t\t$_startY = event.clientY - $_y;\n\t\t\t\t\" style=\"touch-action: none\"><h3>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" data-show=\"$_open\" data-init=\"\n      el.focus();\n\t\t\tif ($_open && !$_persist) {\n\t\t\t\t$_modalStack.push(el);\n\t\t\t}\n\t\t\" class=\"fixed inset-0 flex items-center justify-center\" data-on:pointermove__window=\"\n\t\t\tif ($_dragging && event.pointerId === $_pointerId) {\n\t\t\t\t$_x = event.clientX - $_startX;\n\t\t\t\t$_y = event.clientY - $_startY;\n\t\t\t}\n\t\t\" data-on:pointerup__window=\"\n\t\t\tif (event.pointerId === $_pointerId) {\n\t\t\t\t$_dragging = false;\n\t\t\t\t$_pointerId = null;\n\t\t\t}\n\t\t\" data-on:pointercancel__window=\"\n\t\t\t$_dragging = false;\n\t\t\t$_pointerId = null;\n\t\t\"><!-- Backdrop --><div class=\"absolute inset-0 bg-black/40\" data-on:click=\"\n        if (!$_persist) {\n          const element = document.getElementById($_modalId);\n          element.remove();\n          $_open = false;\n          $_modalStack.pop();\n        }\n\t\t\t\"></div><div class=\"relative bg-white rounded shadow-xl w-full max-w-lg max-h-[calc(100vh-2rem)] flex flex-col\" data-style:transform=\"'translate(' + $_x + 'px, ' + $_y + 'px)'\"><!-- Header (fixed) --><div class=\"cursor-move border-b border-gray-200 px-4 py-3 flex justify-between shrink-0 items-center\" data-on:pointerdown=\"\n\t\t\t\t\tif (event.target.closest('button')) return;\n\t\t\t\t\t$_dragging = true;\n\t\t\t\t\t$_pointerId = event.pointerId;\n\t\t\t\t\tel.setPointerCapture(event.pointerId);\n\t\t\t\t\t$_startX = event.clientX - $_x;\n\t\t\t\t\t$_startY = event.clientY - $_y;\n\t\t\t\t\" style=\"touch-action: none\"><h3>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(cfg.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/shared/ui/components/modal/modal.templ`, Line: 73, Col: 19}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/shared/ui/components/modal/modal.templ`, Line: 74, Col: 19}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -97,7 +97,7 @@ func RenderModal(cfg ModalConfig) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><div class=\"p-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><!-- Body (scrollable) --><div class=\"p-4 overflow-y-auto flex-1 min-h-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -110,7 +110,7 @@ func RenderModal(cfg ModalConfig) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if cfg.Footer != nil {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"border-t px-4 py-3\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"border-t border-gray-200 px-4 py-3 shrink-0\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

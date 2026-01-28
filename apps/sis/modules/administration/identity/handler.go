@@ -1,20 +1,55 @@
 package identity
 
 import (
+	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lordsonvimal/synergy/apps/sis/logger"
 	"github.com/lordsonvimal/synergy/apps/sis/shared/appctx"
 	"github.com/starfederation/datastar-go/datastar"
 )
 
 // Table: users, user_relationships
 
+type UserForm struct {
+	Name     string         `form:"name" validate:"required"`
+	Email    string         `form:"email" validate:"omitempty,email"`
+	Phone    string         `form:"phone"`
+	IsActive bool           `form:"is_active"`
+	Roles    []UserRoleForm `form:"roles" validate:"dive"`
+}
+
+type UserRoleForm struct {
+	OrganizationID int `form:"organization_id" validate:"required"`
+	RoleID         int `form:"role_id" validate:"required"`
+}
+
+func removeDuplicateRoles(roles []UserRoleForm) []UserRoleForm {
+	seen := make(map[string]bool)
+	var filtered []UserRoleForm
+
+	for _, r := range roles {
+		key := fmt.Sprintf("%d-%d", r.OrganizationID, r.RoleID)
+		if !seen[key] {
+			filtered = append(filtered, r)
+			seen[key] = true
+		}
+	}
+
+	return filtered
+}
+
 func handleGetUsers(c *gin.Context) {
 	// Implementation for retrieving list of users
 	app := appctx.Get(c)
 	repo := NewUserRepository(app.DB)
-	users, _ := repo.GetAllUsersAcrossOrganizations()
+	users, err := repo.GetAllUsersAcrossOrganizations()
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
 	RenderIndexPage(users).Render(c.Request.Context(), c.Writer)
 }
 
@@ -24,6 +59,50 @@ func handleGetUser(c *gin.Context) {
 
 func handleCreateUser(c *gin.Context) {
 	// Implementation for creating a user
+	// form := &UserForm{}
+	// if err := datastar.ReadSignals(c.Request, form); err != nil {
+	// 	logger.Error(c.Request.Context()).Err(err).Msg("Unable to read signals")
+	// 	c.AbortWithError(http.StatusBadRequest, err)
+	// 	return
+	// }
+
+	var form UserForm
+
+	if err := c.ShouldBind(&form); err != nil {
+		logger.Error(c.Request.Context()).Err(err).Msg("Unable to read signals")
+		c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+
+	form.Roles = removeDuplicateRoles(form.Roles)
+
+	app := appctx.Get(c)
+	repo := NewUserRepository(app.DB)
+	if err := repo.CreateUser(&form); err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Create a Server-Sent Event writer
+	sse := datastar.NewSSE(c.Writer, c.Request)
+	err := sse.PatchElements(
+		"",
+		datastar.WithMode(datastar.ElementPatchModeRemove),
+		datastar.WithSelector("#create-user-modal"),
+	)
+	if err != nil {
+		c.Error(err)
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	users, _ := repo.GetAllUsersAcrossOrganizations()
+	buf := new(strings.Builder)
+	RenderUsersList(users).Render(c.Request.Context(), buf)
+	sse.PatchElements(
+		buf.String(),
+		datastar.WithSelector("#user-list-table"),
+		datastar.WithMode(datastar.ElementPatchModeReplace),
+	)
 }
 
 func handleShowUserCreateForm(c *gin.Context) {
