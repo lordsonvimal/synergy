@@ -11,7 +11,7 @@ func handleDashboard(c *gin.Context) {
 	metrics, _ := GetMetrics(app.DB)
 	orgs, _ := organization.GetOrganizationStats(app.DB)
 
-	RenderDashboard(metrics, orgs).Render(
+	RenderDashboardPage(metrics, orgs).Render(
 		c.Request.Context(),
 		c.Writer,
 	)

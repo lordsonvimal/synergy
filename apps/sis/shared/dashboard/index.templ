@@ -6,8 +6,11 @@ import (
 	"strconv"
 )
 
-templ RenderDashboard(m Metrics, orgs []organization.OrgStat) {
-	@layouts.Layout("SIS Dashboard") {
+templ RenderDashboardPage(m Metrics, orgs []organization.OrgStat) {
+	@layouts.Layout(layouts.LayoutConfig{Title: "SIS Dashboard", Head: []templ.Component{
+		templ.Raw(`<meta name="description" content="Users page">`),
+		templ.Raw(`<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>`),
+	}}) {
 		<h1 class="text-2xl font-bold mb-6">Dashboard</h1>
 		<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
 			@organization.RenderStat("Students", strconv.Itoa(m.TotalStudents))
@@ -15,6 +18,7 @@ templ RenderDashboard(m Metrics, orgs []organization.OrgStat) {
 			@organization.RenderStat("Fees Collected", m.FeesCollected)
 			@organization.RenderStat("Pending Fees", m.FeesPending)
 		</div>
+		@AttendanceChart()
 		@organization.RenderOrgList(orgs)
 	}
 }

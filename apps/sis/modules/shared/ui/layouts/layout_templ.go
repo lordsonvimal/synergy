@@ -10,7 +10,12 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "github.com/lordsonvimal/synergy/apps/sis/modules/shared/ui/components/modal"
 
-func Layout(title string) templ.Component {
+type LayoutConfig struct {
+	Title string
+	Head  []templ.Component
+}
+
+func Layout(config LayoutConfig) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -36,28 +41,40 @@ func Layout(title string) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(title)
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(config.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/shared/ui/layouts/layout.templ`, Line: 10, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/shared/ui/layouts/layout.templ`, Line: 15, Col: 24}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link href=\"/static/style.css\" rel=\"stylesheet\"><script type=\"module\" src=\"https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.7/bundles/datastar.js\"></script></head><body class=\"bg-gray-50 h-full\" data-store='{ \"sidebarOpen\": false, \"path\": \"\" }' data-init=\"$path = window.location.pathname\"><div id=\"app-content-root\" class=\"flex h-full\"><!-- Sidebar --><aside id=\"sidebar\" class=\"fixed md:relative h-full w-64 shrink-0 bg-slate-800 text-slate-100 transform transition-transform duration-200 -translate-x-full md:translate-x-0\" data-class=\"{ 'translate-x-0': $sidebarOpen, '-translate-x-full': !$sidebarOpen }\"><div class=\"flex border-b border-slate-700 items-center justify-between p-4\"><div class=\"text-lg font-bold\">SIS</div><!-- Close button (mobile only) --><button class=\"md:hidden text-xl cursor-pointer\" data-on:click=\"$sidebarOpen = false\" aria-label=\"Close sidebar\">✕</button></div><nav class=\"p-4 space-y-2 text-primary-100\"><a href=\"/\" id=\"dashboard-link\" class=\"block px-4 py-2 rounded hover:bg-slate-600\" data-class=\"{ 'bg-slate-700 font-semibold': $path === '/' }\">Dashboard</a> <a href=\"/organizations\" id=\"organizations-link\" class=\"block px-4 py-2 rounded hover:bg-slate-600\" data-class=\"{ 'bg-slate-700 font-semibold': $path.startsWith('/organizations') }\">Organizations</a> <a href=\"/users\" id=\"users-link\" class=\"block px-4 py-2 rounded hover:bg-slate-600\" data-class=\"{ 'bg-slate-700 font-semibold': $path.startsWith('/users') }\">Users</a> <a href=\"/courses\" id=\"courses-link\" class=\"block px-4 py-2 rounded hover:bg-slate-600\" data-class=\"{ 'bg-slate-700 font-semibold': $path.startsWith('/courses') }\">Courses</a> <a href=\"/fees\" id=\"fees-link\" class=\"block px-4 py-2 rounded hover:bg-slate-600\" data-class=\"{ 'bg-slate-700 font-semibold': $path.startsWith('/fees') }\">Fees</a></nav></aside><!-- Main content --><div class=\"flex-1 flex flex-col\"><!-- Top bar (mobile) --><header class=\"md:hidden bg-white shadow p-4 flex items-center\"><button data-on:click=\"$sidebarOpen = !$sidebarOpen\" class=\"mr-4 cursor-pointer\">☰</button><h1 class=\"font-semibold\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link href=\"/static/style.css\" rel=\"stylesheet\"><link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\"><script type=\"module\" src=\"https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.7/bundles/datastar.js\"></script>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if config.Head != nil {
+			for _, headComp := range config.Head {
+				templ_7745c5c3_Err = headComp.Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</head><body class=\"bg-gray-50 h-full\" data-store='{ \"sidebarOpen\": false, \"path\": \"\" }' data-init=\"$path = window.location.pathname\"><div id=\"app-content-root\" class=\"flex h-full\"><!-- Sidebar --><aside id=\"sidebar\" class=\"fixed md:relative h-full w-64 shrink-0 bg-slate-800 text-slate-100 transform transition-transform duration-200 -translate-x-full md:translate-x-0\" data-class=\"{ 'translate-x-0': $sidebarOpen, '-translate-x-full': !$sidebarOpen }\"><div class=\"flex border-b border-slate-700 items-center justify-between p-4\"><div class=\"text-lg font-bold\">SIS</div><!-- Close button (mobile only) --><button class=\"md:hidden text-xl cursor-pointer\" data-on:click=\"$sidebarOpen = false\" aria-label=\"Close sidebar\">✕</button></div><nav class=\"p-4 space-y-2 text-primary-100\"><a href=\"/\" id=\"dashboard-link\" class=\"block px-4 py-2 rounded hover:bg-slate-600\" data-class=\"{ 'bg-slate-700 font-semibold': $path === '/' }\">Dashboard</a> <a href=\"/organizations\" id=\"organizations-link\" class=\"block px-4 py-2 rounded hover:bg-slate-600\" data-class=\"{ 'bg-slate-700 font-semibold': $path.startsWith('/organizations') }\">Organizations</a> <a href=\"/users\" id=\"users-link\" class=\"block px-4 py-2 rounded hover:bg-slate-600\" data-class=\"{ 'bg-slate-700 font-semibold': $path.startsWith('/users') }\">Users</a> <a href=\"/courses\" id=\"courses-link\" class=\"block px-4 py-2 rounded hover:bg-slate-600\" data-class=\"{ 'bg-slate-700 font-semibold': $path.startsWith('/courses') }\">Courses</a> <a href=\"/fees\" id=\"fees-link\" class=\"block px-4 py-2 rounded hover:bg-slate-600\" data-class=\"{ 'bg-slate-700 font-semibold': $path.startsWith('/fees') }\">Fees</a></nav></aside><!-- Main content --><div class=\"flex-1 flex flex-col\"><!-- Top bar (mobile) --><header class=\"md:hidden bg-white shadow p-4 flex items-center\"><button data-on:click=\"$sidebarOpen = !$sidebarOpen\" class=\"mr-4 cursor-pointer\">☰</button><h1 class=\"font-semibold\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(title)
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(config.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/shared/ui/layouts/layout.templ`, Line: 85, Col: 39}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/shared/ui/layouts/layout.templ`, Line: 96, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</h1></header><!-- Page content --><main class=\"flex-1 overflow-y-auto p-6\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</h1></header><!-- Page content --><main class=\"flex-1 overflow-y-auto p-6\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -65,7 +82,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</main></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</main></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -73,7 +90,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

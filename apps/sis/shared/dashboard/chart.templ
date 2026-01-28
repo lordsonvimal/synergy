@@ -1,0 +1,46 @@
+package dashboard
+
+templ AttendanceChart() {
+	<div class="bg-white p-6 rounded shadow">
+		<h2 class="text-lg font-semibold mb-4">Course Attendance</h2>
+		<canvas id="attendanceChart" height="100"></canvas>
+		<script>
+			const ctx = document.getElementById('attendanceChart');
+
+			new Chart(ctx, {
+				type: 'bar',
+				data: {
+					labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+					datasets: [{
+						label: 'Students Present',
+						data: [42, 38, 45, 40],
+						backgroundColor: '#3b82f6'
+					}]
+				},
+				options: {
+					responsive: true,
+					plugins: {
+						legend: {
+							display: false
+						}
+					},
+					scales: {
+						y: {
+							beginAtZero: true,
+							title: {
+								display: true,
+								text: 'No. of Students'
+							}
+						},
+						x: {
+							title: {
+								display: true,
+								text: 'Week'
+							}
+						}
+					}
+				}
+			});
+		</script>
+	</div>
+}

@@ -2,14 +2,25 @@ package layouts
 
 import "github.com/lordsonvimal/synergy/apps/sis/modules/shared/ui/components/modal"
 
-templ Layout(title string) {
+type LayoutConfig struct {
+	Title string
+	Head  []templ.Component
+}
+
+templ Layout(config LayoutConfig) {
 	<!DOCTYPE html>
 	<html class="h-full">
 		<head>
 			<meta charset="UTF-8"/>
-			<title>{ title }</title>
+			<title>{ config.Title }</title>
 			<link href="/static/style.css" rel="stylesheet"/>
+			<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
 			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.7/bundles/datastar.js"></script>
+			if config.Head != nil {
+				for _, headComp := range config.Head {
+					@headComp
+				}
+			}
 		</head>
 		<body class="bg-gray-50 h-full" data-store='{ "sidebarOpen": false, "path": "" }' data-init="$path = window.location.pathname">
 			<div id="app-content-root" class="flex h-full">
@@ -82,7 +93,7 @@ templ Layout(title string) {
 						<button data-on:click="$sidebarOpen = !$sidebarOpen" class="mr-4 cursor-pointer">
 							☰
 						</button>
-						<h1 class="font-semibold">{ title }</h1>
+						<h1 class="font-semibold">{ config.Title }</h1>
 					</header>
 					<!-- Page content -->
 					<main class="flex-1 overflow-y-auto p-6">

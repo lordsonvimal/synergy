@@ -50,6 +50,7 @@ func main() {
 
 	router.Static("/static", "./dist")
 	router.StaticFile("/favicon.ico", "assets/favicon.ico")
+	router.StaticFile("/favicon.svg", "assets/favicon.svg")
 
 	server.InitRoutes(router)
 
