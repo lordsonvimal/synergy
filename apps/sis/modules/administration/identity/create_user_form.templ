@@ -46,11 +46,6 @@ templ RenderCreateUserWithRelationsForm(
 				<button
 					type="button"
 					class="text-sm text-blue-600 cursor-pointer"
-					data-on:click="
-						const tpl = document.getElementById('role-row-template');
-						const node = tpl.content.cloneNode(true);
-						document.getElementById('roles-container').appendChild(node);
-					"
 				>
 					+ Add role
 				</button>
@@ -60,9 +55,5 @@ templ RenderCreateUserWithRelationsForm(
 				@RenderRoleOption(orgs, roles)
 			</div>
 		</section>
-		<!-- ================= Template For Roles + Organizations ================= -->
-		<template id="role-row-template">
-			@RenderRoleOption(orgs, roles)
-		</template>
 	</form>
 }

@@ -32,7 +32,7 @@ func RenderCreateUserWithRelationsForm(
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<form id=\"create-user-form\" class=\"space-y-6\"><!-- ================= User Info ================= --><section class=\"space-y-4\"><h3 class=\"font-semibold text-lg\">User Details</h3><input type=\"text\" name=\"name\" placeholder=\"Full name\" required class=\"w-full rounded border border-gray-200 px-3 py-2\"> <input type=\"email\" name=\"email\" placeholder=\"Email\" class=\"w-full rounded border border-gray-200 px-3 py-2\"> <input type=\"tel\" name=\"phone\" data-on:input=\"\n\t\t\t\t\tconst val = event.target.value.replace(/[^\\d]/g, '').slice(0, 10);\n\t\t\t\t\tevent.target.value = val;\n\t\t\t\t\" placeholder=\"Phone number (optional)\" class=\"w-full rounded border border-gray-200 px-3 py-2\"> <label class=\"flex items-center gap-2 text-sm cursor-pointer\"><input type=\"checkbox\" name=\"is_active\" value=\"1\" checked> Active</label></section><!-- ================= Org + Role ================= --><section class=\"space-y-4\"><div class=\"flex items-center gap-4\"><h3 class=\"font-semibold text-lg\">Roles</h3><button type=\"button\" class=\"text-sm text-blue-600 cursor-pointer\" data-on:click=\"\n\t\t\t\t\t\tconst tpl = document.getElementById('role-row-template');\n\t\t\t\t\t\tconst node = tpl.content.cloneNode(true);\n\t\t\t\t\t\tdocument.getElementById('roles-container').appendChild(node);\n\t\t\t\t\t\">+ Add role</button></div><div id=\"roles-container\" class=\"space-y-3\"><!-- first role row -->")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<form id=\"create-user-form\" class=\"space-y-6\"><!-- ================= User Info ================= --><section class=\"space-y-4\"><h3 class=\"font-semibold text-lg\">User Details</h3><input type=\"text\" name=\"name\" placeholder=\"Full name\" required class=\"w-full rounded border border-gray-200 px-3 py-2\"> <input type=\"email\" name=\"email\" placeholder=\"Email\" class=\"w-full rounded border border-gray-200 px-3 py-2\"> <input type=\"tel\" name=\"phone\" data-on:input=\"\n\t\t\t\t\tconst val = event.target.value.replace(/[^\\d]/g, '').slice(0, 10);\n\t\t\t\t\tevent.target.value = val;\n\t\t\t\t\" placeholder=\"Phone number (optional)\" class=\"w-full rounded border border-gray-200 px-3 py-2\"> <label class=\"flex items-center gap-2 text-sm cursor-pointer\"><input type=\"checkbox\" name=\"is_active\" value=\"1\" checked> Active</label></section><!-- ================= Org + Role ================= --><section class=\"space-y-4\"><div class=\"flex items-center gap-4\"><h3 class=\"font-semibold text-lg\">Roles</h3><button type=\"button\" class=\"text-sm text-blue-600 cursor-pointer\">+ Add role</button></div><div id=\"roles-container\" class=\"space-y-3\"><!-- first role row -->")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -40,15 +40,7 @@ func RenderCreateUserWithRelationsForm(
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></section><!-- ================= Template For Roles + Organizations ================= --><template id=\"role-row-template\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = RenderRoleOption(orgs, roles).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</template></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></section></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

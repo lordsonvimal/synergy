@@ -29,7 +29,7 @@ func RenderRoleOption(orgs []OrganizationOption, roles []RoleOption) templ.Compo
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex gap-2 role-row\" id=\"role-row\"><select name=\"roles[][organization_id]\" class=\"flex-1 rounded border border-gray-200 px-3 py-2\" required>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex gap-2 role-row\"><select name=\"roles[][organization_id]\" class=\"flex-1 rounded border border-gray-200 px-3 py-2\" required>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
