@@ -86,15 +86,6 @@ func handleDeleteUser(c *gin.Context) {
 
 	// Create a Server-Sent Event writer
 	sse := datastar.NewSSE(c.Writer, c.Request)
-	// err = sse.PatchElements(
-	// 	"",
-	// 	datastar.WithMode(datastar.ElementPatchModeRemove),
-	// 	datastar.WithSelector(fmt.Sprintf("#user-row-%d", userID)),
-	// )
-	// if err != nil {
-	// 	c.Error(err)
-	// 	c.AbortWithError(http.StatusInternalServerError, err)
-	// }
 	users, _ := repo.GetAllUsersAcrossOrganizations()
 	logger.Info(c.Request.Context()).Interface("users", users).Msgf("Fetched %d users after deletion", len(users))
 	PatchUsersTable(sse, users)
