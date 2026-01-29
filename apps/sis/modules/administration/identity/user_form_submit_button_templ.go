@@ -29,7 +29,7 @@ func RenderUserFormSubmitButton() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex justify-end\"><button data-on:click=\"@post('/users/create', { contentType: 'form', selector: '#create-user-form' })\" data-indicator=\"_fetching\" data-attr:disabled=\"$_fetching\" type=\"submit\" class=\"px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400\">Create User</button></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex justify-end\"><button data-on:click=\"@post('/users/create', { contentType: 'form', selector: '#create-user-form' })\" data-indicator=\"_fetching\" data-attr:disabled=\"$_fetching\" form=\"create-user-form\" type=\"submit\" class=\"px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 cursor-pointer disabled:cursor-not-allowed transition\">Create User</button></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

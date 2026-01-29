@@ -6,7 +6,6 @@ templ RenderCreateUserWithRelationsForm(
 ) {
 	<form
 		id="create-user-form"
-		data-signals='{ "phone": "", "_fetching": false }'
 		class="space-y-6"
 	>
 		<!-- ================= User Info ================= -->
@@ -14,7 +13,6 @@ templ RenderCreateUserWithRelationsForm(
 			<h3 class="font-semibold text-lg">User Details</h3>
 			<input
 				autofocus
-				data-bind="name"
 				type="text"
 				name="name"
 				placeholder="Full name"
@@ -22,7 +20,6 @@ templ RenderCreateUserWithRelationsForm(
 				class="w-full rounded border border-gray-200 px-3 py-2"
 			/>
 			<input
-				data-bind="email"
 				type="email"
 				name="email"
 				placeholder="Email"
@@ -34,13 +31,12 @@ templ RenderCreateUserWithRelationsForm(
 				data-on:input="
 					const val = event.target.value.replace(/[^\d]/g, '').slice(0, 10);
 					event.target.value = val;
-					$phone = val;
 				"
 				placeholder="Phone number (optional)"
 				class="w-full rounded border border-gray-200 px-3 py-2"
 			/>
 			<label class="flex items-center gap-2 text-sm cursor-pointer">
-				<input data-bind="active" type="checkbox" name="is_active" value="1" checked/>
+				<input type="checkbox" name="is_active" value="1" checked/>
 				Active
 			</label>
 		</section>
@@ -62,64 +58,12 @@ templ RenderCreateUserWithRelationsForm(
 			</div>
 			<div id="roles-container" class="space-y-3">
 				<!-- first role row -->
-				<div class="flex gap-2 role-row">
-					<select
-						name="roles[][organization_id]"
-						class="flex-1 rounded border px-2 py-1"
-						required
-					>
-						for _, org := range orgs {
-							<option value={ org.ID }>{ org.Name }</option>
-						}
-					</select>
-					<select
-						name="roles[][role_id]"
-						class="flex-1 rounded border px-2 py-1"
-						required
-					>
-						for _, role := range roles {
-							<option value={ role.ID }>{ role.Name }</option>
-						}
-					</select>
-					<button
-						type="button"
-						class="px-2 text-red-600 cursor-pointer"
-						data-on:click="event.target.closest('.role-row').remove()"
-					>
-						✕
-					</button>
-				</div>
+				@RenderRoleOption(orgs, roles)
 			</div>
 		</section>
 		<!-- ================= Template For Roles + Organizations ================= -->
 		<template id="role-row-template">
-			<div class="flex gap-2 role-row">
-				<select
-					name="roles[][organization_id]"
-					class="flex-1 rounded border px-2 py-1"
-					required
-				>
-					for _, org := range orgs {
-						<option value={ org.ID }>{ org.Name }</option>
-					}
-				</select>
-				<select
-					name="roles[][role_id]"
-					class="flex-1 rounded border px-2 py-1"
-					required
-				>
-					for _, role := range roles {
-						<option value={ role.ID }>{ role.Name }</option>
-					}
-				</select>
-				<button
-					type="button"
-					class="px-2 text-red-600 cursor-pointer"
-					data-on:click="event.target.closest('.role-row').remove()"
-				>
-					✕
-				</button>
-			</div>
+			@RenderRoleOption(orgs, roles)
 		</template>
 	</form>
 }

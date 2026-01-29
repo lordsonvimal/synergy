@@ -46,8 +46,6 @@ func PatchUsersTable(sse *datastar.ServerSentEventGenerator, users []UserInfo) e
 	RenderUsersList(users).Render(sse.Context(), buf)
 	err := sse.PatchElements(
 		buf.String(),
-		datastar.WithSelector("#user-list-table"),
-		datastar.WithMode(datastar.ElementPatchModeOuter),
 	)
 
 	if err != nil {

@@ -32,151 +32,23 @@ func RenderCreateUserWithRelationsForm(
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<form id=\"create-user-form\" data-signals='{ \"phone\": \"\", \"_fetching\": false }' class=\"space-y-6\"><!-- ================= User Info ================= --><section class=\"space-y-4\"><h3 class=\"font-semibold text-lg\">User Details</h3><input autofocus data-bind=\"name\" type=\"text\" name=\"name\" placeholder=\"Full name\" required class=\"w-full rounded border border-gray-200 px-3 py-2\"> <input data-bind=\"email\" type=\"email\" name=\"email\" placeholder=\"Email\" class=\"w-full rounded border border-gray-200 px-3 py-2\"> <input type=\"tel\" name=\"phone\" data-on:input=\"\n\t\t\t\t\tconst val = event.target.value.replace(/[^\\d]/g, '').slice(0, 10);\n\t\t\t\t\tevent.target.value = val;\n\t\t\t\t\t$phone = val;\n\t\t\t\t\" placeholder=\"Phone number (optional)\" class=\"w-full rounded border border-gray-200 px-3 py-2\"> <label class=\"flex items-center gap-2 text-sm cursor-pointer\"><input data-bind=\"active\" type=\"checkbox\" name=\"is_active\" value=\"1\" checked> Active</label></section><!-- ================= Org + Role ================= --><section class=\"space-y-4\"><div class=\"flex items-center gap-4\"><h3 class=\"font-semibold text-lg\">Roles</h3><button type=\"button\" class=\"text-sm text-blue-600 cursor-pointer\" data-on:click=\"\n\t\t\t\t\t\tconst tpl = document.getElementById('role-row-template');\n\t\t\t\t\t\tconst node = tpl.content.cloneNode(true);\n\t\t\t\t\t\tdocument.getElementById('roles-container').appendChild(node);\n\t\t\t\t\t\">+ Add role</button></div><div id=\"roles-container\" class=\"space-y-3\"><!-- first role row --><div class=\"flex gap-2 role-row\"><select name=\"roles[][organization_id]\" class=\"flex-1 rounded border px-2 py-1\" required>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<form id=\"create-user-form\" class=\"space-y-6\"><!-- ================= User Info ================= --><section class=\"space-y-4\"><h3 class=\"font-semibold text-lg\">User Details</h3><input autofocus type=\"text\" name=\"name\" placeholder=\"Full name\" required class=\"w-full rounded border border-gray-200 px-3 py-2\"> <input type=\"email\" name=\"email\" placeholder=\"Email\" class=\"w-full rounded border border-gray-200 px-3 py-2\"> <input type=\"tel\" name=\"phone\" data-on:input=\"\n\t\t\t\t\tconst val = event.target.value.replace(/[^\\d]/g, '').slice(0, 10);\n\t\t\t\t\tevent.target.value = val;\n\t\t\t\t\" placeholder=\"Phone number (optional)\" class=\"w-full rounded border border-gray-200 px-3 py-2\"> <label class=\"flex items-center gap-2 text-sm cursor-pointer\"><input type=\"checkbox\" name=\"is_active\" value=\"1\" checked> Active</label></section><!-- ================= Org + Role ================= --><section class=\"space-y-4\"><div class=\"flex items-center gap-4\"><h3 class=\"font-semibold text-lg\">Roles</h3><button type=\"button\" class=\"text-sm text-blue-600 cursor-pointer\" data-on:click=\"\n\t\t\t\t\t\tconst tpl = document.getElementById('role-row-template');\n\t\t\t\t\t\tconst node = tpl.content.cloneNode(true);\n\t\t\t\t\t\tdocument.getElementById('roles-container').appendChild(node);\n\t\t\t\t\t\">+ Add role</button></div><div id=\"roles-container\" class=\"space-y-3\"><!-- first role row -->")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, org := range orgs {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<option value=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var2 string
-			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(org.ID)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/administration/identity/create_user_form.templ`, Line: 72, Col: 29}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(org.Name)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/administration/identity/create_user_form.templ`, Line: 72, Col: 42}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</option>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</select> <select name=\"roles[][role_id]\" class=\"flex-1 rounded border px-2 py-1\" required>")
+		templ_7745c5c3_Err = RenderRoleOption(orgs, roles).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, role := range roles {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<option value=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(role.ID)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/administration/identity/create_user_form.templ`, Line: 81, Col: 30}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var5 string
-			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(role.Name)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/administration/identity/create_user_form.templ`, Line: 81, Col: 44}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</option>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</select> <button type=\"button\" class=\"px-2 text-red-600 cursor-pointer\" data-on:click=\"event.target.closest('.role-row').remove()\">✕</button></div></div></section><!-- ================= Template For Roles + Organizations ================= --><template id=\"role-row-template\"><div class=\"flex gap-2 role-row\"><select name=\"roles[][organization_id]\" class=\"flex-1 rounded border px-2 py-1\" required>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></section><!-- ================= Template For Roles + Organizations ================= --><template id=\"role-row-template\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, org := range orgs {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<option value=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var6 string
-			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(org.ID)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/administration/identity/create_user_form.templ`, Line: 103, Col: 28}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var7 string
-			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(org.Name)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/administration/identity/create_user_form.templ`, Line: 103, Col: 41}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</option>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</select> <select name=\"roles[][role_id]\" class=\"flex-1 rounded border px-2 py-1\" required>")
+		templ_7745c5c3_Err = RenderRoleOption(orgs, roles).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, role := range roles {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<option value=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var8 string
-			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(role.ID)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/administration/identity/create_user_form.templ`, Line: 112, Col: 29}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var9 string
-			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(role.Name)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/administration/identity/create_user_form.templ`, Line: 112, Col: 43}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</option>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</select> <button type=\"button\" class=\"px-2 text-red-600 cursor-pointer\" data-on:click=\"event.target.closest('.role-row').remove()\">✕</button></div></template></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</template></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -6,34 +6,17 @@ templ RenderUsersList(users []UserInfo) {
 	<table class="min-w-full border border-slate-200 bg-white" id="user-list-table">
 		<thead class="bg-slate-100">
 			<tr>
-				<th class="px-4 py-2 text-left text-sm font-semibold">Actions</th>
-				<th class="px-4 py-2 text-left text-sm font-semibold">ID</th>
 				<th class="px-4 py-2 text-left text-sm font-semibold">Name</th>
 				<th class="px-4 py-2 text-left text-sm font-semibold">Roles</th>
 				<th class="px-4 py-2 text-left text-sm font-semibold">Courses</th>
 				<th class="px-4 py-2 text-left text-sm font-semibold">Status</th>
 				<th class="px-4 py-2 text-left text-sm font-semibold">Contact</th>
+				<th class="px-4 py-2 text-left text-sm font-semibold">Actions</th>
 			</tr>
 		</thead>
 		<tbody>
 			for _, user := range users {
 				<tr class="hover:bg-slate-50" id={ "user-row-" + fmt.Sprint(user.UserID) }>
-					<td class="px-4 py-2">
-						<button
-							class="text-slate-400 hover:text-red-600 transition"
-							data-user-id={ fmt.Sprint(user.UserID) }
-							title="Delete user"
-							data-on:click={ "@delete('/users/" + fmt.Sprint(user.UserID) + "')" }
-						>
-							<!-- Trash icon (Heroicons style) -->
-							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-								<path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2h12a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zm-3 6a1 1 0 112 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path>
-							</svg>
-						</button>
-					</td>
-					<td class="px-4 py-2 text-sm text-slate-700">
-						{ user.UserID }
-					</td>
 					<td class="px-4 py-2 font-medium text-slate-800">
 						{ user.Name }
 					</td>
@@ -73,6 +56,19 @@ templ RenderUsersList(users []UserInfo) {
 						} else {
 							<span class="text-xs text-slate-400">—</span>
 						}
+					</td>
+					<td class="px-4 py-2">
+						<button
+							class="text-slate-400 hover:text-red-600 transition cursor-pointer"
+							data-user-id={ fmt.Sprint(user.UserID) }
+							title="Delete user"
+							data-on:click={ "@delete('/users/" + fmt.Sprint(user.UserID) + "')" }
+						>
+							<!-- Trash icon (Heroicons style) -->
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+								<path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2h12a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zm-3 6a1 1 0 112 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path>
+							</svg>
+						</button>
 					</td>
 				</tr>
 			}

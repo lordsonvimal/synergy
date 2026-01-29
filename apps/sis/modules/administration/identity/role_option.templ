@@ -1,0 +1,31 @@
+package identity
+
+templ RenderRoleOption(orgs []OrganizationOption, roles []RoleOption) {
+	<div class="flex gap-2 role-row" id="role-row">
+		<select
+			name="roles[][organization_id]"
+			class="flex-1 rounded border border-gray-200 px-3 py-2"
+			required
+		>
+			for _, org := range orgs {
+				<option value={ org.ID }>{ org.Name }</option>
+			}
+		</select>
+		<select
+			name="roles[][role_id]"
+			class="flex-1 rounded border border-gray-200 px-3 py-2"
+			required
+		>
+			for _, role := range roles {
+				<option value={ role.ID }>{ HumanizeRole(role.Name) }</option>
+			}
+		</select>
+		<button
+			type="button"
+			class="px-2 text-red-600 cursor-pointer"
+			data-on:click="event.target.closest('.role-row').remove()"
+		>
+			✕
+		</button>
+	</div>
+}
