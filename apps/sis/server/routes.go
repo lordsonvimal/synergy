@@ -5,6 +5,7 @@ import (
 	"github.com/lordsonvimal/synergy/apps/sis/modules/academics/course"
 	"github.com/lordsonvimal/synergy/apps/sis/modules/administration/identity"
 	"github.com/lordsonvimal/synergy/apps/sis/modules/administration/organization"
+	"github.com/lordsonvimal/synergy/apps/sis/modules/finance/payment"
 	"github.com/lordsonvimal/synergy/apps/sis/shared/dashboard"
 )
 
@@ -13,4 +14,5 @@ func InitRoutes(r *gin.Engine) {
 	organization.InitRoutes(r)
 	identity.InitRoutes(r)
 	course.InitRoutes(r)
+	payment.InitRoutes(r)
 }

@@ -46,11 +46,22 @@ templ RenderCreateUserWithRelationsForm(
 				<button
 					type="button"
 					class="text-sm text-blue-600 cursor-pointer"
+					data-on:click="
+						const template = document.getElementById('role-option-template');
+						const clone = template.content.cloneNode(true);
+						document.getElementById('roles-container').appendChild(clone);
+					"
 				>
 					+ Add role
 				</button>
 			</div>
-			<div id="roles-container" class="space-y-3"></div>
+			<template id="role-option-template">
+				@RenderRoleOption(orgs, roles)
+			</template>
+			<div id="roles-container" class="space-y-3">
+				<!-- ================= First Row For ================= -->
+				@RenderRoleOption(orgs, roles)
+			</div>
 		</section>
 	</form>
 }

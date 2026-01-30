@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/lordsonvimal/synergy/apps/sis/logger"
 	"github.com/lordsonvimal/synergy/apps/sis/shared/appctx"
 	"github.com/starfederation/datastar-go/datastar"
@@ -18,7 +19,7 @@ type UserForm struct {
 	Email    string         `form:"email" validate:"omitempty,email"`
 	Phone    string         `form:"phone"`
 	IsActive bool           `form:"is_active"`
-	Roles    []UserRoleForm `form:"roles" validate:"dive"`
+	Roles    []UserRoleForm `form:"roles" validate:"required,gt=0,dive"`
 }
 
 type UserRoleForm struct {
@@ -99,7 +100,7 @@ func handleCreateUser(c *gin.Context) {
 	// Implementation for creating a user
 	var form UserForm
 
-	if err := c.ShouldBind(&form); err != nil {
+	if err := c.ShouldBindWith(&form, binding.Form); err != nil {
 		logger.Error(c.Request.Context()).Err(err).Msg("Unable to read signals")
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
@@ -116,16 +117,6 @@ func handleCreateUser(c *gin.Context) {
 
 	// Create a Server-Sent Event writer
 	sse := datastar.NewSSE(c.Writer, c.Request)
-	err := sse.PatchElements(
-		"",
-		datastar.WithMode(datastar.ElementPatchModeRemove),
-		datastar.WithSelector("#create-user-modal"),
-	)
-	if err != nil {
-		c.Error(err)
-		c.AbortWithError(http.StatusInternalServerError, err)
-	}
-
 	users, _ := repo.GetAllUsersAcrossOrganizations()
 	PatchUsersTable(sse, users)
 }
