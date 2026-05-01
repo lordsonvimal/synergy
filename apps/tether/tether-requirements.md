@@ -70,14 +70,18 @@ The PWA renders raw PTY output directly in xterm.js, giving users the full termi
 | FR-17 | PWA must support voice-based permission responses using Web Speech API (on-device recognition for "yes", "no", "always") | Should |
 | FR-18 | User's permission response must be sent to relay server and forwarded to PTY as the corresponding keystroke (y/n/a) | Must |
 
-### 2.4 Text-to-Speech (TTS)
+### 2.4 Completion Notification (replaces TTS)
+
+TTS was dropped — reading raw terminal output aloud (code blocks, file paths, ANSI formatting) is impractical. Replaced by an audio chime that signals when terminal output is complete.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-19 | On response completion, Claude's output must be read aloud using Web Speech API (speechSynthesis) | Must |
-| FR-20 | User must be able to toggle auto-read on/off in settings | Must |
-| FR-21 | User must be able to replay any response via a play button | Should |
-| FR-22 | TTS playback speed must be configurable (0.5x to 2.0x) | Should |
+| FR-50 | Play a short audio chime when the terminal goes idle after output, using a hybrid detection approach: (1) idle timeout of ~3 seconds with no new PTY data, AND (2) prompt pattern detection (shell prompt `$`/`%`/`❯` or Claude prompt `>`) on the last line | Must |
+| FR-50a | User must be able to toggle the completion chime on/off in settings | Must |
+| ~~FR-19~~ | ~~TTS on response completion~~ | ~~Dropped~~ |
+| ~~FR-20~~ | ~~Auto-read toggle~~ | ~~Dropped — replaced by FR-50a~~ |
+| ~~FR-21~~ | ~~Replay button~~ | ~~Dropped — N/A in terminal mode~~ |
+| ~~FR-22~~ | ~~TTS speed configurable~~ | ~~Dropped~~ |
 
 ### 2.5 Terminal Display
 
@@ -127,7 +131,31 @@ The PWA renders raw PTY output directly in xterm.js, giving users the full termi
 | FR-44 | Settings: Font size (small/medium/large) | Should |
 | FR-45 | Settings must persist in localStorage | Must |
 
-### 2.10 PWA Installation
+### 2.10 Shortcut Command Center
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-51 | A configurable list of shortcut commands accessible from a quick-access panel (slide-up sheet via DOM layer pattern) | Must |
+| FR-52 | Each shortcut has a label and a command string, stored in settings (localStorage) | Must |
+| FR-53 | Tap a shortcut to send immediately to the terminal | Must |
+| FR-54 | Long-press a shortcut to edit the command before sending | Should |
+| FR-55 | Users can add, edit, reorder, and delete shortcuts via settings panel | Must |
+| FR-56 | Sensible defaults provided on first launch (e.g., `git status`, `claude`, `ls -la`, `cd ~`) | Should |
+| FR-57 | Support parameterized commands with `{placeholder}` syntax — prompt user for value on tap | Could |
+
+### 2.11 Remote Access (Tailscale)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-58 | Server must be accessible from anywhere via Tailscale network, not just same WiFi | Must |
+| FR-59 | ConnectScreen must accept Tailscale IPs/hostnames (e.g., `100.x.x.x` or MagicDNS hostname) | Must |
+| FR-60 | Server must listen on `0.0.0.0` (not just localhost) to accept Tailscale connections | Must |
+| FR-61 | Documentation in setup scripts on how to install/configure Tailscale on Mac and phone | Should |
+| FR-62 | HTTPS cert must be valid for Tailscale IP/hostname — document how to generate via `mkcert` or use Tailscale's built-in HTTPS (`tailscale cert`) | Must |
+
+**Architecture note**: Tailscale creates a peer-to-peer encrypted mesh network. Both devices (Mac server + phone) install Tailscale and join the same tailnet. The existing WebSocket connection works unchanged — user simply enters the Tailscale IP instead of the local WiFi IP. No port forwarding, no public exposure, end-to-end encrypted.
+
+### 2.12 PWA Installation
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
