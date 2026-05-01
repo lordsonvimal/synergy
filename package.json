@@ -8,7 +8,8 @@
     "nx": "nx",
     "dev": "nx run-many --target=dev --parallel --exclude=synergy",
     "serve": "nx run-many --target=serve --parallel --exclude=synergy",
-    "lint": "nx run-many --target=lint --exclude=synergy"
+    "lint": "nx run-many --target=lint --exclude=synergy",
+    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper 2>/dev/null || true"
   },
   "devDependencies": {
     "@nx-go/nx-go": "^3.3.1",

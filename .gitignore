@@ -11,14 +11,9 @@ certs
 dist/
 node_modules
 
-.pnp/
-.pnp.js
-.pnp.cjs
-.yarn/cache/
-.yarn/unplugged/
-.yarn/build-state.yml
+.pnp.*
+.yarn/cache
 .yarn/install-state.gz
-.yarnrc.yml
 
 vite.config.*.timestamp*
 vitest.config.*.timestamp*

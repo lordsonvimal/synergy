@@ -10,14 +10,31 @@ export interface ServerMessage {
 type MessageCallback = (message: ServerMessage) => void;
 
 export function createTerminal(onMessage: MessageCallback): IPty {
-  const pty = spawn("claude", [], {
+  const pty = spawn("/bin/zsh", ["-l", "-c", "claude"], {
     name: "xterm-256color",
     cols: 120,
     rows: 40,
-    cwd: process.cwd()
+    cwd: process.cwd(),
+    env: process.env as Record<string, string>
   });
 
   let buffer = "";
+  let fullResponse = "";
+  let idleTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const IDLE_TIMEOUT = 500;
+
+  function resetIdleTimer(): void {
+    if (idleTimer) {
+      clearTimeout(idleTimer);
+    }
+    idleTimer = setTimeout(() => {
+      if (fullResponse) {
+        onMessage({ type: "output_complete", fullText: fullResponse });
+        fullResponse = "";
+      }
+    }, IDLE_TIMEOUT);
+  }
 
   pty.onData((raw) => {
     const text = stripAnsi(raw);
@@ -25,19 +42,35 @@ export function createTerminal(onMessage: MessageCallback): IPty {
 
     const permission = detectPermission(buffer);
     if (permission) {
+      if (fullResponse) {
+        onMessage({ type: "output_complete", fullText: fullResponse });
+        fullResponse = "";
+      }
       onMessage({
         type: "permission",
         action: permission.action,
         options: permission.options
       });
       buffer = "";
+      if (idleTimer) {
+        clearTimeout(idleTimer);
+      }
       return;
     }
 
+    fullResponse += text;
     onMessage({ type: "output", text, streaming: true });
+    resetIdleTimer();
   });
 
   pty.onExit(({ exitCode }) => {
+    if (idleTimer) {
+      clearTimeout(idleTimer);
+    }
+    if (fullResponse) {
+      onMessage({ type: "output_complete", fullText: fullResponse });
+      fullResponse = "";
+    }
     onMessage({
       type: "status",
       connected: false,

@@ -3,7 +3,11 @@ import { useConnection } from "../context/connection.js";
 import { useChat } from "../context/chat.js";
 import { MicButton } from "./MicButton.js";
 
-export const InputBar: Component = () => {
+interface InputBarProps {
+  onBeforeSend?: () => void;
+}
+
+export const InputBar: Component<InputBarProps> = (props) => {
   const { send } = useConnection();
   const { addMessage } = useChat();
   const [textMode, setTextMode] = createSignal(false);
@@ -14,6 +18,7 @@ export const InputBar: Component = () => {
     if (!text) {
       return;
     }
+    props.onBeforeSend?.();
     addMessage("user", text);
     send({ type: "text", data: text });
     setInputText("");
@@ -27,6 +32,7 @@ export const InputBar: Component = () => {
   };
 
   const handleVoiceSend = (text: string): void => {
+    props.onBeforeSend?.();
     addMessage("user", text);
     send({ type: "text", data: text });
   };
