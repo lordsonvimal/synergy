@@ -34,9 +34,10 @@ export const StatusBar: Component = () => {
       >
         &#9776;
       </button>
-      <span class="flex-1 text-center text-sm font-semibold text-ink">
+      <span class="text-sm font-semibold text-ink ml-2">
         Walkie Talkie
       </span>
+      <span class="flex-1" />
       <button
         class="bg-transparent border-none text-ink text-lg cursor-pointer p-2 rounded-md hover:bg-muted"
         onClick={toggleTheme}

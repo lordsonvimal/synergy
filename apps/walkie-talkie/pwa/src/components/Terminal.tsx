@@ -1,9 +1,58 @@
-import { Component, onMount, onCleanup } from "solid-js";
-import { Terminal as XTerm } from "xterm";
+import { Component, onMount, onCleanup, createEffect } from "solid-js";
+import { Terminal as XTerm, ITheme } from "xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "xterm/css/xterm.css";
 import { useConnection } from "../context/connection.js";
+import { useSettings } from "../context/settings.js";
+
+const darkTheme: ITheme = {
+  background: "#0B1120",
+  foreground: "#F1F5F9",
+  cursor: "#60A5FA",
+  cursorAccent: "#0B1120",
+  selectionBackground: "#1D4ED866",
+  black: "#1E293B",
+  red: "#F87171",
+  green: "#4ADE80",
+  yellow: "#FBBF24",
+  blue: "#60A5FA",
+  magenta: "#C084FC",
+  cyan: "#22D3EE",
+  white: "#F1F5F9",
+  brightBlack: "#475569",
+  brightRed: "#FCA5A5",
+  brightGreen: "#86EFAC",
+  brightYellow: "#FCD34D",
+  brightBlue: "#93C5FD",
+  brightMagenta: "#D8B4FE",
+  brightCyan: "#67E8F9",
+  brightWhite: "#FFFFFF"
+};
+
+const lightTheme: ITheme = {
+  background: "#FAFBFD",
+  foreground: "#0F172A",
+  cursor: "#1D4ED8",
+  cursorAccent: "#FAFBFD",
+  selectionBackground: "#1D4ED833",
+  black: "#0F172A",
+  red: "#B91C1C",
+  green: "#15803D",
+  yellow: "#A16207",
+  blue: "#1D4ED8",
+  magenta: "#7C3AED",
+  cyan: "#0369A1",
+  white: "#F1F5F9",
+  brightBlack: "#475569",
+  brightRed: "#DC2626",
+  brightGreen: "#16A34A",
+  brightYellow: "#CA8A04",
+  brightBlue: "#2563EB",
+  brightMagenta: "#8B5CF6",
+  brightCyan: "#0284C7",
+  brightWhite: "#FFFFFF"
+};
 
 export const Terminal: Component = () => {
   let containerRef: HTMLDivElement | undefined;
@@ -11,36 +60,17 @@ export const Terminal: Component = () => {
   let fitAddon: FitAddon | undefined;
 
   const { onMessage, send } = useConnection();
+  const { settings } = useSettings();
 
   onMount(() => {
     if (!containerRef) {
       return;
     }
 
+    const currentTheme = settings().theme === "light" ? lightTheme : darkTheme;
+
     terminal = new XTerm({
-      theme: {
-        background: "#0B1120",
-        foreground: "#F1F5F9",
-        cursor: "#60A5FA",
-        cursorAccent: "#0B1120",
-        selectionBackground: "#1D4ED866",
-        black: "#1E293B",
-        red: "#F87171",
-        green: "#4ADE80",
-        yellow: "#FBBF24",
-        blue: "#60A5FA",
-        magenta: "#C084FC",
-        cyan: "#22D3EE",
-        white: "#F1F5F9",
-        brightBlack: "#475569",
-        brightRed: "#FCA5A5",
-        brightGreen: "#86EFAC",
-        brightYellow: "#FCD34D",
-        brightBlue: "#93C5FD",
-        brightMagenta: "#D8B4FE",
-        brightCyan: "#67E8F9",
-        brightWhite: "#FFFFFF"
-      },
+      theme: currentTheme,
       fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
       fontSize: 14,
       lineHeight: 1.4,
@@ -57,7 +87,6 @@ export const Terminal: Component = () => {
 
     terminal.open(containerRef);
 
-    // Force xterm container to fill parent height via JS
     const xtermEl = containerRef.querySelector(".xterm") as HTMLElement;
     if (xtermEl) {
       xtermEl.style.height = "100%";
@@ -108,6 +137,13 @@ export const Terminal: Component = () => {
       resizeObserver.disconnect();
       terminal?.dispose();
     });
+  });
+
+  createEffect(() => {
+    const theme = settings().theme === "light" ? lightTheme : darkTheme;
+    if (terminal) {
+      terminal.options.theme = theme;
+    }
   });
 
   const focusTerminal = (): void => {
