@@ -340,6 +340,39 @@ Follow the layout conventions of Google Workspace, Microsoft 365, and Apple's en
 - Lists of items use `<ul>`/`<ol>`/`<dl>`
 - Forms use `<fieldset>`, `<legend>`, and `<label>` elements
 
+### Forms
+
+- Use semantic `<form>` elements with `onSubmit` handlers — forms must be submittable via Enter key without requiring a button click
+- Wrap related inputs in `<fieldset>` with `<legend>` when appropriate
+- All inputs must have associated `<label>` elements
+- Required fields must display a red `*` immediately after the label text (e.g., `<span class="text-error">*</span>`)
+- Submit buttons should use `type="submit"` inside the `<form>` — never use `type="button"` with a click handler for form submission
+- Disable submit button while the form is in a submitting state and show loading feedback
+
+#### Field Validation
+
+- Validate client-side constraints (required, min/max length, pattern) in real-time as the user types or on blur — do not wait for form submission
+- Server-side errors (e.g., "IP unreachable", "invalid credentials") appear after submit
+- Error messages render inline directly below the field, styled as `text-sm text-error mt-1`
+- When a field has an error, its border changes to `border-error` and ring to `ring-error/25`
+- Clear the field error as soon as the user corrects the input
+
+#### Field States
+
+Every form input must visually distinguish all interactive states:
+
+| State | Border | Background | Text | Cursor |
+|-------|--------|------------|------|--------|
+| Default | `border-edge-strong` | `bg-canvas` | `text-ink` | `text` |
+| Focus | `border-primary` + `ring-2 ring-primary/25` | `bg-canvas` | `text-ink` | `text` |
+| Error | `border-error` + `ring-2 ring-error/25` | `bg-canvas` | `text-ink` | `text` |
+| Disabled | `border-edge` | `bg-muted` | `text-ink-dim` | `not-allowed` |
+| Read-only | `border-edge` | `bg-muted` | `text-ink` | `default` |
+
+- Disabled fields: `opacity-60 cursor-not-allowed` — must not be focusable or editable
+- Read-only fields: visually muted but selectable for copy — no opacity reduction
+- Active/pressed state on inputs is not needed — focus state is sufficient
+
 ### Accessibility
 
 - All interactive elements must be keyboard accessible — focusable, activatable, and have visible focus indicators

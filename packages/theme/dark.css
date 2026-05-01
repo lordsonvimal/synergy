@@ -1,7 +1,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --color-primary: #60A5FA;
-    --color-primary-hover: #93C5FD;
+    --color-primary-hover: #3B82F6;
     --color-primary-subtle: #172554;
     --color-primary-50: #172554;
     --color-primary-100: #1E3A8A;
@@ -113,7 +113,7 @@
 
 [data-theme="dark"] {
   --color-primary: #60A5FA;
-  --color-primary-hover: #93C5FD;
+  --color-primary-hover: #3B82F6;
   --color-primary-subtle: #172554;
   --color-primary-50: #172554;
   --color-primary-100: #1E3A8A;
