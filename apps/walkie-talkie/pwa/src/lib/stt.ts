@@ -2,6 +2,7 @@ export interface STTCallbacks {
   onInterim: (text: string) => void;
   onFinal: (text: string) => void;
   onError: (error: string) => void;
+  onEnd?: () => void;
 }
 
 interface SpeechRecognitionEvent {
@@ -23,26 +24,36 @@ interface SpeechRecognition extends EventTarget {
   onresult: ((event: SpeechRecognitionEvent) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;
+  onaudiostart: (() => void) | null;
 }
 
 declare global {
   interface Window {
     webkitSpeechRecognition: new () => SpeechRecognition;
+    SpeechRecognition: new () => SpeechRecognition;
   }
 }
 
 export function createSTT(callbacks: STTCallbacks): {
   start: () => void;
   stop: () => void;
+  supported: boolean;
 } | null {
-  if (!("webkitSpeechRecognition" in window)) {
+  const SpeechRecognition =
+    window.webkitSpeechRecognition || window.SpeechRecognition;
+
+  if (!SpeechRecognition) {
     return null;
   }
 
-  const recognition = new window.webkitSpeechRecognition();
+  const recognition = new SpeechRecognition();
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = "en-IN";
+
+  let hadResult = false;
+  let isRunning = false;
+  let shouldRestart = false;
 
   recognition.onresult = (event: SpeechRecognitionEvent) => {
     let interim = "";
@@ -62,6 +73,7 @@ export function createSTT(callbacks: STTCallbacks): {
     }
 
     if (final) {
+      hadResult = true;
       callbacks.onFinal(final);
     } else if (interim) {
       callbacks.onInterim(interim);
@@ -72,8 +84,36 @@ export function createSTT(callbacks: STTCallbacks): {
     callbacks.onError(event.error);
   };
 
+  recognition.onend = () => {
+    isRunning = false;
+    if (shouldRestart) {
+      hadResult = false;
+      isRunning = true;
+      recognition.start();
+      return;
+    }
+    if (!hadResult) {
+      callbacks.onEnd?.();
+    }
+    hadResult = false;
+  };
+
   return {
-    start: () => recognition.start(),
-    stop: () => recognition.stop()
+    start: () => {
+      if (isRunning) {
+        return;
+      }
+      hadResult = false;
+      shouldRestart = true;
+      isRunning = true;
+      recognition.start();
+    },
+    stop: () => {
+      shouldRestart = false;
+      if (isRunning) {
+        recognition.stop();
+      }
+    },
+    supported: true
   };
 }
