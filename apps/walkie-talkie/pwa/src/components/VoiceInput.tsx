@@ -13,6 +13,29 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
   const [accumulated, setAccumulated] = createSignal("");
   const [reviewText, setReviewText] = createSignal("");
   const [reviewing, setReviewing] = createSignal(false);
+  const [recordingTime, setRecordingTime] = createSignal(0);
+  let timerInterval: ReturnType<typeof setInterval> | undefined;
+
+  const formatTime = (seconds: number): string => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const startTimer = (): void => {
+    setRecordingTime(0);
+    timerInterval = setInterval(() => {
+      setRecordingTime(t => t + 1);
+    }, 1000);
+  };
+
+  const stopTimer = (): void => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = undefined;
+    }
+    setRecordingTime(0);
+  };
 
   const stt = createSTT({
     onInterim: (text) => {
@@ -50,6 +73,7 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
     if (recording()) {
       stt?.stop();
     }
+    stopTimer();
   });
 
   const handleToggle = (): void => {
@@ -60,6 +84,7 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
     if (recording()) {
       stt.stop();
       setRecording(false);
+      stopTimer();
       const finalText = accumulated() + (interim() ? (accumulated() ? " " : "") + interim() : "");
       setInterim("");
       if (finalText.trim()) {
@@ -72,6 +97,7 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
       setAccumulated("");
       setInterim("");
       setRecording(true);
+      startTimer();
       stt.start();
     }
   };
@@ -117,8 +143,13 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
       fallback={
         <div class="flex items-center gap-2">
           <Show when={recording() && displayText()}>
-            <span class="text-xs text-ink-secondary truncate max-w-[180px]">
+            <span class="text-xs text-ink-secondary truncate max-w-[140px]">
               {displayText()}
+            </span>
+          </Show>
+          <Show when={recording()}>
+            <span class="text-xs text-error font-mono tabular-nums">
+              {formatTime(recordingTime())}
             </span>
           </Show>
           <button
