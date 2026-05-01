@@ -1,18 +1,21 @@
 import { Component, createSignal, onMount, Show } from "solid-js";
 import { useConnection } from "../context/connection.js";
 import { useSettings } from "../context/settings.js";
-import { getBatteryStatus } from "../lib/battery.js";
 
 export const StatusBar: Component = () => {
-  const { connected } = useConnection();
+  const { connected, onMessage } = useConnection();
   const { settings, updateSettings } = useSettings();
   const [battery, setBattery] = createSignal<number | null>(null);
+  const [charging, setCharging] = createSignal(false);
 
-  onMount(async () => {
-    const status = await getBatteryStatus();
-    if (status.supported) {
-      setBattery(status.level);
-    }
+  onMount(() => {
+    onMessage((data) => {
+      const msg = data as { type: string; level?: number; charging?: boolean };
+      if (msg.type === "battery") {
+        setBattery(msg.level ?? null);
+        setCharging(msg.charging ?? false);
+      }
+    });
   });
 
   const toggleTheme = (): void => {
@@ -51,7 +54,7 @@ export const StatusBar: Component = () => {
       />
       <Show when={battery() !== null}>
         <span class="text-xs text-ink-secondary ml-3">
-          {battery()}%
+          {charging() ? "⚡" : "🔋"} {battery()}%
         </span>
       </Show>
     </header>

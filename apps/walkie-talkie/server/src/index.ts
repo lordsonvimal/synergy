@@ -5,6 +5,7 @@ import express from "express";
 import { WebSocketServer } from "ws";
 import { createTerminal, destroyTerminal } from "./terminal.js";
 import { handleMessage } from "./handler.js";
+import { getBattery } from "./battery.js";
 
 const PORT = Number(process.env.PORT) || 5100;
 const CERT_DIR = resolve(import.meta.dirname, "../../certs");
@@ -30,6 +31,14 @@ wss.on("connection", (ws) => {
     ws.send(JSON.stringify(data));
   });
 
+  const sendBattery = (): void => {
+    const info = getBattery();
+    ws.send(JSON.stringify({ type: "battery", ...info }));
+  };
+
+  sendBattery();
+  const batteryInterval = setInterval(sendBattery, 60_000);
+
   ws.on("message", (raw) => {
     const message = JSON.parse(String(raw));
     handleMessage(message, pty);
@@ -37,6 +46,7 @@ wss.on("connection", (ws) => {
 
   ws.on("close", () => {
     console.log("[ws] client disconnected");
+    clearInterval(batteryInterval);
     destroyTerminal(pty);
   });
 });
