@@ -3,16 +3,12 @@ import { ConnectionProvider, useConnection } from "./context/connection.js";
 import { SettingsProvider } from "./context/settings.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { Terminal } from "./components/Terminal.js";
-import { InputBar } from "./components/InputBar.js";
+import { TerminalToolbar } from "./components/TerminalToolbar.js";
 import { ConnectScreen } from "./components/ConnectScreen.js";
 
 const Main: Component = () => {
-  const { connected, send } = useConnection();
+  const { connected } = useConnection();
   const [viewHeight, setViewHeight] = createSignal(window.innerHeight);
-
-  const handleSend = (text: string): void => {
-    send({ type: "text", data: text });
-  };
 
   onMount(() => {
     const vv = window.visualViewport;
@@ -34,7 +30,7 @@ const Main: Component = () => {
       >
         <StatusBar />
         <Terminal />
-        <InputBar onSend={handleSend} />
+        <TerminalToolbar />
       </div>
     </Show>
   );

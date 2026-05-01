@@ -44,7 +44,7 @@ export const MicButton: Component<MicButtonProps> = (props) => {
   };
 
   return (
-    <div class="ml-auto flex flex-col items-center gap-1">
+    <div class="flex flex-col items-center gap-1">
       <Show when={recording() && interim()}>
         <div
           class="text-[13px] text-ink-secondary max-w-[200px] text-center"
