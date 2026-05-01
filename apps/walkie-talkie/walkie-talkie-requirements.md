@@ -19,8 +19,10 @@ Claude Code is a powerful CLI tool, but using it requires being physically at th
 ### 1.2 Solution
 
 A two-part system:
-1. **PWA** on the user's phone for voice input/output and display
+1. **PWA** on the user's phone — a full terminal emulator (xterm.js) with voice input support
 2. **Relay Server** on the Mac that bridges the phone to Claude Code's terminal via a pseudo-terminal
+
+The PWA renders raw PTY output directly in xterm.js, giving users the full terminal experience (colors, cursor movement, interactive prompts) rather than a simplified chat-bubble view.
 
 ### 1.3 High-Level Architecture
 
@@ -54,7 +56,7 @@ A two-part system:
 |----|-------------|----------|
 | FR-09 | Relay server must spawn Claude Code in a pseudo-terminal (node-pty) | Must |
 | FR-10 | Claude Code's stdout must be streamed to PWA in real-time via WebSocket | Must |
-| FR-11 | ANSI escape codes must be stripped before sending to PWA | Must |
+| FR-11 | Raw PTY output (including ANSI) must be rendered in xterm.js on the PWA | Must |
 | FR-12 | User must be able to stop Claude mid-response (sends Ctrl+C to PTY) | Must |
 | FR-13 | Multiple conversation turns must be supported in the same PTY session | Must |
 
@@ -77,31 +79,31 @@ A two-part system:
 | FR-21 | User must be able to replay any response via a play button | Should |
 | FR-22 | TTS playback speed must be configurable (0.5x to 2.0x) | Should |
 
-### 2.5 Chat Display
+### 2.5 Terminal Display
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-23 | User messages must be displayed as chat bubbles with the transcribed text | Must |
-| FR-24 | Claude responses must be displayed as chat bubbles with markdown rendering | Must |
-| FR-25 | Code blocks in responses must be syntax-highlighted | Should |
-| FR-26 | Timestamps must be shown on all messages | Must |
-| FR-27 | Chat must auto-scroll to the latest message | Must |
-| FR-28 | Conversation history must persist within the session | Must |
+| FR-23 | PTY output must render in a full xterm.js terminal emulator | Must |
+| FR-24 | Terminal must support ANSI colors, cursor movement, and interactive prompts | Must |
+| FR-25 | Terminal must support light and dark themes | Done |
+| FR-26 | Terminal must auto-scroll on new output | Must |
+| FR-27 | Terminal must resize responsively (FitAddon) | Must |
+| FR-28 | Terminal session persists within the WebSocket connection | Must |
 
-### 2.6 Text Input Fallback
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-29 | User must be able to type a text prompt instead of using voice | Must |
-| FR-30 | Text input must be accessible via a keyboard icon/button | Must |
-
-### 2.7 Device Information
+### 2.6 Terminal Input
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-31 | Battery percentage must be displayed in the status bar (Android only, via Battery API) | Should |
-| FR-32 | Battery display must gracefully hide on unsupported platforms (iOS) | Must |
-| FR-33 | Charging status indicator must be shown when device is plugged in | Should |
+| FR-29 | Users type directly into the terminal via xterm.js native keyboard | Must |
+| FR-30 | Mobile toolbar must provide helper keys (Enter, Tab, Esc, arrows, Ctrl+C) | Must |
+
+### 2.7 Server Information
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-31 | Server (laptop) battery percentage must be displayed in the status bar via WebSocket | Should |
+| FR-32 | Battery info sent from server every 10 seconds (macOS `pmset -g batt`) | Must |
+| FR-33 | Charging status indicator must be shown when laptop is plugged in | Should |
 
 ### 2.8 Connection Management
 
@@ -157,19 +159,17 @@ A two-part system:
 
 | Component | Technology | Cost | Reason |
 |-----------|------------|------|--------|
-| **PWA Framework** | Vanilla HTML + TypeScript (no framework) | Free | Type safety, smallest bundle, Vite for build |
+| **PWA Framework** | SolidJS + TypeScript | Free | Reactive UI, type safety, smallest bundle, Vite for build |
 | **Speech-to-Text** | Web Speech API (webkitSpeechRecognition) | Free | Real-time word-by-word transcription, ~95-98% accuracy, excellent Indian English/Hinglish support, Google-powered, zero setup, no API key |
 | **Text-to-Speech** | Web Speech API (speechSynthesis) | Free | Browser-native, zero setup |
 | **Permission Voice** | Web Speech API (webkitSpeechRecognition) | Free | On-device recognition for "yes/no/always" |
 | **Relay Server** | Node.js + TypeScript + ws | Free | Type safety, best ecosystem for WebSocket + child process |
 | **Terminal Bridge** | node-pty | Free | Full PTY emulation, preserves Claude Code's interactive behavior |
-| **ANSI Stripping** | strip-ansi (npm) | Free | Clean output for phone display |
-| **Markdown Render** | marked (npm) | Free | Lightweight markdown → HTML |
-| **Syntax Highlight** | highlight.js | Free | Code block highlighting in responses |
+| **Terminal Emulator** | xterm.js + @xterm/addon-fit + @xterm/addon-web-links | Free | Full terminal rendering on PWA (ANSI, colors, cursor) |
 | **HTTPS** | mkcert (local CA) | Free | Self-signed certs trusted by phone on same network |
 | **PWA Assets** | manifest.json + service worker | Free | Browser-native PWA support |
 
-**Key insight**: All speech processing happens in the browser via Web Speech API. The relay server does zero audio processing — it just receives text strings and pipes them to Claude Code. This eliminates whisper.cpp, ffmpeg, Python, model downloads, and all server-side transcription code.
+**Key insight**: The PWA is a full remote terminal. xterm.js renders raw PTY output (ANSI, colors, interactive prompts) exactly as it would appear on the local machine. Speech processing happens in the browser via Web Speech API — the server does zero audio processing. This eliminates whisper.cpp, ffmpeg, Python, model downloads, ANSI stripping, markdown rendering, and chat-bubble logic.
 
 ### 4.2 How STT Works
 
@@ -212,11 +212,11 @@ Phone: User holds mic and speaks
 }
 ```
 
-**PWA (TypeScript + Vite)**
-- `marked` — markdown rendering
-- `highlight.js` — syntax highlighting
+**PWA (SolidJS + TypeScript + Vite)**
+- `xterm` + `@xterm/addon-fit` + `@xterm/addon-web-links` — terminal emulator
+- `solid-js` — reactive UI framework
 - Built with Vite (TypeScript compilation + bundling)
-- Everything else is browser-native APIs (Web Speech, Battery, Service Worker)
+- Everything else is browser-native APIs (Web Speech, Service Worker)
 
 **System dependencies**: Node.js + mkcert + TypeScript. That's it.
 
@@ -224,7 +224,7 @@ Phone: User holds mic and speaks
 
 | Option | Rejected Because |
 |--------|-----------------|
-| React/Vue/Svelte | Overkill for single-page app; adds build step, larger bundle |
+| React/Vue/Svelte | Heavier alternatives; SolidJS chosen for fine-grained reactivity and smallest bundle |
 | whisper.cpp | Not real-time, lower Indian English accuracy (~85-90%), requires server-side audio processing, ffmpeg, model downloads |
 | faster-whisper | Requires Python runtime, CPU-only on Mac, higher memory, batch processing only |
 | OpenAI Whisper API | Costs money ($0.006/min), not real-time |
@@ -279,12 +279,17 @@ Phone: User holds mic and speaks
 │  │ (speechSynthesis)   │  │
 │  └─────────────────────┘  │
 │                           │
-│  - Markdown render        │
-│  - Battery API            │
+│  ┌─────────────────────┐  │
+│  │ xterm.js            │  │  ← Full terminal emulator
+│  │ (renders raw PTY)   │  │  ← ANSI colors, cursor, prompts
+│  └─────────────────────┘  │
+│                           │
+│  - TerminalToolbar        │  ← Mobile helper keys
+│  - Server battery display │
 └───────────────────────────┘
 ```
 
-**Note**: The server has no audio processing at all. It receives text strings from the phone and pipes them to Claude Code. All speech processing happens in the browser.
+**Note**: The server does no audio or text processing. It pipes raw PTY bytes to the PWA and forwards keyboard input from the PWA to the PTY. All rendering happens in xterm.js, all speech processing in the browser.
 
 ### 5.2 Data Flow
 
@@ -294,39 +299,44 @@ Phone: Hold mic → Web Speech API starts recognition
 Phone: Interim results displayed in real-time (word-by-word, ~100-300ms per word)
 Phone: Release → Final transcription ready instantly
 Phone: Send final TEXT string via WebSocket (~100 bytes, no audio data)
-Server: Receive text → Forward directly to PTY stdin
+Server: Receive text → Write to PTY stdin (with newline)
+
+[Keyboard Input]
+Phone: User taps terminal → xterm.js focuses hidden textarea → mobile keyboard opens
+Phone: User types → xterm.js onData fires → sends key data via WebSocket
+Server: Receive key → Write raw bytes to PTY stdin
 
 [Response Flow]
-PTY: Claude Code writes to stdout
-Server: Read stdout → Strip ANSI codes
-Server: Check for permission pattern → If yes, send as permission message
-Server: Otherwise, stream text to Phone via WebSocket
-Phone: Render markdown, auto-scroll
-Phone: On completion signal → speechSynthesis.speak()
+PTY: Claude Code writes to stdout (raw bytes with ANSI escape codes)
+Server: Forward raw PTY data to Phone via WebSocket as { type: "pty", data: string }
+Phone: xterm.js terminal.write(data) → renders colors, cursor, interactive prompts natively
 
 [Permission Flow]
-Server: Detect "Allow ...? [y/n/a]" in stdout
-Server: Send structured permission message to Phone
-Phone: Show permission card with Yes/No/Always buttons
-Phone: (Optional) Activate speechRecognition for voice input
-Phone: User taps or says response
-Phone: Send permission_response via WebSocket
-Server: Write corresponding key (y/n/a) to PTY stdin
+Phone: User sees permission prompt rendered in terminal (same as on desktop)
+Phone: User types "y", "n", or "a" via keyboard or toolbar keys
+Server: Key forwarded to PTY stdin
 ```
 
 ### 5.3 WebSocket Message Protocol
 
 ```json
-// Phone → Server: Text prompt (from Web Speech API or typed)
+// Phone → Server: Text prompt (from voice, written to PTY with newline)
 {
   "type": "text",
   "data": "show me git status"
 }
 
-// Phone → Server: Permission response
+// Phone → Server: Raw key input (from xterm.js keyboard)
 {
-  "type": "permission_response",
-  "value": "yes" | "no" | "always"
+  "type": "key",
+  "data": "a"          // single char, escape sequence, or control char
+}
+
+// Phone → Server: Terminal resize
+{
+  "type": "resize",
+  "cols": 80,
+  "rows": 24
 }
 
 // Phone → Server: Stop command
@@ -334,31 +344,17 @@ Server: Write corresponding key (y/n/a) to PTY stdin
   "type": "stop"
 }
 
-// Server → Phone: Claude output (streaming)
+// Server → Phone: Raw PTY output (rendered by xterm.js)
 {
-  "type": "output",
-  "text": "On branch main...",
-  "streaming": true
+  "type": "pty",
+  "data": "[32mOn branch main[0m\r\n..."
 }
 
-// Server → Phone: Claude response complete
+// Server → Phone: Battery status (every 10 seconds)
 {
-  "type": "output_complete",
-  "fullText": "On branch main.\nChanges not staged:..."
-}
-
-// Server → Phone: Permission request
-{
-  "type": "permission",
-  "action": "Edit to src/server.ts",
-  "options": ["yes", "no", "always"]
-}
-
-// Server → Phone: Connection status
-{
-  "type": "status",
-  "connected": true,
-  "claudeReady": true
+  "type": "battery",
+  "level": 87,
+  "charging": false
 }
 ```
 
@@ -370,13 +366,13 @@ Server: Write corresponding key (y/n/a) to PTY stdin
 
 | Principle | Implementation |
 |-----------|---------------|
-| **Voice-first, text-second** | Primary action is hold-to-talk; text input is a secondary fallback |
-| **One-thumb operation** | Mic button at bottom-right, reachable by thumb in portrait mode |
-| **Minimal taps** | Hold to record, release to send — single gesture for the core workflow |
+| **Terminal-first, voice-assisted** | Full terminal experience with voice as a convenience for longer prompts |
+| **One-thumb operation** | Mic button centered in toolbar, helper keys in thumb reach |
+| **Minimal taps** | Type directly in terminal; hold mic to voice a prompt |
 | **Always visible status** | Connection dot, battery percentage, recording duration always visible |
 | **Forgiveness** | Slide-to-cancel recording, stop button during streaming, replay button |
 | **Progressive disclosure** | Text input hidden behind a button, settings in a slide-out panel |
-| **Immediate feedback** | Waveform while recording, streaming text as Claude types, auto-TTS on complete |
+| **Immediate feedback** | Real-time terminal output as Claude types, waveform while recording |
 | **Accessibility** | High contrast, large touch targets (48px min), readable font sizes |
 
 ### 6.2 Color Palette (Dark Theme - Default)
@@ -452,134 +448,34 @@ Section headers:   13px semi-bold uppercase, text-secondary
 └──────────────────────────────────┘
 ```
 
-#### Screen 2: Main Chat — Idle State
+#### Screen 2: Main Terminal
 
 ```
 ┌──────────────────────────────────┐
-│ ☰  Walkie Talkie    🔋 87% │  ← Status bar (fixed top)
-│  ● Connected                     │  ← Green dot
+│ ☰ Walkie Talkie   ● 🔋 87%  │  ← Status bar (fixed top)
 ├──────────────────────────────────┤
 │                                  │
-│  ┌────────────────────────────┐  │  ← Scrollable chat area
-│  │ 🎙  You  ·  10:32 AM       │  │
-│  │ "Show me the git status"   │  │
-│  └────────────────────────────┘  │
+│  $ claude                        │  ← xterm.js terminal (full PTY)
 │                                  │
-│  ┌────────────────────────────┐  │
-│  │ 🤖 Claude  ·  10:32 AM     │  │
+│  ╭────────────────────────────╮  │
+│  │ I'll help you with that.   │  │  ← Claude Code output rendered
+│  │                            │  │     with full ANSI colors
+│  │ ```js                      │  │
+│  │ app.get('/health', ...)    │  │
+│  │ ```                        │  │
 │  │                            │  │
-│  │ On branch main.            │  │
-│  │ Changes not staged:        │  │
-│  │   modified: src/app.ts     │  │
-│  │   modified: package.json   │  │
-│  │                            │  │
-│  │ 🔊 ▶ Play                  │  │  ← Replay TTS button
-│  └────────────────────────────┘  │
-│                                  │
-│  (more messages scroll here)     │
-│                                  │
-│                                  │
-├──────────────────────────────────┤  ← Fixed bottom bar
-│                                  │
-│  ┌─────────┐       ┌─────────┐  │
-│  │ ⌨ Type  │       │   🎙    │  │  ← Text fallback + Mic
-│  └─────────┘       │  HOLD   │  │
-│                    └─────────┘  │
-│                                  │
-└──────────────────────────────────┘
-```
-
-#### Screen 3: Main Chat — Recording State
-
-```
-┌──────────────────────────────────┐
-│ ☰  Walkie Talkie    🔋 87% │
-│  ● Connected                     │
-├──────────────────────────────────┤
-│                                  │
-│  (previous messages dimmed 50%)  │
-│                                  │
-│                                  │
-│                                  │
-│                                  │
-│                                  │
-│                                  │
+│  │ Allow Edit src/app.ts?     │  │  ← Permission prompt in terminal
+│  │ [y/n/a] █                  │  │  ← User types response directly
+│  ╰────────────────────────────╯  │
 │                                  │
 ├──────────────────────────────────┤
-│ ┌──────────────────────────────┐ │
-│ │                              │ │
-│ │    ◉ Recording  0:03         │ │  ← Pulsing red dot + timer
-│ │                              │ │
-│ │    ∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿   │ │  ← Live waveform (canvas)
-│ │                              │ │
-│ │  ╳ Slide left to cancel      │ │  ← Cancel gesture hint
-│ │                              │ │
-│ │    ▲ Release to send         │ │  ← Send hint
-│ │                              │ │
-│ └──────────────────────────────┘ │
-└──────────────────────────────────┘
-```
-
-#### Screen 4: Main Chat — Streaming Response
-
-```
-┌──────────────────────────────────┐
-│ ☰  Walkie Talkie    🔋 87% │
-│  ● Connected                     │
-├──────────────────────────────────┤
+│ [Enter][Tab][Esc][↑][↓][←][→]   │  ← TerminalToolbar (helper keys)
+│ [Ctrl+C]                         │
 │                                  │
-│  ┌────────────────────────────┐  │
-│  │ 🎙  You  ·  10:35 AM       │  │
-│  │ "Add a health check        │  │
-│  │  endpoint to the server"   │  │
-│  └────────────────────────────┘  │
-│                                  │
-│  ┌────────────────────────────┐  │
-│  │ 🤖 Claude  ·  10:35 AM     │  │
-│  │                            │  │
-│  │ I'll add a health check   │  │
-│  │ endpoint to the server.   │  │
-│  │                            │  │
-│  │ ```js                      │  │  ← Syntax highlighted
-│  │ app.get('/health',         │  │
-│  │   (req, res) => {          │  │
-│  │ █                          │  │  ← Blinking cursor
-│  └────────────────────────────┘  │
-│                                  │
-├──────────────────────────────────┤
-│  ┌──────────────────────────┐    │
-│  │      ⏹  Stop Claude       │   │  ← Sends Ctrl+C
-│  └──────────────────────────┘    │
-└──────────────────────────────────┘
-```
-
-#### Screen 5: Permission Prompt
-
-```
-┌──────────────────────────────────┐
-│ ☰  Walkie Talkie    🔋 87% │
-│  ● Connected                     │
-├──────────────────────────────────┤
-│                                  │
-│  (previous messages)             │
-│                                  │
-│  ┌────────────────────────────┐  │
-│  │ ⚠  Permission Request      │  │  ← Amber accent card
-│  │                            │  │
-│  │ Claude wants to:           │  │
-│  │                            │  │
-│  │ Edit src/server.ts         │  │  ← Action description
-│  │                            │  │
-│  │ ┌──────┐ ┌────┐ ┌──────┐  │  │
-│  │ │ Yes  │ │ No │ │Always│  │  │  ← Tap buttons
-│  │ └──────┘ └────┘ └──────┘  │  │
-│  │                            │  │
-│  │    🎙 or say "yes" / "no"  │  │  ← Voice hint
-│  └────────────────────────────┘  │
-│                                  │
-├──────────────────────────────────┤
-│  (mic button disabled during     │
-│   permission prompt)             │
+│             ┌─────────┐          │
+│             │   🎙    │          │  ← Hold to voice a prompt
+│             │  HOLD   │          │
+│             └─────────┘          │
 └──────────────────────────────────┘
 ```
 
@@ -619,66 +515,56 @@ Section headers:   13px semi-bold uppercase, text-secondary
 └──────────────────────────────────┘
 ```
 
-#### Screen 7: Text Input Mode (Expanded)
+#### Screen 7: Terminal with Mobile Keyboard Open
 
 ```
 ┌──────────────────────────────────┐
-│ ☰  Walkie Talkie    🔋 87% │
-│  ● Connected                     │
+│ ☰ Walkie Talkie   ● 🔋 87%  │
 ├──────────────────────────────────┤
 │                                  │
-│  (chat messages above)           │
-│                                  │
+│  $ show me git status█           │  ← xterm.js (resized via
+│                                  │     visualViewport API)
 │                                  │
 ├──────────────────────────────────┤
-│  ┌────────────────────────────┐  │
-│  │ Type your prompt...        │  │  ← Text input field
-│  │                            │  │
-│  └────────────────────────────┘  │
+│ [Enter][Tab][Esc][↑][↓][←][→]   │  ← TerminalToolbar stays visible
+│ [Ctrl+C]          🎙             │
+├──────────────────────────────────┤
 │                                  │
-│  ┌──────┐              ┌─────┐  │
-│  │  🎙  │              │ ➤  │  │  ← Back to mic / Send
-│  └──────┘              └─────┘  │
+│  (mobile keyboard open)          │
 │                                  │
-│  (keyboard open)                 │
 └──────────────────────────────────┘
 ```
 
 ### 6.6 UI Component Specifications
 
+#### Terminal (xterm.js)
+- Fills available space between StatusBar and TerminalToolbar (flex-1)
+- Font: JetBrains Mono, 14px, line-height 1.4
+- Dark theme: background #0B1120, foreground #F1F5F9, cursor #60A5FA
+- Light theme: background #FAFBFD, foreground #0F172A, cursor #1D4ED8
+- Scrollback: 5000 lines
+- Tap to focus (opens mobile keyboard)
+- Resizes dynamically via FitAddon + ResizeObserver
+
+#### TerminalToolbar
+- Horizontal scrollable row of helper key buttons
+- Keys: Enter, Tab, Esc, ↑, ↓, ←, →, Ctrl+C
+- Button style: bg-muted, border-edge, font-mono, text-xs, rounded-md
+- Uses onPointerDown + preventDefault to avoid stealing terminal focus
+- Mic button centered below the key row
+
 #### Mic Button
 - Size: 64px diameter circle
-- Color: Primary (#6C5CE7), white mic icon
-- Active (recording): Recording red (#FF4757), pulsing scale animation (1.0 → 1.1 → 1.0, 1s loop)
-- Touch target: 80px (16px padding around visible button)
-- Position: Fixed bottom-right, 24px from edges
-
-#### Chat Bubbles
-- User bubble: Background #6C5CE7 (primary), text white, right-aligned, max-width 85%
-- Claude bubble: Background #1A1D27 (card), text #F1F2F6, left-aligned, max-width 90%
-- Border radius: 16px (2px on the corner nearest the sender)
-- Padding: 12px 16px
-- Margin between bubbles: 12px
-
-#### Permission Card
-- Background: #1A1D27 with left border 3px solid #FFA502 (amber)
-- Button sizes: 44px height, equal width distributed
-- Yes: #2ED573 background, dark text
-- No: #FF4757 background, white text
-- Always: #6C5CE7 background, white text
+- Color: Primary, white mic icon
+- Active (recording): Error red, pulsing scale animation (1.0 → 1.1 → 1.0, 1s loop)
+- Position: Centered within TerminalToolbar
 
 #### Status Bar
-- Height: 44px
-- Background: #0F1117
-- Position: Fixed top
-- Content: hamburger (left), title (center), battery (right)
-- Connection dot: 8px circle, positioned after title
-
-#### Waveform Visualization
-- Canvas element, 100% width, 80px height
-- Bar style: vertical bars, 3px wide, 2px gap
-- Color: #6C5CE7 (idle), #FF4757 (recording)
-- Animation: requestAnimationFrame with AnalyserNode from Web Audio API
+- Height: 56px
+- Background: surface, border-b edge
+- Content: hamburger + title (left), theme toggle + connection dot + battery (right)
+- Connection dot: 10px circle (green = connected, red = disconnected)
+- Battery: server laptop battery percentage + charging indicator
 
 ### 6.7 Animations & Transitions
 
@@ -792,38 +678,38 @@ claude --version   # Verify
 
 ## 10. Implementation Phases
 
-### Phase 1 — Core (MVP)
-- [ ] Relay server with WebSocket + node-pty + HTTPS (mkcert)
-- [ ] Web Speech API integration on PWA (STT — real-time, word-by-word)
-- [ ] Send transcribed text to server via WebSocket
-- [ ] Server forwards text to Claude Code PTY stdin
-- [ ] ANSI stripping and stdout streaming back to PWA
-- [ ] PWA with hold-to-talk mic button
-- [ ] Chat display with markdown rendering
-- [ ] Web Speech API TTS on response complete
+### Phase 1 — Core (MVP) ✓
+- [x] Relay server with WebSocket + node-pty + HTTPS (mkcert)
+- [x] xterm.js terminal emulator on PWA (renders raw PTY output)
+- [x] Keyboard input forwarded from xterm.js → WebSocket → PTY
+- [x] Web Speech API integration (STT — hold mic to voice prompts)
+- [x] Server forwards voice text to PTY stdin
+- [x] Raw PTY stdout streamed to PWA via WebSocket
+- [x] Hold-to-talk mic button
+- [x] Terminal resize support (FitAddon + ResizeObserver)
 
-### Phase 2 — Permissions & Polish
-- [ ] Permission prompt detection and structured messaging
-- [ ] Permission card UI with tap buttons
-- [ ] Voice-based permission responses ("yes" / "no" / "always")
-- [ ] Stop button (Ctrl+C to PTY)
-- [ ] Auto-reconnect with exponential backoff
+### Phase 2 — Polish & Mobile UX
+- [x] TerminalToolbar with helper keys (Enter, Tab, Esc, arrows, Ctrl+C)
+- [x] Mobile keyboard handling (visualViewport API for proper sizing)
+- [x] Auto-reconnect with exponential backoff
+- [x] Connection status indicator
 - [ ] Slide-to-cancel recording
-- [ ] Text input fallback mode
-
-### Phase 3 — UX Enhancements
 - [ ] Waveform visualization during recording
-- [ ] Battery percentage display (Android)
-- [ ] Settings panel (TTS voice, speed, theme, font size)
-- [ ] Syntax highlighting in code blocks
-- [ ] Light theme option
+- [ ] Recording duration timer
+
+### Phase 3 — Settings & Enhancements
+- [x] Theme toggle (dark/light) with terminal theme switching
+- [x] Server battery percentage + charging indicator
+- [ ] Settings panel UI (hamburger → slide-in panel)
+- [ ] TTS: auto-read toggle, voice selection, speed config
+- [ ] Font size setting applied to terminal
 
 ### Phase 4 — Hardening
-- [ ] Shared secret authentication
+- [ ] Shared secret authentication on WebSocket upgrade
 - [ ] Error handling and user-friendly error messages
 - [ ] Service worker caching for offline shell
-- [ ] PWA install prompt handling
-- [ ] Session persistence (conversation survives page reload)
+- [ ] PWA icons and install prompt
+- [ ] Session persistence (reconnect to existing PTY session)
 
 ---
 
@@ -838,7 +724,7 @@ claude --version   # Verify
 | Must be on same WiFi network | By design for v1 | Future: Tailscale/WireGuard tunnel |
 | Single user only | By design for v1 | No multi-user auth needed |
 | Web Speech API requires HTTPS on mobile | One-time setup | mkcert provides trusted local HTTPS |
-| ANSI stripping may lose some formatting | Cosmetic only | Accept tradeoff; phone is for readability |
+| xterm.js on mobile has limited screen real estate | Usable with helper toolbar | TerminalToolbar provides arrow keys, Ctrl+C, Tab, etc. |
 
 ---
 
