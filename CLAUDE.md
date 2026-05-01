@@ -106,6 +106,52 @@ These apply to all frontend apps in the monorepo.
 - Support `prefers-reduced-motion` for animations
 - All form inputs must have associated labels
 
+### Responsive Design (Mobile First)
+
+- Design for mobile viewports first, then progressively enhance for larger screens
+- Use `min-width` media queries to add complexity at wider breakpoints — never start with desktop and strip down
+- Breakpoints: 320px (small mobile), 375px (mobile), 768px (tablet), 1024px (desktop), 1440px (large desktop)
+- Touch interactions are the default — hover states are enhancements, not requirements
+- Navigation must be thumb-reachable on mobile — place primary actions in the bottom half of the screen
+- Test layouts at every breakpoint — no horizontal scrolling, no content overflow, no truncated text without affordance
+- Images and media must be responsive — use `srcset`, `picture`, or CSS `object-fit`
+- Typography must scale fluidly — use `clamp()` for font sizes between mobile and desktop
+
+### Theming
+
+- All apps must support theming by default — light and dark themes at minimum
+- Use CSS custom properties (variables) for all colors, spacing, shadows, and border radii
+- Define theme tokens at `:root` and override in `[data-theme="dark"]` or `prefers-color-scheme` media queries
+- Never hardcode color values in components — always reference theme tokens
+- Ensure all theme combinations meet WCAG 2.1 AA contrast ratios (4.5:1 for text, 3:1 for UI elements)
+- Theme switching must be instantaneous — no flash of unstyled content (FOUC)
+- Respect `prefers-color-scheme` system preference as the default, with user override stored locally
+- Test every component in all supported themes — shadows, borders, and subtle backgrounds often break in dark mode
+
+### Nielsen Norman UX Principles
+
+- **Visibility of System Status**: Always keep users informed about what is happening through appropriate feedback within reasonable time
+- **Match Between System and Real World**: Use language, concepts, and conventions familiar to the user — no developer jargon in UI
+- **User Control and Freedom**: Provide clear "emergency exits" — undo, cancel, back navigation — so users never feel trapped
+- **Consistency and Standards**: Follow platform conventions and maintain internal consistency across all apps in the monorepo
+- **Error Prevention**: Design to prevent errors before they occur — use constraints, confirmations for destructive actions, and smart defaults
+- **Recognition Rather Than Recall**: Make options, actions, and information visible — minimize memory load on the user
+- **Flexibility and Efficiency of Use**: Support both novice and expert users — provide shortcuts and accelerators without cluttering the interface
+- **Aesthetic and Minimalist Design**: Every element must earn its place — remove visual noise, prioritize content hierarchy
+- **Help Users Recognize, Diagnose, and Recover from Errors**: Error messages in plain language, indicate the problem precisely, and suggest a constructive solution
+- **Help and Documentation**: Provide contextual help where needed — tooltips, inline hints, and searchable documentation
+
+### User Notifications and Feedback
+
+- Notify users for all long-running operations — show progress indicators (determinate when duration is known, indeterminate otherwise)
+- Operations exceeding 1 second must show a loading state; operations exceeding 5 seconds must show progress or estimated time
+- Success confirmations for user-initiated actions that have no immediate visible result (e.g., saving, sending, background sync)
+- All failures and errors must be communicated in user-friendly language — never expose stack traces, error codes, or technical details raw
+- Error notifications must include: (1) what went wrong in plain language, (2) a suggested action to resolve the issue
+- Provide actionable recovery options directly in the error UI — retry buttons, alternative paths, or links to relevant settings
+- Use appropriate notification patterns: inline for field-level errors, toast for transient feedback, banner for persistent system states, modal for blocking errors requiring immediate attention
+- Notifications must be accessible — use ARIA live regions, ensure screen readers announce them, and never rely solely on color
+
 ### DOM Attributes for Testing
 
 - Add `data-testid` to interactive elements and key content containers
