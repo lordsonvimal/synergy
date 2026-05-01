@@ -1,5 +1,6 @@
 import { Component, createSignal, onCleanup, Show } from "solid-js";
 import { createSTT } from "../lib/stt.js";
+import { addToast } from "../lib/toast.js";
 
 interface VoiceInputProps {
   onSend: (text: string) => void;
@@ -12,12 +13,10 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
   const [accumulated, setAccumulated] = createSignal("");
   const [reviewText, setReviewText] = createSignal("");
   const [reviewing, setReviewing] = createSignal(false);
-  const [error, setError] = createSignal("");
 
   const stt = createSTT({
     onInterim: (text) => {
       setInterim(text);
-      setError("");
     },
     onFinal: (text) => {
       const updated = accumulated() + (accumulated() ? " " : "") + text;
@@ -26,26 +25,23 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
     },
     onError: (err) => {
       if (err === "not-allowed") {
-        setError("Mic permission denied");
+        addToast("Microphone permission denied", "error");
         setRecording(false);
       } else if (err === "network") {
-        setError("Network needed for STT");
+        addToast("Network required for speech recognition", "error");
         setRecording(false);
       } else if (err === "no-speech") {
         // Ignore — auto-restart handles this
       } else if (err === "aborted") {
         // Ignore — user stopped
       } else {
-        setError(`Error: ${err}`);
+        addToast(`Speech error: ${err}`, "error");
         setRecording(false);
       }
     },
     onEnd: () => {
-      // Only show error if we stopped with no content at all
       if (!recording() && !accumulated() && !interim()) {
-        if (!error()) {
-          setError("No speech detected");
-        }
+        addToast("No speech detected", "warning");
       }
     }
   });
@@ -58,7 +54,7 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
 
   const handleToggle = (): void => {
     if (!stt) {
-      setError("Speech not supported");
+      addToast("Speech recognition not supported in this browser", "error");
       return;
     }
     if (recording()) {
@@ -73,7 +69,6 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
       }
       setAccumulated("");
     } else {
-      setError("");
       setAccumulated("");
       setInterim("");
       setRecording(true);
@@ -121,9 +116,6 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
       when={reviewing()}
       fallback={
         <div class="flex items-center gap-2">
-          <Show when={error()}>
-            <span class="text-xs text-error">{error()}</span>
-          </Show>
           <Show when={recording() && displayText()}>
             <span class="text-xs text-ink-secondary truncate max-w-[180px]">
               {displayText()}
@@ -155,7 +147,7 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
             data-testid="voice-review-input"
           />
           <button
-            class="bg-transparent border-none text-ink-dim text-sm cursor-pointer hover:text-ink transition-colors px-2 shrink-0"
+            class="bg-transparent border-none text-ink-dim text-sm cursor-pointer hover:text-ink hover:bg-muted rounded-md px-2 py-1 shrink-0 transition-all"
             onClick={handleCancel}
             aria-label="Cancel"
             data-testid="voice-review-cancel"

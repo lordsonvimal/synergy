@@ -5,6 +5,7 @@ import { StatusBar } from "./components/StatusBar.js";
 import { Terminal } from "./components/Terminal.js";
 import { TerminalToolbar } from "./components/TerminalToolbar.js";
 import { ConnectScreen } from "./components/ConnectScreen.js";
+import { ToastLayer } from "./components/ToastLayer.js";
 
 const Main: Component = () => {
   const { connected } = useConnection();
@@ -41,6 +42,7 @@ export const App: Component = () => {
     <SettingsProvider>
       <ConnectionProvider>
         <Main />
+        <ToastLayer />
       </ConnectionProvider>
     </SettingsProvider>
   );

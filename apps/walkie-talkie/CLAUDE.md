@@ -100,6 +100,25 @@ Inherits all TypeScript guidelines from root `CLAUDE.md`, plus:
 - **Single package.json**: Both server and PWA share one package.json at the app root.
 - **Own certs**: Uses app-local mkcert certs in `certs/` — does not share with other apps.
 
+### Interactive Element Hover States
+
+Every clickable/tappable element **must** have a visible hover state. No exceptions.
+
+| Element Type | Hover Pattern |
+|-------------|---------------|
+| Solid bg buttons (primary, error) | `hover:bg-{color}-hover` (darker shade) |
+| Ghost/transparent buttons | `hover:bg-muted` (subtle fill appears) |
+| Muted bg buttons | `hover:bg-surface-raised` |
+| Icon-only buttons | `hover:bg-muted` + `rounded-md` for hit area |
+| Text-styled buttons (✕, links) | `hover:bg-muted` + `hover:text-ink` |
+| Circular buttons (mic, send) | `hover:bg-{color}-hover` |
+
+Rules:
+- Always include `transition-colors` or `transition-all` for smooth hover
+- Never rely solely on cursor change — there must be a visual background or color shift
+- `active:scale-95` can complement hover but does not replace it
+- Disabled elements: no hover, use `opacity-50 cursor-not-allowed`
+
 ## Tailwind Theme Colors
 
 Defined in `pwa/src/app.css` under `@theme`:
@@ -134,6 +153,34 @@ Server→Phone:  { type: "output_complete", fullText: string }
 Server→Phone:  { type: "permission", action: string, options: string[] }
 Server→Phone:  { type: "status", connected: boolean, claudeReady: boolean }
 ```
+
+## DOM Layer Architecture
+
+Overlays use **DOM source order** for stacking — no z-index needed. Each layer is a direct child of `<body>` defined in `pwa/index.html`. Later elements paint on top of earlier ones. Components render into their target layer via SolidJS `<Portal mount={...}>`.
+
+```html
+<body>
+  <div id="app"></div>          <!-- 1. Main app (terminal, toolbar, status bar) -->
+  <div id="keys-layer"></div>   <!-- 2. Keyboard helper overlay -->
+  <div id="toast-layer"></div>  <!-- 3. Toast notifications (highest priority) -->
+</body>
+```
+
+### Rules
+
+- **Never use z-index** — stacking is controlled purely by DOM order in the body
+- **Each overlay gets its own layer** — add a new `<div id="...-layer">` in `index.html` at the appropriate position
+- **Use `<Portal>`** — overlay components mount into their layer via `<Portal mount={document.getElementById("...-layer")!}>`
+- **Layers are positioned `fixed`** — overlay content within a layer uses `fixed` positioning to float over the app
+- **Overlay style** — floating overlays should have margin from edges (`left-3 right-3`), `rounded-lg`, `shadow-lg`, and `border border-edge` to visually separate from the main content
+- **Priority order** (bottom to top): app content → floating panels/keys → toasts → modals → critical alerts
+
+### Adding a New Layer
+
+1. Add `<div id="my-layer"></div>` in `pwa/index.html` at the correct priority position
+2. Create a component that uses `<Portal mount={document.getElementById("my-layer")!}>`
+3. Use `fixed` positioning with appropriate offsets (e.g., `bottom-16` to clear the toolbar)
+4. Conditionally render the component — when unmounted, the layer div is empty and invisible
 
 ## Key Design Decisions
 

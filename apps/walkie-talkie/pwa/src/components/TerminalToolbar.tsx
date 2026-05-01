@@ -1,57 +1,31 @@
 import { Component, createSignal, Show } from "solid-js";
 import { useConnection } from "../context/connection.js";
 import { VoiceInput } from "./VoiceInput.js";
+import { KeysOverlay } from "./KeysOverlay.js";
 
 export const TerminalToolbar: Component = () => {
   const { send } = useConnection();
   const [keysOpen, setKeysOpen] = createSignal(false);
   const [isReviewing, setIsReviewing] = createSignal(false);
 
-  const sendKey = (data: string): void => {
-    send({ type: "key", data });
-  };
-
   const handleVoiceSend = (text: string): void => {
     send({ type: "text", data: text });
   };
 
-  const keys = [
-    { label: "Enter", data: "\r" },
-    { label: "Tab", data: "\t" },
-    { label: "Esc", data: "\x1b" },
-    { label: "↑", data: "\x1b[A" },
-    { label: "↓", data: "\x1b[B" },
-    { label: "←", data: "\x1b[D" },
-    { label: "→", data: "\x1b[C" },
-    { label: "Ctrl+C", data: "\x03" },
-  ];
-
   return (
     <div
-      class="shrink-0 flex flex-col gap-1.5 px-3 py-2 bg-surface border-t border-edge"
+      class="shrink-0 px-3 py-2 bg-surface border-t border-edge"
       data-testid="terminal-toolbar"
     >
       <Show when={keysOpen() && !isReviewing()}>
-        <div class="flex items-center gap-1.5 overflow-x-auto">
-          {keys.map(k => (
-            <button
-              class="bg-muted border border-edge text-ink px-3 py-1.5 rounded-md text-xs font-mono cursor-pointer hover:bg-surface-raised active:scale-95 transition-all whitespace-nowrap"
-              onPointerDown={e => {
-                e.preventDefault();
-                sendKey(k.data);
-              }}
-            >
-              {k.label}
-            </button>
-          ))}
-        </div>
+        <KeysOverlay />
       </Show>
       <div class="flex items-center gap-2 w-full">
         <button
-          class={`shrink-0 border w-10 h-10 rounded-md cursor-pointer transition-colors flex items-center justify-center ${
+          class={`shrink-0 border w-10 h-10 rounded-md cursor-pointer transition-all flex items-center justify-center ${
             keysOpen()
-              ? "bg-primary-subtle border-primary text-primary"
-              : "bg-muted border-edge text-ink hover:bg-surface-raised"
+              ? "bg-primary-subtle border-primary text-primary hover:bg-primary-100"
+              : "bg-muted border-edge text-ink hover:bg-surface-raised hover:border-edge-strong"
           }`}
           onClick={() => setKeysOpen(!keysOpen())}
           aria-label={keysOpen() ? "Hide keys" : "Show keys"}
