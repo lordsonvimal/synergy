@@ -9,11 +9,12 @@ export interface ServerMessage {
 type MessageCallback = (message: ServerMessage) => void;
 
 export function createTerminal(onMessage: MessageCallback): IPty {
-  const pty = spawn("/bin/zsh", ["-l", "-c", "claude"], {
+  const shell = process.env.SHELL || "/bin/zsh";
+  const pty = spawn(shell, ["-l"], {
     name: "xterm-256color",
     cols: 120,
     rows: 40,
-    cwd: process.cwd(),
+    cwd: process.env.HOME || process.cwd(),
     env: process.env as Record<string, string>
   });
 
