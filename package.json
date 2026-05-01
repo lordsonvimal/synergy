@@ -1,6 +1,9 @@
 {
   "name": "synergy",
   "packageManager": "yarn@4.7.0",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "nx": "nx",
     "dev": "nx run-many --target=dev --parallel --exclude=synergy",

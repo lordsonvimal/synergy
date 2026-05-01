@@ -1,0 +1,48 @@
+{
+  "name": "walkie-talkie",
+  "root": "apps/walkie-talkie",
+  "targets": {
+    "setup": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/setup.sh",
+        "cwd": "apps/walkie-talkie"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "yarn dev",
+        "cwd": "apps/walkie-talkie"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "yarn build",
+        "cwd": "apps/walkie-talkie"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "yarn serve",
+        "cwd": "apps/walkie-talkie"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "yarn lint",
+        "cwd": "apps/walkie-talkie"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "yarn test",
+        "cwd": "apps/walkie-talkie"
+      }
+    }
+  }
+}
