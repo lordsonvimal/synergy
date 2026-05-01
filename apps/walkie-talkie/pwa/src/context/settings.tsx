@@ -3,6 +3,7 @@ import {
   JSX,
   createContext,
   createSignal,
+  createEffect,
   useContext
 } from "solid-js";
 
@@ -27,6 +28,7 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 const STORAGE_KEY = "walkie-talkie-settings";
+const THEME_KEY = "theme";
 
 function loadSettings(): Settings {
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -40,6 +42,11 @@ function saveSettings(settings: Settings): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
+function applyTheme(theme: "dark" | "light"): void {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem(THEME_KEY, theme);
+}
+
 interface SettingsContextValue {
   settings: () => Settings;
   updateSettings: (partial: Partial<Settings>) => void;
@@ -51,6 +58,10 @@ export const SettingsProvider: Component<{ children: JSX.Element }> = (
   props
 ) => {
   const [settings, setSettings] = createSignal<Settings>(loadSettings());
+
+  createEffect(() => {
+    applyTheme(settings().theme);
+  });
 
   const updateSettings = (partial: Partial<Settings>): void => {
     const updated = { ...settings(), ...partial };

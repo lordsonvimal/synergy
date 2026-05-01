@@ -46,24 +46,31 @@ export const MicButton: Component<MicButtonProps> = (props) => {
   return (
     <div class="ml-auto flex flex-col items-center gap-1">
       <Show when={recording() && interim()}>
-        <div class="text-[13px] text-text-secondary max-w-[200px] text-center">
+        <div
+          class="text-[13px] text-ink-secondary max-w-[200px] text-center"
+          aria-live="polite"
+        >
           {interim()}
         </div>
       </Show>
       <button
-        class={`w-16 h-16 rounded-full border-none text-white text-2xl cursor-pointer touch-none transition-transform active:scale-95 ${
+        class={`w-16 h-16 rounded-full border-none text-on-primary text-2xl cursor-pointer touch-none transition-transform active:scale-95 ${
           recording()
-            ? "bg-recording animate-pulse-recording"
-            : "bg-accent"
+            ? "bg-error animate-pulse-recording"
+            : "bg-primary hover:bg-primary-hover"
         }`}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        aria-label={recording() ? "Release to send" : "Hold to record"}
+        data-testid="mic-button"
       >
         &#127908;
       </button>
       <Show when={recording()}>
-        <span class="text-xs text-recording font-semibold">Recording...</span>
+        <span class="text-xs text-error font-semibold" aria-live="assertive">
+          Recording...
+        </span>
       </Show>
     </div>
   );

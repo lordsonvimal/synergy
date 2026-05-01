@@ -1,5 +1,4 @@
 import { spawn, IPty } from "node-pty";
-import { stripAnsi } from "./ansi.js";
 import { detectPermission } from "./permissions.js";
 
 export interface ServerMessage {
@@ -19,58 +18,26 @@ export function createTerminal(onMessage: MessageCallback): IPty {
   });
 
   let buffer = "";
-  let fullResponse = "";
-  let idleTimer: ReturnType<typeof setTimeout> | null = null;
-
-  const IDLE_TIMEOUT = 500;
-
-  function resetIdleTimer(): void {
-    if (idleTimer) {
-      clearTimeout(idleTimer);
-    }
-    idleTimer = setTimeout(() => {
-      if (fullResponse) {
-        onMessage({ type: "output_complete", fullText: fullResponse });
-        fullResponse = "";
-      }
-    }, IDLE_TIMEOUT);
-  }
 
   pty.onData((raw) => {
-    const text = stripAnsi(raw);
-    buffer += text;
+    buffer += raw;
 
     const permission = detectPermission(buffer);
     if (permission) {
-      if (fullResponse) {
-        onMessage({ type: "output_complete", fullText: fullResponse });
-        fullResponse = "";
-      }
       onMessage({
         type: "permission",
         action: permission.action,
         options: permission.options
       });
       buffer = "";
-      if (idleTimer) {
-        clearTimeout(idleTimer);
-      }
       return;
     }
 
-    fullResponse += text;
-    onMessage({ type: "output", text, streaming: true });
-    resetIdleTimer();
+    // Send raw PTY data directly — xterm.js renders it client-side
+    onMessage({ type: "pty", data: raw });
   });
 
   pty.onExit(({ exitCode }) => {
-    if (idleTimer) {
-      clearTimeout(idleTimer);
-    }
-    if (fullResponse) {
-      onMessage({ type: "output_complete", fullText: fullResponse });
-      fullResponse = "";
-    }
     onMessage({
       type: "status",
       connected: false,
@@ -84,6 +51,10 @@ export function createTerminal(onMessage: MessageCallback): IPty {
 
 export function writeToTerminal(pty: IPty, text: string): void {
   pty.write(text + "\r");
+}
+
+export function resizeTerminal(pty: IPty, cols: number, rows: number): void {
+  pty.resize(cols, rows);
 }
 
 export function stopTerminal(pty: IPty): void {

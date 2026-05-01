@@ -1,0 +1,156 @@
+@theme {
+  /* ===========================
+     EVERWISE CREST — BRAND TOKENS
+     Shared across all apps in the monorepo.
+     Import this file in every app's root CSS.
+     =========================== */
+
+  /* Primary (Navy Blue) — brand backbone */
+  --color-primary: #1D4ED8;
+  --color-primary-hover: #1E40AF;
+  --color-primary-subtle: #EFF6FF;
+  --color-primary-50: #EFF6FF;
+  --color-primary-100: #DBEAFE;
+  --color-primary-200: #BFDBFE;
+  --color-primary-300: #93C5FD;
+  --color-primary-400: #60A5FA;
+  --color-primary-500: #3B82F6;
+  --color-primary-600: #2563EB;
+  --color-primary-700: #1D4ED8;
+  --color-primary-800: #1E40AF;
+  --color-primary-900: #1E3A8A;
+  --color-primary-950: #172554;
+
+  /* Accent (Gold) — achievements, badges, secondary CTA */
+  --color-accent: #B45309;
+  --color-accent-hover: #92400E;
+  --color-accent-subtle: #FFFBEB;
+  --color-accent-50: #FFFBEB;
+  --color-accent-100: #FEF3C7;
+  --color-accent-200: #FDE68A;
+  --color-accent-300: #FCD34D;
+  --color-accent-400: #FBBF24;
+  --color-accent-500: #F59E0B;
+  --color-accent-600: #D97706;
+  --color-accent-700: #B45309;
+  --color-accent-800: #92400E;
+  --color-accent-900: #78350F;
+  --color-accent-950: #422006;
+
+  /* Success */
+  --color-success: #15803D;
+  --color-success-hover: #166534;
+  --color-success-subtle: #F0FDF4;
+  --color-success-50: #F0FDF4;
+  --color-success-100: #DCFCE7;
+  --color-success-200: #BBF7D0;
+  --color-success-300: #86EFAC;
+  --color-success-400: #4ADE80;
+  --color-success-500: #22C55E;
+  --color-success-600: #16A34A;
+  --color-success-700: #15803D;
+  --color-success-800: #166534;
+  --color-success-900: #14532D;
+  --color-success-950: #052E16;
+
+  /* Warning */
+  --color-warning: #A16207;
+  --color-warning-hover: #854D0E;
+  --color-warning-subtle: #FEFCE8;
+  --color-warning-50: #FEFCE8;
+  --color-warning-100: #FEF9C3;
+  --color-warning-200: #FEF08A;
+  --color-warning-300: #FDE047;
+  --color-warning-400: #FACC15;
+  --color-warning-500: #EAB308;
+  --color-warning-600: #CA8A04;
+  --color-warning-700: #A16207;
+  --color-warning-800: #854D0E;
+  --color-warning-900: #713F12;
+  --color-warning-950: #422006;
+
+  /* Error */
+  --color-error: #B91C1C;
+  --color-error-hover: #991B1B;
+  --color-error-subtle: #FEF2F2;
+  --color-error-50: #FEF2F2;
+  --color-error-100: #FEE2E2;
+  --color-error-200: #FECACA;
+  --color-error-300: #FCA5A5;
+  --color-error-400: #F87171;
+  --color-error-500: #EF4444;
+  --color-error-600: #DC2626;
+  --color-error-700: #B91C1C;
+  --color-error-800: #991B1B;
+  --color-error-900: #7F1D1D;
+  --color-error-950: #450A0A;
+
+  /* Info */
+  --color-info: #0369A1;
+  --color-info-hover: #075985;
+  --color-info-subtle: #F0F9FF;
+  --color-info-50: #F0F9FF;
+  --color-info-100: #E0F2FE;
+  --color-info-200: #BAE6FD;
+  --color-info-300: #7DD3FC;
+  --color-info-400: #38BDF8;
+  --color-info-500: #0EA5E9;
+  --color-info-600: #0284C7;
+  --color-info-700: #0369A1;
+  --color-info-800: #075985;
+  --color-info-900: #0C4A6E;
+  --color-info-950: #082F49;
+
+  /* Surfaces */
+  --color-canvas: #FAFBFD;
+  --color-surface: #FFFFFF;
+  --color-surface-raised: #FFFFFF;
+  --color-muted: #F1F5F9;
+
+  /* Borders → "edge" to avoid border-border */
+  --color-edge: #E2E8F0;
+  --color-edge-strong: #CBD5E1;
+
+  /* Text → "ink" to avoid text-text */
+  --color-ink: #0F172A;
+  --color-ink-secondary: #475569;
+  --color-ink-dim: #94A3B8;
+  --color-on-primary: #FFFFFF;
+  --color-on-accent: #FFFFFF;
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+  --font-heading: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+/* Design tokens as CSS custom properties — available via var() but do NOT
+   override Tailwind's default utility scales (spacing, radius, shadow).
+   Use standard Tailwind utilities (p-4, rounded-lg, shadow-md) in markup. */
+:root {
+  --ec-spacing-xs: 0.25rem;
+  --ec-spacing-sm: 0.5rem;
+  --ec-spacing-md: 1rem;
+  --ec-spacing-lg: 1.5rem;
+  --ec-spacing-xl: 2rem;
+  --ec-spacing-2xl: 3rem;
+  --ec-spacing-3xl: 4rem;
+
+  --ec-radius-none: 0;
+  --ec-radius-xs: 0.125rem;
+  --ec-radius-sm: 0.25rem;
+  --ec-radius-md: 0.375rem;
+  --ec-radius-lg: 0.5rem;
+  --ec-radius-xl: 0.75rem;
+  --ec-radius-2xl: 1rem;
+  --ec-radius-full: 9999px;
+
+  --ec-shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  --ec-shadow-md: 0 4px 6px -1px rgb(15 23 42 / 0.07), 0 2px 4px -2px rgb(15 23 42 / 0.05);
+  --ec-shadow-lg: 0 10px 15px -3px rgb(15 23 42 / 0.08), 0 4px 6px -4px rgb(15 23 42 / 0.04);
+  --ec-shadow-xl: 0 20px 25px -5px rgb(15 23 42 / 0.1), 0 8px 10px -6px rgb(15 23 42 / 0.05);
+
+  --ec-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ec-transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ec-transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}

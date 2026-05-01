@@ -24,14 +24,18 @@ export const ConnectionProvider: Component<{ children: JSX.Element }> = (
   const { settings } = useSettings();
   const [connected, setConnected] = createSignal(false);
   let ws: WebSocketClient | null = null;
-  let messageHandler: ((data: unknown) => void) | null = null;
+  const messageHandlers: Array<(data: unknown) => void> = [];
 
   const connect = (): void => {
     const { host, port } = settings();
     ws = createWebSocket(`wss://${host}:${port}`, {
       onOpen: () => setConnected(true),
       onClose: () => setConnected(false),
-      onMessage: (data) => messageHandler?.(data)
+      onMessage: (data) => {
+        for (const handler of messageHandlers) {
+          handler(data);
+        }
+      }
     });
   };
 
@@ -46,7 +50,7 @@ export const ConnectionProvider: Component<{ children: JSX.Element }> = (
   };
 
   const onMessage = (handler: (data: unknown) => void): void => {
-    messageHandler = handler;
+    messageHandlers.push(handler);
   };
 
   return (

@@ -1,5 +1,5 @@
 import { IPty } from "node-pty";
-import { writeToTerminal, stopTerminal } from "./terminal.js";
+import { writeToTerminal, stopTerminal, resizeTerminal } from "./terminal.js";
 
 interface TextMessage {
   type: "text";
@@ -15,7 +15,23 @@ interface StopMessage {
   type: "stop";
 }
 
-type ClientMessage = TextMessage | PermissionResponseMessage | StopMessage;
+interface ResizeMessage {
+  type: "resize";
+  cols: number;
+  rows: number;
+}
+
+interface KeyMessage {
+  type: "key";
+  data: string;
+}
+
+type ClientMessage =
+  | TextMessage
+  | PermissionResponseMessage
+  | StopMessage
+  | ResizeMessage
+  | KeyMessage;
 
 const PERMISSION_MAP: Record<string, string> = {
   yes: "y",
@@ -33,6 +49,12 @@ export function handleMessage(message: ClientMessage, pty: IPty): void {
       break;
     case "stop":
       stopTerminal(pty);
+      break;
+    case "resize":
+      resizeTerminal(pty, message.cols, message.rows);
+      break;
+    case "key":
+      pty.write(message.data);
       break;
   }
 }

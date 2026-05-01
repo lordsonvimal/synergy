@@ -3,7 +3,7 @@ import { resolve } from "path";
 import https from "https";
 import express from "express";
 import { WebSocketServer } from "ws";
-import { createTerminal, destroyTerminal, writeToTerminal } from "./terminal.js";
+import { createTerminal, destroyTerminal } from "./terminal.js";
 import { handleMessage } from "./handler.js";
 
 const PORT = Number(process.env.PORT) || 5100;

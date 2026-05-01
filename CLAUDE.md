@@ -60,9 +60,252 @@ These apply to all TypeScript apps in the monorepo.
 - 80 character line width
 - Arrow parens avoided when possible
 
+## Brand & Design System — Everwise Crest
+
+All frontend apps share the Everwise Crest design system. The personality is **trustworthy, professional, and clean** — inspired by Google Workspace, Microsoft 365, and Apple's enterprise products. No playful/whimsical aesthetics. Every app must feel like it belongs to the same product family.
+
+### Shared Theme Package
+
+Located at `packages/theme/`. Every app imports these tokens:
+
+```css
+@import "@synergy/theme/tokens.css";
+@import "@synergy/theme/dark.css";
+```
+
+### Color Tokens (Tailwind v4 Extended)
+
+**Only these tokens may be used. No raw hex values, no default Tailwind color palette (slate, gray, blue-500, etc.) in application code.**
+
+#### Primary (Navy Blue) — brand backbone, buttons, links, focus rings
+
+| Token | Light | Dark |
+|-------|-------|------|
+| `primary` | `#1D4ED8` | `#60A5FA` |
+| `primary-hover` | `#1E40AF` | `#93C5FD` |
+| `primary-subtle` | `#EFF6FF` | `#172554` |
+| `primary-50` through `primary-950` | Full scale available |
+
+#### Accent (Gold) — achievements, badges, secondary CTAs, highlights
+
+| Token | Light | Dark |
+|-------|-------|------|
+| `accent` | `#B45309` | `#FBBF24` |
+| `accent-hover` | `#92400E` | `#FCD34D` |
+| `accent-subtle` | `#FFFBEB` | `#422006` |
+| `accent-50` through `accent-950` | Full scale available |
+
+#### Semantic Status Colors
+
+| Token | Light | Dark | Usage |
+|-------|-------|------|-------|
+| `success` | `#15803D` | `#4ADE80` | Confirmations, connected, saved |
+| `warning` | `#A16207` | `#FACC15` | Pending, caution, long-running ops |
+| `error` | `#B91C1C` | `#F87171` | Failures, destructive actions |
+| `info` | `#0369A1` | `#38BDF8` | Tips, informational banners |
+
+Each semantic color has `-hover`, `-subtle`, and full 50–950 scale variants.
+
+#### Surfaces & Neutrals
+
+| Token | Light | Dark | Usage |
+|-------|-------|------|-------|
+| `canvas` | `#FAFBFD` | `#0B1120` | Page background |
+| `surface` | `#FFFFFF` | `#141D2E` | Cards, panels, modals |
+| `surface-raised` | `#FFFFFF` | `#1C2841` | Dropdowns, popovers |
+| `muted` | `#F1F5F9` | `#1E293B` | Disabled, zebra rows |
+
+#### Borders
+
+| Token | Light | Dark | Utility Class | Usage |
+|-------|-------|------|---------------|-------|
+| `edge` | `#E2E8F0` | `#2D3B50` | `border-edge` | Dividers, card borders |
+| `edge-strong` | `#CBD5E1` | `#475569` | `border-edge-strong` | Inputs, emphasized borders |
+
+#### Text
+
+| Token | Light | Dark | Utility Class | Usage |
+|-------|-------|------|---------------|-------|
+| `ink` | `#0F172A` | `#F1F5F9` | `text-ink` | Headlines, body |
+| `ink-secondary` | `#475569` | `#94A3B8` | `text-ink-secondary` | Labels, descriptions |
+| `ink-dim` | `#94A3B8` | `#64748B` | `text-ink-dim` | Placeholders, timestamps |
+| `on-primary` | `#FFFFFF` | `#FFFFFF` | `text-on-primary` | Text on primary buttons |
+| `on-accent` | `#FFFFFF` | `#422006` | `text-on-accent` | Text on gold backgrounds |
+
+### Typography
+
+| Token | Value |
+|-------|-------|
+| `font-sans` | Inter, system-ui, -apple-system, sans-serif |
+| `font-mono` | JetBrains Mono, Fira Code, SF Mono, Consolas, monospace |
+| `font-heading` | Inter, system-ui, -apple-system, sans-serif |
+
+- Use Inter as the sole typeface (headings and body) — load weights 400, 500, 600, 700
+- Font sizes via `clamp()` for fluid scaling: body `clamp(0.875rem, 2vw, 1rem)`, headings scale proportionally
+- Line height: 1.5 for body, 1.2 for headings
+- Letter spacing: -0.01em for headings, normal for body
+
+### Border Radius — Element Mapping
+
+Every UI element has a fixed radius assignment. Never mix radius sizes within the same visual level.
+
+| Token | Value | Applies To |
+|-------|-------|-----------|
+| `radius-none` | `0` | Data tables, full-bleed sections, dividers |
+| `radius-xs` | `0.125rem` (2px) | Badges, inline tags, status dots |
+| `radius-sm` | `0.25rem` (4px) | Checkboxes, small chips, toggle tracks |
+| `radius-md` | `0.375rem` (6px) | Buttons, inputs, selects, textareas, tabs |
+| `radius-lg` | `0.5rem` (8px) | Cards, dropdowns, popovers, toasts, tooltips |
+| `radius-xl` | `0.75rem` (12px) | Modals, dialogs, bottom sheets, side panels |
+| `radius-2xl` | `1rem` (16px) | Large panels, page-level containers, hero sections |
+| `radius-full` | `9999px` | Avatars, pills, circular icon buttons, progress bars |
+
+Rules:
+- A child element must never have a larger radius than its parent
+- Nested elements reduce radius by one step (e.g., card `lg` → button inside card `md`)
+- Adjacent elements at the same level use the same radius for visual consistency
+- Interactive elements (buttons, inputs) always use `radius-md` regardless of context
+- Never mix sharp corners and rounded corners on elements at the same hierarchy level
+
+### Dark Mode Implementation
+
+- All apps support dark mode from day one
+- Use `[data-theme="dark"]` on `<html>` for user-toggled override
+- Respect `prefers-color-scheme: dark` as system default
+- Store user preference in `localStorage` key `theme`
+- Apply theme class before first paint to prevent FOUC (inline script in `<head>`)
+- Test every component in both themes — shadows, borders, and subtle backgrounds often break
+
+### Utility Class Reference
+
+Token names in `@theme` map directly to Tailwind utility classes. Here's how they resolve:
+
+```html
+<!-- Buttons -->
+<button class="bg-primary text-on-primary rounded-md shadow-sm hover:bg-primary-hover">
+  Save Changes
+</button>
+<button class="bg-surface text-ink border border-edge rounded-md hover:bg-muted">
+  Cancel
+</button>
+
+<!-- Cards -->
+<div class="bg-surface border border-edge rounded-lg shadow-md p-6">
+  <h2 class="text-ink font-semibold">Card Title</h2>
+  <p class="text-ink-secondary">Description text</p>
+  <span class="text-ink-dim text-sm">Updated 2 hours ago</span>
+</div>
+
+<!-- Status badges -->
+<span class="bg-success-subtle text-success rounded-xs px-2 py-0.5">Active</span>
+<span class="bg-error-subtle text-error rounded-xs px-2 py-0.5">Failed</span>
+<span class="bg-warning-subtle text-warning rounded-xs px-2 py-0.5">Pending</span>
+
+<!-- Inputs -->
+<input class="bg-surface border border-edge-strong rounded-md text-ink placeholder:text-ink-dim" />
+
+<!-- Modals -->
+<dialog class="bg-surface rounded-xl shadow-xl border border-edge">
+  <div class="text-ink">Modal content</div>
+</dialog>
+
+<!-- Accent usage -->
+<div class="bg-accent-subtle border border-accent-200 rounded-lg">
+  <span class="text-accent font-medium">Achievement unlocked</span>
+</div>
+```
+
+Full class mapping:
+
+| Property | Classes available |
+|----------|-----------------|
+| Background | `bg-primary`, `bg-primary-hover`, `bg-primary-subtle`, `bg-primary-50`…`bg-primary-950`, `bg-accent`, `bg-success`, `bg-warning`, `bg-error`, `bg-info` (+ `-hover`, `-subtle`, `-50`…`-950`), `bg-canvas`, `bg-surface`, `bg-surface-raised`, `bg-muted` |
+| Text | `text-ink`, `text-ink-secondary`, `text-ink-dim`, `text-on-primary`, `text-on-accent`, `text-primary`, `text-accent`, `text-success`, `text-warning`, `text-error`, `text-info` |
+| Border | `border-edge`, `border-edge-strong`, `border-primary`, `border-accent`, `border-success`, `border-warning`, `border-error`, `border-info` |
+| Ring | `ring-primary`, `ring-edge`, `ring-error` |
+| Radius | `rounded-none`, `rounded-xs`, `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-2xl`, `rounded-full` |
+| Shadow | `shadow-sm`, `shadow-md`, `shadow-lg`, `shadow-xl` |
+
+### Usage Rules
+
+- **Never use raw hex/rgb values** in component code — always use token classes (`bg-primary`, `text-ink`, etc.)
+- **Never use default Tailwind palette** (slate-500, gray-200, blue-600, etc.) — only use the defined token names
+- **Never hardcode light/dark variants** in components — the token system handles theme switching automatically
+- When a color need is not covered by existing tokens, propose a new token addition rather than using a one-off value
+
 ## UI/UX Rules
 
 These apply to all frontend apps in the monorepo.
+
+### Trustworthy SaaS Layout Patterns
+
+Follow the layout conventions of Google Workspace, Microsoft 365, and Apple's enterprise products:
+
+#### App Shell Structure
+
+- **Desktop (≥1024px)**: Persistent left sidebar (240–280px) + top bar (56–64px) + main content area
+- **Tablet (768–1023px)**: Collapsible sidebar (overlay or rail with icons only) + top bar + content
+- **Mobile (<768px)**: Bottom navigation bar (max 5 items) + top bar (app title + actions) + full-width content
+- The app shell (sidebar + top bar) remains stable during navigation — only the content area changes
+- Top bar contains: logo/app name (left), global search (center on desktop), user avatar + notifications (right)
+
+#### Navigation
+
+- **Primary navigation** lives in the sidebar (desktop) or bottom bar (mobile)
+- **Secondary navigation** uses tabs within the content area or breadcrumbs
+- Navigation items: icon + label (desktop), icon-only with tooltip (collapsed), icon + label (mobile bottom bar)
+- Active state: subtle background fill + primary color indicator (left border on sidebar, bottom border on tabs)
+- Maximum 7±2 primary navigation items — group overflow into a "More" menu
+- Breadcrumbs for hierarchical content deeper than 2 levels
+
+#### Content Layout
+
+- **Maximum content width**: 1200px for reading content, 1440px for data-heavy dashboards — centered with auto margins
+- **Consistent spacing rhythm**: use 8px grid (0.5rem increments) — all spacing must be multiples of 8
+- **Card-based UI** for related content groups — consistent padding (16–24px), subtle border, rounded corners (8px)
+- **Data tables**: sticky headers, horizontal scroll on mobile, row hover states, sortable columns with clear indicators
+- **Empty states**: always provide illustration/icon + descriptive message + primary action CTA
+- **Loading skeletons**: match the shape of content being loaded — never use a single generic spinner for page content
+
+#### Visual Hierarchy
+
+- Use font weight (500, 600, 700) and size to establish hierarchy — not color alone
+- Maximum 3 levels of visual emphasis per screen: primary action, secondary content, tertiary/metadata
+- One primary CTA per viewport — additional actions use secondary or ghost button styles
+- White space is a feature — generous padding between sections (32–48px), between cards (16–24px)
+
+#### Density
+
+- **Default density**: comfortable spacing for education/consumer users (44px min row height in tables, 16px padding in inputs)
+- **Compact density**: available as user preference for power users on desktop (36px row height, 12px padding)
+- Never use compact density on mobile
+
+#### Page Patterns
+
+- **List pages**: filters/search at top, bulk actions contextually shown on selection, pagination or infinite scroll at bottom
+- **Detail pages**: key info summary at top (hero card), related data in tabbed sections below
+- **Form pages**: single-column on mobile, two-column on desktop for related field groups, sticky submit bar at bottom
+- **Dashboard pages**: key metrics in cards at top, charts/graphs in grid below, activity feed in sidebar (desktop) or below (mobile)
+- **Settings pages**: grouped sections with clear headings, toggle/select inputs, save confirmation per section or single page-level save
+
+#### Interaction Patterns
+
+- **Hover states**: subtle background change (muted token) — never change text color on hover alone
+- **Active/pressed**: slightly darker than hover
+- **Focus rings**: 2px solid ring using `primary` color with 2px offset — visible in both themes
+- **Transitions**: 150ms for micro-interactions (hover, focus), 200ms for reveals (dropdowns), 300ms for page-level (modals, sidebars)
+- **Disabled elements**: 50% opacity + `not-allowed` cursor — never remove from DOM to maintain layout stability
+
+#### Responsive Behavior Summary
+
+| Element | Mobile (<768px) | Tablet (768–1023px) | Desktop (≥1024px) |
+|---------|-----------------|---------------------|-------------------|
+| Navigation | Bottom bar | Collapsible rail | Persistent sidebar |
+| Content width | Full bleed | Padded (16px) | Max-width centered |
+| Cards | Stacked full-width | 2-column grid | 3–4 column grid |
+| Tables | Card-list transform | Horizontal scroll | Full table |
+| Modals | Full-screen sheet | Centered 600px | Centered 600px |
+| Actions | FAB or bottom sheet | Inline buttons | Inline buttons |
 
 ### Z-Index Layering
 
@@ -86,6 +329,8 @@ These apply to all frontend apps in the monorepo.
 - Use flexbox or CSS grid for all layouts — never use floats, tables-for-layout, or absolute positioning for layout purposes
 - Prefer CSS grid for 2D layouts, flexbox for 1D alignment
 - Avoid fixed pixel dimensions — use relative units, min/max constraints, and intrinsic sizing
+- Follow the trustworthy SaaS layout patterns defined in "Brand & Design System" section above
+- Use 8px spacing grid — all margins, padding, and gaps must be multiples of 0.5rem
 
 ### Semantic HTML
 
@@ -119,14 +364,14 @@ These apply to all frontend apps in the monorepo.
 
 ### Theming
 
-- All apps must support theming by default — light and dark themes at minimum
-- Use CSS custom properties (variables) for all colors, spacing, shadows, and border radii
-- Define theme tokens at `:root` and override in `[data-theme="dark"]` or `prefers-color-scheme` media queries
-- Never hardcode color values in components — always reference theme tokens
+- All apps must use the shared Everwise Crest design tokens from `packages/theme/`
+- Import `@synergy/theme/tokens.css` and `@synergy/theme/dark.css` in every app's root CSS
+- Only use token classes — never raw hex values or default Tailwind palette
 - Ensure all theme combinations meet WCAG 2.1 AA contrast ratios (4.5:1 for text, 3:1 for UI elements)
 - Theme switching must be instantaneous — no flash of unstyled content (FOUC)
 - Respect `prefers-color-scheme` system preference as the default, with user override stored locally
-- Test every component in all supported themes — shadows, borders, and subtle backgrounds often break in dark mode
+- Test every component in both light and dark themes — shadows, borders, and subtle backgrounds often break in dark mode
+- See "Brand & Design System" section above for complete token reference
 
 ### Nielsen Norman UX Principles
 

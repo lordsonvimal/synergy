@@ -12,7 +12,11 @@ export const ChatArea: Component = () => {
   });
 
   return (
-    <main class="flex-1 overflow-y-auto p-4 flex flex-col gap-3" ref={chatRef}>
+    <main
+      class="flex-1 overflow-y-auto p-4 flex flex-col gap-3"
+      ref={chatRef}
+      data-testid="chat-area-message-list"
+    >
       <For each={messages()}>
         {(message) => <ChatBubble message={message} />}
       </For>

@@ -1,0 +1,13 @@
+{
+  "name": "@synergy/theme",
+  "version": "1.0.0",
+  "description": "Everwise Crest shared design tokens for Tailwind CSS v4",
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./dark.css": "./dark.css"
+  },
+  "files": [
+    "tokens.css",
+    "dark.css"
+  ]
+}
