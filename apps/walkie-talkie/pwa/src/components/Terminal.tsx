@@ -118,8 +118,10 @@ export const Terminal: Component = () => {
       }
     });
 
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
     const resizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(() => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
         fitAddon?.fit();
         if (terminal) {
           send({
@@ -128,12 +130,13 @@ export const Terminal: Component = () => {
             rows: terminal.rows
           });
         }
-      });
+      }, 100);
     });
 
     resizeObserver.observe(containerRef);
 
     onCleanup(() => {
+      clearTimeout(resizeTimer);
       resizeObserver.disconnect();
       terminal?.dispose();
     });

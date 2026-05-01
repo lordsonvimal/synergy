@@ -3,6 +3,7 @@ import {
   JSX,
   createContext,
   createSignal,
+  onCleanup,
   useContext
 } from "solid-js";
 import { createWebSocket, WebSocketClient } from "../lib/websocket.js";
@@ -51,6 +52,12 @@ export const ConnectionProvider: Component<{ children: JSX.Element }> = (
 
   const onMessage = (handler: (data: unknown) => void): void => {
     messageHandlers.push(handler);
+    onCleanup(() => {
+      const idx = messageHandlers.indexOf(handler);
+      if (idx !== -1) {
+        messageHandlers.splice(idx, 1);
+      }
+    });
   };
 
   return (

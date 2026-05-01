@@ -19,6 +19,7 @@ export function createTerminal(onMessage: MessageCallback): IPty {
   });
 
   let buffer = "";
+  const MAX_BUFFER = 4096;
 
   pty.onData((raw) => {
     buffer += raw;
@@ -34,7 +35,10 @@ export function createTerminal(onMessage: MessageCallback): IPty {
       return;
     }
 
-    // Send raw PTY data directly — xterm.js renders it client-side
+    if (buffer.length > MAX_BUFFER) {
+      buffer = buffer.slice(-MAX_BUFFER);
+    }
+
     onMessage({ type: "pty", data: raw });
   });
 

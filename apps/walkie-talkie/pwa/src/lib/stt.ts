@@ -54,6 +54,7 @@ export function createSTT(callbacks: STTCallbacks): {
   let hadResult = false;
   let isRunning = false;
   let shouldRestart = false;
+  let lastInterim = "";
 
   recognition.onresult = (event: SpeechRecognitionEvent) => {
     let interim = "";
@@ -74,8 +75,10 @@ export function createSTT(callbacks: STTCallbacks): {
 
     if (final) {
       hadResult = true;
+      lastInterim = "";
       callbacks.onFinal(final);
     } else if (interim) {
+      lastInterim = interim;
       callbacks.onInterim(interim);
     }
   };
@@ -87,6 +90,10 @@ export function createSTT(callbacks: STTCallbacks): {
   recognition.onend = () => {
     isRunning = false;
     if (shouldRestart) {
+      if (lastInterim) {
+        callbacks.onFinal(lastInterim);
+        lastInterim = "";
+      }
       hadResult = false;
       isRunning = true;
       recognition.start();
@@ -96,6 +103,7 @@ export function createSTT(callbacks: STTCallbacks): {
       callbacks.onEnd?.();
     }
     hadResult = false;
+    lastInterim = "";
   };
 
   return {
