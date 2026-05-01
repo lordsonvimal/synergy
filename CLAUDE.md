@@ -511,6 +511,32 @@ These principles apply to all apps in the monorepo.
 - If no established pattern exists for an app, propose an architecture with rationale before implementing
 - Feature additions must include tests covering the happy path and key edge cases
 
+### Leak Prevention
+
+Proactively prevent resource leaks at authoring time — do not rely on testing or user reports to catch them.
+
+- Every `setInterval`, `setTimeout`, `addEventListener`, `observe()`, or subscription must have a corresponding cleanup in `onCleanup` (SolidJS), `useEffect` return (React), or equivalent lifecycle hook
+- Event handler arrays and callback registries must support removal — if a consumer registers a handler, provide an unregister mechanism tied to component lifecycle
+- Buffers and accumulators (strings, arrays) that grow over time must be bounded — define a max size and trim/discard oldest entries when exceeded
+- WebSocket/SSE connections must be explicitly closed on component unmount and on navigation away
+- Observers (ResizeObserver, MutationObserver, IntersectionObserver) must call `disconnect()` in cleanup
+- Timers that fire repeatedly must be cleared even if the component is expected to live for the app's lifetime — the app may remount (HMR, navigation)
+
+### Silent Failure Handling
+
+Anticipate and handle failures that would otherwise go unnoticed by the user.
+
+- Before implementing, identify operations that can silently fail: network calls that return no response, APIs that degrade (e.g., Web Speech API stopping without error), background processes that exit, WebSocket messages that never arrive
+- If a silent failure is possible, implement detection (timeouts, health checks, heartbeats) and surface it to the user via the appropriate notification pattern (toast, inline status, banner)
+- When a silent failure requires a design decision to resolve (e.g., auto-retry vs. manual retry, fallback behavior, degraded mode), clarify with the user which approach to take — present the options with trade-offs and a recommendation
+- Never swallow errors in catch blocks without either logging or notifying — if an error is truly ignorable, add a comment explaining why
+
+### Documenting Changes
+
+- Add inline comments for complex logic, non-obvious side effects, workarounds, and performance trade-offs — one line explaining WHY
+- Architectural or structural changes (new layers, new patterns, new data flows) must be documented in the relevant `CLAUDE.md` or project-level docs so future work follows the same pattern
+- When introducing a new pattern (e.g., DOM layer architecture, portal-based overlays, server-sent state), document: what the pattern is, when to use it, and how to add a new instance
+
 ### Additional Best Practices
 
 - **Idempotency**: Operations that can be retried (API handlers, event processors) must produce the same result on repeated execution
