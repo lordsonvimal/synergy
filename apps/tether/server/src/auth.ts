@@ -1,4 +1,4 @@
-const SECRET = process.env.WALKIE_SECRET || "";
+const SECRET = process.env.TETHER_SECRET || "";
 
 export function validateToken(token: string | undefined): boolean {
   if (!SECRET) {

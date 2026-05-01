@@ -35,7 +35,7 @@ export const StatusBar: Component = () => {
         &#9776;
       </button>
       <span class="text-sm font-semibold text-ink ml-2">
-        Walkie Talkie
+        Tether
       </span>
       <span class="flex-1" />
       <button

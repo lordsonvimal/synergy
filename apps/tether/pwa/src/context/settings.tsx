@@ -27,7 +27,7 @@ const DEFAULT_SETTINGS: Settings = {
   fontSize: "medium"
 };
 
-const STORAGE_KEY = "walkie-talkie-settings";
+const STORAGE_KEY = "tether-settings";
 const THEME_KEY = "theme";
 
 function loadSettings(): Settings {

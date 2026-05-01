@@ -1,4 +1,4 @@
-const CACHE_NAME = "walkie-talkie-v1";
+const CACHE_NAME = "tether-v1";
 const STATIC_ASSETS = ["/", "/manifest.json"];
 
 self.addEventListener("install", (event) => {

@@ -1,6 +1,6 @@
-# Walkie Talkie - Requirements Document
+# Tether - Requirements Document
 
-**Project**: Walkie Talkie
+**Project**: Tether
 **Type**: PWA (Progressive Web App) + Relay Server
 **Version**: 1.0
 **Date**: 2025-04-25
@@ -10,7 +10,7 @@
 
 ## 1. Project Overview
 
-Walkie Talkie is a voice-driven mobile PWA that acts as a remote control for Claude Code running on a Mac terminal. Users can send voice commands from their phone, have them transcribed and executed by Claude Code, and receive both text and audio responses.
+Tether is a voice-driven mobile PWA that acts as a remote control for Claude Code running on a Mac terminal. Users can send voice commands from their phone, have them transcribed and executed by Claude Code, and receive both text and audio responses.
 
 ### 1.1 Problem Statement
 
@@ -452,7 +452,7 @@ Section headers:   13px semi-bold uppercase, text-secondary
 
 ```
 ┌──────────────────────────────────┐
-│ ☰ Walkie Talkie   ● 🔋 87%  │  ← Status bar (fixed top)
+│ ☰ Tether   ● 🔋 87%  │  ← Status bar (fixed top)
 ├──────────────────────────────────┤
 │                                  │
 │  $ claude                        │  ← xterm.js terminal (full PTY)
@@ -519,7 +519,7 @@ Section headers:   13px semi-bold uppercase, text-secondary
 
 ```
 ┌──────────────────────────────────┐
-│ ☰ Walkie Talkie   ● 🔋 87%  │
+│ ☰ Tether   ● 🔋 87%  │
 ├──────────────────────────────────┤
 │                                  │
 │  $ show me git status█           │  ← xterm.js (resized via
@@ -593,7 +593,7 @@ Section headers:   13px semi-bold uppercase, text-secondary
 ## 7. Project File Structure
 
 ```
-walkie-talkie/
+tether/
 ├── server/
 │   ├── package.json
 │   ├── tsconfig.json
@@ -741,4 +741,4 @@ claude --version   # Verify
 
 ---
 
-*This document serves as the complete specification for building Walkie Talkie. Each section can be used as a prompt context when building with Claude Code.*
+*This document serves as the complete specification for building Tether. Each section can be used as a prompt context when building with Claude Code.*

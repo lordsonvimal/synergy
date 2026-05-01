@@ -51,7 +51,7 @@
         "targetName": "lint"
       },
       "exclude": [
-        "apps/walkie-talkie/**"
+        "apps/tether/**"
       ]
     }
   ]

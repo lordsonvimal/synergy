@@ -1,6 +1,6 @@
-# Walkie Talkie
+# Tether
 
-Voice-driven PWA that acts as a remote control for Claude Code running on a Mac terminal. Users send voice commands from their phone, have them transcribed and executed by Claude Code, and receive text + audio responses.
+Remote terminal PWA — phone tethered to your Mac. Renders a full PTY session via xterm.js with voice and keyboard input over WebSocket.
 
 ## Architecture
 
@@ -31,7 +31,7 @@ Phone (PWA) ◄──WSS (same WiFi)──► Relay Server :5100 ◄──node-p
 ## Project Structure
 
 ```
-walkie-talkie/
+tether/
 ├── package.json              # Single package.json for both server and PWA
 ├── project.json              # Nx targets
 ├── tsconfig.json             # Base TypeScript config
@@ -65,23 +65,23 @@ walkie-talkie/
 ├── scripts/
 │   ├── setup.sh
 │   └── generate-cert.sh
-└── walkie-talkie-requirements.md
+└── tether-requirements.md
 ```
 
 ## Commands
 
 ```bash
 # Development (launches both server and PWA dev server together)
-nx dev walkie-talkie
+nx dev tether
 
 # Build
-nx build walkie-talkie
+nx build tether
 
 # Lint
-nx lint walkie-talkie
+nx lint tether
 
 # Test
-nx test walkie-talkie
+nx test tether
 ```
 
 ## Ports
@@ -202,4 +202,4 @@ Build in this order — each phase is independently testable:
 
 ## Requirements
 
-Full specification: `walkie-talkie-requirements.md` (in this directory)
+Full specification: `tether-requirements.md` (in this directory)

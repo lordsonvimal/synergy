@@ -48,8 +48,8 @@ export const ConnectScreen: Component = () => {
       <main class="flex-1 flex items-center justify-center px-6 pb-16">
         <section class="w-full max-w-md bg-surface-raised border border-edge rounded-xl p-8 shadow-lg">
           <div class="text-center mb-8">
-            <span class="text-5xl block mb-4" aria-hidden="true">&#127908;</span>
-            <h1 class="text-2xl font-semibold text-ink">Walkie Talkie</h1>
+            <span class="text-5xl block mb-4" aria-hidden="true">&#128279;</span>
+            <h1 class="text-2xl font-semibold text-ink">Tether</h1>
             <p class="text-sm text-ink-secondary mt-2">
               Connect to your Mac to get started
             </p>

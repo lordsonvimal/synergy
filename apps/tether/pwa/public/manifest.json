@@ -1,7 +1,7 @@
 {
-  "name": "Walkie Talkie",
-  "short_name": "Walkie",
-  "description": "Voice remote for Claude Code",
+  "name": "Tether",
+  "short_name": "Tether",
+  "description": "Remote terminal — phone tethered to your Mac",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

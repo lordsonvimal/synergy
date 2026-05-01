@@ -1,7 +1,7 @@
 {
-  "name": "walkie-talkie",
+  "name": "tether",
   "version": "1.0.0",
-  "description": "Voice-driven PWA remote control for Claude Code",
+  "description": "Remote terminal PWA — phone tethered to your Mac",
   "type": "module",
   "packageManager": "yarn@4.7.0",
   "scripts": {

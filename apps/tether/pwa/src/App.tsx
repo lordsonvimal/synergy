@@ -27,7 +27,7 @@ const Main: Component = () => {
       <div
         class="flex flex-col bg-canvas text-ink"
         style={{ height: `${viewHeight()}px` }}
-        data-testid="walkie-talkie-main"
+        data-testid="tether-main"
       >
         <StatusBar />
         <Terminal />

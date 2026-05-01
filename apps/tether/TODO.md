@@ -1,4 +1,4 @@
-# Walkie Talkie — TODO
+# Tether — TODO
 
 ## Architecture Note
 
