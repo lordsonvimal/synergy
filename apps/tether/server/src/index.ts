@@ -51,6 +51,6 @@ wss.on("connection", (ws) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`[server] running on https://localhost:${PORT}`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`[server] running on https://0.0.0.0:${PORT}`);
 });

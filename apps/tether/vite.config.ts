@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [solidPlugin(), tailwindcss()],
   server: {
     port: 5101,
+    host: "0.0.0.0",
     https: {
       cert: resolve(__dirname, "certs/cert.pem"),
       key: resolve(__dirname, "certs/key.pem")

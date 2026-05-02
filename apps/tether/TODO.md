@@ -79,7 +79,7 @@ Key architecture decisions:
 | — | Hover states on all interactive elements | Done | Documented in CLAUDE.md |
 | — | DOM layer architecture | Done | No z-index, body child order |
 
-## Phase 3b: New Features — 70% done
+## Phase 3b: New Features — Done
 
 | ID | Requirement | Status | Notes |
 |----|-------------|--------|-------|
@@ -91,11 +91,11 @@ Key architecture decisions:
 | FR-54 | Long-press shortcut to edit before sending | Done | 500ms long-press opens inline edit prompt with editable command |
 | FR-55 | Add/edit/reorder/delete shortcuts in settings | Done | Full CRUD with reorder arrows in settings panel Shortcuts section |
 | FR-56 | Default shortcuts on first launch | Done | git status, claude, ls -la, cd ~ |
-| FR-58 | Remote access via Tailscale | TODO | Server listens on 0.0.0.0 |
-| FR-59 | ConnectScreen accepts Tailscale IPs/hostnames | TODO | Already works — just documentation |
-| FR-60 | Server binds to 0.0.0.0 | TODO | Check current bind address |
-| FR-61 | Tailscale setup documentation | TODO | In setup scripts / README |
-| FR-62 | HTTPS cert for Tailscale IP | TODO | Use `tailscale cert` or mkcert |
+| FR-58 | Remote access | Done | Server + Vite bind 0.0.0.0; works on local WiFi, docs cover Tailscale/Cloudflare Tunnel for non-WARP machines |
+| FR-59 | ConnectScreen accepts any IP/hostname | Done | Works out of the box — any IP/hostname accepted |
+| FR-60 | Server binds to 0.0.0.0 | Done | server.listen(PORT, "0.0.0.0") |
+| FR-61 | Remote access documentation | Done | setup.sh documents local WiFi, Cloudflare Tunnel, and Tailscale options |
+| FR-62 | HTTPS cert for extra IPs | Done | generate-cert.sh accepts extra SANs as args (e.g. Tailscale IP) |
 
 ## Phase 4: Hardening — 0% done
 
@@ -114,7 +114,7 @@ Key architecture decisions:
 1. ~~FR-38/44 — Settings panel UI (theme, font size, chime toggle, shortcuts management)~~ ✓
 2. ~~FR-51-56 — Shortcut command center~~ ✓
 3. ~~FR-50 — Completion chime (idle timeout + prompt detection hybrid)~~ ✓
-4. FR-58-62 — Tailscale remote access (server bind + cert + docs)
+4. ~~FR-58-62 — Tailscale remote access (server bind + cert + docs)~~ ✓
 5. NFR-06 — Wire auth on WebSocket upgrade
 6. ~~FR-05 — Waveform visualization~~ ✓
 7. FR-46/49 — Generate PWA icons
