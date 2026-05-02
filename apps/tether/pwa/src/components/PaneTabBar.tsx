@@ -11,24 +11,6 @@ import { usePanes, LeafNode } from "../context/panes.js";
 import { useConnection } from "../context/connection.js";
 import { destroyInstance } from "../lib/terminal-instances.js";
 
-function highlightMatch(text: string, query: string): string {
-  if (!query) return escapeHtml(text);
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`(${escaped})`, "gi");
-  return escapeHtml(text).replace(
-    regex,
-    `<mark class="bg-warning-subtle text-warning rounded-xs px-0.5">$1</mark>`
-  );
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 interface PaneTabBarProps {
   paneId: string;
   pane: LeafNode;
@@ -44,6 +26,7 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
     mergePane,
     confirmMerge,
     moveTab,
+    reorderTab,
     activePaneId,
     getAllLeaves
   } = usePanes();
@@ -58,8 +41,6 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
     x: number;
     y: number;
   } | null>(null);
-  const [searchOpen, setSearchOpen] = createSignal(false);
-  const [searchQuery, setSearchQuery] = createSignal("");
   const [dragOverIndex, setDragOverIndex] = createSignal<number | null>(null);
 
   let scrollRef: HTMLDivElement | undefined;
@@ -71,10 +52,6 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
     setContextMenu(null);
     setDropdownOpen(false);
     setMergeConfirm(false);
-    if (searchOpen()) {
-      setSearchOpen(false);
-      setSearchQuery("");
-    }
   };
 
   onMount(() => {
@@ -228,32 +205,10 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
     return tabs().find((t) => t.id === tabId)?.label ?? tabId;
   };
 
-  const filteredTabs = (): { id: string; label: string }[] => {
-    const q = searchQuery().toLowerCase();
-    if (!q) return tabs();
-    return tabs().filter((t) => t.label.toLowerCase().includes(q));
-  };
 
-  const selectFromSearch = (tabId: string): void => {
-    setActiveTab(props.paneId, tabId);
-    setSearchOpen(false);
-    setSearchQuery("");
-    scrollToTab(tabId);
-  };
-
-  const handleSearchKeyDown = (e: KeyboardEvent): void => {
-    if (e.key === "Escape") {
-      setSearchOpen(false);
-      setSearchQuery("");
-    } else if (e.key === "Enter") {
-      const first = filteredTabs()[0];
-      if (first) selectFromSearch(first.id);
-    }
-  };
-
-  const handleSearchInputRef = (el: HTMLInputElement): void => {
-    requestAnimationFrame(() => el.focus());
-  };
+  const [dragSourceTabId, setDragSourceTabId] = createSignal<string | null>(
+    null
+  );
 
   const handleDragStart = (e: DragEvent, tabId: string): void => {
     if (!e.dataTransfer) return;
@@ -262,30 +217,77 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
       JSON.stringify({ sourcePaneId: props.paneId, tabId })
     );
     e.dataTransfer.effectAllowed = "move";
+    setDragSourceTabId(tabId);
   };
 
-  const handleDragOver = (e: DragEvent, index: number): void => {
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-    setDragOverIndex(index);
-  };
-
-  const handleDragLeave = (): void => {
+  const handleDragEnd = (): void => {
+    setDragSourceTabId(null);
     setDragOverIndex(null);
   };
 
-  const handleDrop = (e: DragEvent, index: number): void => {
-    e.preventDefault();
-    setDragOverIndex(null);
+  const computeInsertIndex = (e: DragEvent): number => {
+    if (!scrollRef) return tabs().length;
+    const tabEls = scrollRef.querySelectorAll<HTMLElement>("[data-tab-id]");
+    for (let i = 0; i < tabEls.length; i++) {
+      const el = tabEls[i];
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      const midX = rect.left + rect.width / 2;
+      if (e.clientX < midX) return i;
+    }
+    return tabs().length;
+  };
+
+  const handleScrollDragOver = (e: DragEvent): void => {
     if (!e.dataTransfer) return;
+    if (!e.dataTransfer.types.includes("application/x-tether-tab")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverIndex(computeInsertIndex(e));
+  };
+
+  const handleScrollDragLeave = (e: DragEvent): void => {
+    if (
+      scrollRef &&
+      e.relatedTarget instanceof Node &&
+      scrollRef.contains(e.relatedTarget)
+    ) {
+      return;
+    }
+    setDragOverIndex(null);
+  };
+
+  const handleScrollDrop = (e: DragEvent): void => {
+    e.preventDefault();
+    e.stopPropagation();
+    const insertIdx = dragOverIndex();
+    setDragOverIndex(null);
+    setDragSourceTabId(null);
+    if (insertIdx === null || !e.dataTransfer) return;
     const raw = e.dataTransfer.getData("application/x-tether-tab");
     if (!raw) return;
     const { sourcePaneId, tabId } = JSON.parse(raw);
     if (sourcePaneId === props.paneId) {
-      // Reorder within same pane — skip for now (just move between panes)
-      return;
+      reorderTab(props.paneId, tabId, insertIdx);
+    } else {
+      moveTab(sourcePaneId, tabId, props.paneId, insertIdx);
     }
-    moveTab(sourcePaneId, tabId, props.paneId, index);
+  };
+
+  const indicatorLeft = (): number | null => {
+    const idx = dragOverIndex();
+    if (idx === null || !scrollRef) return null;
+    const tabEls = scrollRef.querySelectorAll<HTMLElement>("[data-tab-id]");
+    const scrollLeft = scrollRef.scrollLeft;
+    const containerLeft = scrollRef.getBoundingClientRect().left;
+    if (idx < tabEls.length) {
+      const el = tabEls[idx];
+      if (!el) return null;
+      return el.getBoundingClientRect().left - containerLeft + scrollLeft;
+    }
+    const lastEl = tabEls[tabEls.length - 1];
+    if (!lastEl) return 0;
+    return lastEl.getBoundingClientRect().right - containerLeft + scrollLeft;
   };
 
   const isActive = () => activePaneId() === props.paneId;
@@ -299,28 +301,28 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
     >
       <div
         ref={scrollRef}
-        class="flex-1 flex items-center h-full overflow-x-auto scrollbar-none"
+        class="relative flex-1 flex items-center h-full overflow-x-auto scrollbar-none"
         onScroll={updateOverflow}
-        onDragOver={(e) => handleDragOver(e, tabs().length)}
-        onDragLeave={handleDragLeave}
-        onDrop={(e) => handleDrop(e, tabs().length)}
+        onDragOver={handleScrollDragOver}
+        onDragLeave={handleScrollDragLeave}
+        onDrop={handleScrollDrop}
       >
         <For each={tabs()}>
-          {(tab, i) => (
+          {(tab) => (
             <button
-              class={`flex items-center gap-1.5 h-full px-3 text-xs border-r border-edge cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
+              class={`flex items-center gap-1.5 h-full px-3 text-xs border-r border-edge cursor-pointer whitespace-nowrap shrink-0 ${
                 tab.id === activeTabId()
                   ? "bg-canvas text-primary font-semibold border-b-2 border-b-primary"
                   : "bg-surface text-ink-secondary hover:bg-muted hover:text-ink"
-              } ${dragOverIndex() === i() ? "border-l-2 border-l-primary" : ""}`}
+              } ${
+                dragSourceTabId() === tab.id ? "opacity-40" : ""
+              } transition-colors`}
               onClick={() => setActiveTab(props.paneId, tab.id)}
               onDblClick={() => startRename(tab.id, tab.label)}
               onContextMenu={(e) => handleContextMenu(e, tab.id)}
               draggable={editingId() !== tab.id}
               onDragStart={(e) => handleDragStart(e, tab.id)}
-              onDragOver={(e) => handleDragOver(e, i())}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, i())}
+              onDragEnd={handleDragEnd}
               data-tab-id={tab.id}
               data-testid={`tab-${tab.id}`}
             >
@@ -354,6 +356,12 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
             </button>
           )}
         </For>
+        <Show when={indicatorLeft() !== null}>
+          <div
+            class="absolute top-1 bottom-1 w-0.5 bg-primary rounded-full pointer-events-none"
+            style={{ left: `${indicatorLeft()}px` }}
+          />
+        </Show>
       </div>
 
       <Show when={overflowTabs().length > 0}>
@@ -384,19 +392,6 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
             </div>
           </Show>
         </div>
-      </Show>
-
-      <Show when={tabs().length > 3}>
-        <button
-          class="flex items-center justify-center w-7 h-9 bg-surface border-l border-edge text-ink-dim text-xs cursor-pointer hover:text-ink hover:bg-muted transition-colors shrink-0"
-          onClick={() => setSearchOpen(true)}
-          aria-label="Search tabs"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-        </button>
       </Show>
 
       <button
@@ -475,41 +470,6 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
             </div>
           </>
         )}
-      </Show>
-
-      {/* Search panel */}
-      <Show when={searchOpen()}>
-        <div class="fixed top-12 left-4 right-4 max-w-80 bg-surface-raised border border-edge rounded-lg shadow-xl z-10 overflow-hidden">
-          <div class="p-2 border-b border-edge">
-            <input
-              ref={handleSearchInputRef}
-              type="text"
-              class="w-full bg-canvas border border-edge-strong rounded-md text-sm text-ink px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/25 placeholder:text-ink-dim"
-              placeholder="Search tabs..."
-              value={searchQuery()}
-              onInput={(e) => setSearchQuery(e.currentTarget.value)}
-              onKeyDown={handleSearchKeyDown}
-            />
-          </div>
-          <div class="max-h-48 overflow-y-auto py-1">
-            <For
-              each={filteredTabs()}
-              fallback={<p class="px-3 py-2 text-xs text-ink-dim">No tabs found</p>}
-            >
-              {(tab) => (
-                <button
-                  class={`w-full text-left px-3 py-2 text-xs cursor-pointer transition-colors border-none ${
-                    tab.id === activeTabId()
-                      ? "bg-primary-subtle text-primary font-medium"
-                      : "bg-transparent text-ink hover:bg-muted"
-                  }`}
-                  onClick={() => selectFromSearch(tab.id)}
-                  innerHTML={highlightMatch(tab.label, searchQuery())}
-                />
-              )}
-            </For>
-          </div>
-        </div>
       </Show>
 
       {/* Merge confirmation */}

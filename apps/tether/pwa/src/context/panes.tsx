@@ -47,6 +47,7 @@ interface PanesContextValue {
   closeTab: (paneId: string, tabId: string) => void;
   setActiveTab: (paneId: string, tabId: string) => void;
   renameTab: (paneId: string, tabId: string, label: string) => void;
+  reorderTab: (paneId: string, tabId: string, targetIndex: number) => void;
   mergePane: (paneId: string) => { targetLabel: string } | null;
   confirmMerge: (paneId: string) => void;
   splitPane: (paneId: string, direction: SplitDirection) => string;
@@ -307,6 +308,30 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
     );
   };
 
+  const reorderTab = (
+    paneId: string,
+    tabId: string,
+    targetIndex: number
+  ): void => {
+    setState(
+      "root",
+      produce((root) => {
+        const leaf = findLeafInTree(root, paneId);
+        if (!leaf) return;
+        const currentIdx = leaf.tabs.findIndex(t => t.id === tabId);
+        if (currentIdx === -1) return;
+        if (currentIdx === targetIndex || currentIdx + 1 === targetIndex) return;
+        const removed = leaf.tabs.splice(currentIdx, 1);
+        const tab = removed[0];
+        if (!tab) return;
+        const insertAt = targetIndex > currentIdx
+          ? targetIndex - 1
+          : targetIndex;
+        leaf.tabs.splice(insertAt, 0, tab);
+      })
+    );
+  };
+
   const mergePane = (paneId: string): { targetLabel: string } | null => {
     if (state.root.type === "leaf") return null;
     const siblings = findSiblingLeaves(state.root, paneId);
@@ -483,6 +508,7 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
         closeTab,
         setActiveTab,
         renameTab,
+        reorderTab,
         mergePane,
         confirmMerge,
         splitPane,

@@ -6,6 +6,7 @@ import { StatusBar } from "./components/StatusBar.js";
 import { SplitContainer } from "./components/SplitContainer.js";
 import { TerminalToolbar } from "./components/TerminalToolbar.js";
 import { ConnectScreen } from "./components/ConnectScreen.js";
+import { GlobalSearch } from "./components/GlobalSearch.js";
 import { ToastLayer } from "./components/ToastLayer.js";
 import { destroyInstance } from "./lib/terminal-instances.js";
 
@@ -13,6 +14,7 @@ const Main: Component = () => {
   const { connected, onMessage } = useConnection();
   const { closeTab, getRoot } = usePanes();
   const [viewHeight, setViewHeight] = createSignal(window.innerHeight);
+  const [searchOpen, setSearchOpen] = createSignal(false);
 
   onMount(() => {
     const vv = window.visualViewport;
@@ -23,6 +25,15 @@ const Main: Component = () => {
       vv.addEventListener("resize", onResize);
       onCleanup(() => vv.removeEventListener("resize", onResize));
     }
+
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    onCleanup(() => document.removeEventListener("keydown", handleKeyDown));
 
     onMessage((data) => {
       const msg = data as { type: string; tabId?: string };
@@ -60,11 +71,15 @@ const Main: Component = () => {
         style={{ height: `${viewHeight()}px` }}
         data-testid="tether-main"
       >
-        <StatusBar />
+        <StatusBar onSearchOpen={() => setSearchOpen(true)} />
         <div class="flex-1 flex min-h-0 min-w-0 overflow-hidden">
           <SplitContainer node={getRoot()} />
         </div>
         <TerminalToolbar />
+        <GlobalSearch
+          open={searchOpen()}
+          onClose={() => setSearchOpen(false)}
+        />
       </div>
     </Show>
   );

@@ -2,7 +2,11 @@ import { Component, createSignal, onMount, Show } from "solid-js";
 import { useConnection } from "../context/connection.js";
 import { SettingsPanel } from "./SettingsPanel.js";
 
-export const StatusBar: Component = () => {
+interface StatusBarProps {
+  onSearchOpen: () => void;
+}
+
+export const StatusBar: Component<StatusBarProps> = (props) => {
   const { connected, onMessage } = useConnection();
   const [battery, setBattery] = createSignal<number | null>(null);
   const [charging, setCharging] = createSignal(false);
@@ -36,6 +40,17 @@ export const StatusBar: Component = () => {
           Tether
         </span>
         <span class="flex-1" />
+        <button
+          class="bg-transparent border-none text-ink-secondary cursor-pointer p-2 rounded-md hover:bg-muted hover:text-ink transition-colors"
+          aria-label="Search tabs"
+          onClick={props.onSearchOpen}
+          data-testid="status-bar-search"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </button>
         <span
           class={`w-2.5 h-2.5 rounded-full ${
             connected() ? "bg-success" : "bg-error"
