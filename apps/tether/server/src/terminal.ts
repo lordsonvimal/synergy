@@ -52,47 +52,91 @@ export class TerminalManager {
     this.onMessage = cb;
   }
 
-  createTab(tabId: string, cols: number = 120, rows: number = 40): void {
-    if (this.tabs.has(tabId) && this.tabs.get(tabId)!.clientAttached) {
+  private reattachExistingTab(tabId: string): boolean {
+    const session = this.tabs.get(tabId);
+    if (!session) return false;
+    session.clientAttached = true;
+    this.replayScrollback(tabId);
+    this.onMessage({ type: "tab-created", tabId, restored: true });
+    return true;
+  }
+
+  private handlePtyData(
+    raw: string,
+    tabId: string,
+    ctx: { buffer: string; outputBytes: number; idleTimer: ReturnType<typeof setTimeout> | undefined },
+    shellName: string,
+    pty: IPty
+  ): void {
+    const session = this.tabs.get(tabId);
+    if (!session?.clientAttached) return;
+
+    ctx.buffer += raw;
+
+    const permission = detectPermission(ctx.buffer);
+    if (permission) {
+      this.onMessage({ type: "permission", tabId, action: permission.action, options: permission.options });
+      ctx.buffer = "";
       return;
     }
 
-    this.clearGraceTimer(tabId);
-
-    const key = this.sessionKey(tabId);
-    const isExisting = sessionExists(key);
-
-    if (!isExisting) {
-      createSession(key, cols, rows);
+    if (ctx.buffer.length > 4096) {
+      ctx.buffer = ctx.buffer.slice(-4096);
     }
 
-    if (this.tabs.has(tabId)) {
-      const session = this.tabs.get(tabId)!;
-      session.clientAttached = true;
-      this.replayScrollback(tabId);
-      this.onMessage({ type: "tab-created", tabId, restored: true });
-      return;
-    }
+    this.onMessage({ type: "pty", tabId, data: raw });
+    this.trackIdleCompletion(raw, tabId, ctx, shellName, pty);
+  }
 
+  private trackIdleCompletion(
+    raw: string,
+    tabId: string,
+    ctx: { outputBytes: number; idleTimer: ReturnType<typeof setTimeout> | undefined },
+    shellName: string,
+    pty: IPty
+  ): void {
+    try {
+      const fg = basename(pty.process);
+      const isShell = fg === shellName || fg === "tmux";
+      if (!isShell) {
+        ctx.outputBytes += raw.length;
+        clearTimeout(ctx.idleTimer);
+        ctx.idleTimer = setTimeout(() => {
+          if (ctx.outputBytes >= 100) {
+            this.onMessage({ type: "command-complete", tabId });
+          }
+          ctx.outputBytes = 0;
+        }, 3000);
+      }
+    } catch {
+      // pty.process may throw if disposed
+    }
+  }
+
+  private ensureTmuxSession(key: string, cols: number, rows: number): boolean {
+    const exists = sessionExists(key);
+    if (!exists) createSession(key, cols, rows);
+    return exists;
+  }
+
+  private setupPty(
+    tabId: string,
+    key: string,
+    cols: number,
+    rows: number
+  ): { pty: IPty; pollInterval: ReturnType<typeof setInterval>; ctx: { buffer: string; outputBytes: number; idleTimer: ReturnType<typeof setTimeout> | undefined } } {
     const pty = attachSession(key, cols, rows);
-    const shell = process.env.SHELL || "/bin/zsh";
-    const shellName = basename(shell);
-
-    let buffer = "";
-    const MAX_BUFFER = 4096;
+    const shellName = basename(process.env.SHELL || "/bin/zsh");
     let wasRunning = false;
-    let idleTimer: ReturnType<typeof setTimeout> | undefined;
-    let outputBytes = 0;
-    const IDLE_THRESHOLD_MS = 3000;
-    const MIN_OUTPUT_BYTES = 100;
+    const ctx = { buffer: "", outputBytes: 0, idleTimer: undefined as ReturnType<typeof setTimeout> | undefined };
 
     const pollInterval = setInterval(() => {
       try {
         const fg = basename(pty.process);
         const isShell = fg === shellName || fg === "tmux";
         if (wasRunning && isShell) {
-          clearTimeout(idleTimer);
-          outputBytes = 0;
+          clearTimeout(ctx.idleTimer);
+          ctx.outputBytes = 0;
           this.onMessage({ type: "command-complete", tabId });
         }
         wasRunning = !isShell;
@@ -101,68 +145,36 @@ export class TerminalManager {
       }
     }, 500);
 
-    pty.onData((raw) => {
-      const session = this.tabs.get(tabId);
-      if (!session?.clientAttached) return;
-
-      buffer += raw;
-
-      const permission = detectPermission(buffer);
-      if (permission) {
-        this.onMessage({
-          type: "permission",
-          tabId,
-          action: permission.action,
-          options: permission.options
-        });
-        buffer = "";
-        return;
-      }
-
-      if (buffer.length > MAX_BUFFER) {
-        buffer = buffer.slice(-MAX_BUFFER);
-      }
-
-      this.onMessage({ type: "pty", tabId, data: raw });
-
-      try {
-        const fg = basename(pty.process);
-        const isShell = fg === shellName || fg === "tmux";
-        if (!isShell) {
-          outputBytes += raw.length;
-          clearTimeout(idleTimer);
-          idleTimer = setTimeout(() => {
-            if (outputBytes >= MIN_OUTPUT_BYTES) {
-              this.onMessage({ type: "command-complete", tabId });
-            }
-            outputBytes = 0;
-          }, IDLE_THRESHOLD_MS);
-        }
-      } catch {
-        // pty.process may throw if disposed
-      }
-    });
-
+    pty.onData(raw => this.handlePtyData(raw, tabId, ctx, shellName, pty));
     pty.onExit(() => {
       clearInterval(pollInterval);
-      clearTimeout(idleTimer);
+      clearTimeout(ctx.idleTimer);
       this.tabs.delete(tabId);
-
-      if (sessionExists(key)) {
-        killSession(key);
-      }
-
+      if (sessionExists(key)) killSession(key);
       this.onMessage({ type: "tab-exited", tabId, exitCode: 0 });
     });
 
-    this.tabs.set(tabId, { pty, pollInterval, idleTimer, clientAttached: true });
+    return { pty, pollInterval, ctx };
+  }
 
-    if (isExisting) {
-      this.replayScrollback(tabId);
-      this.onMessage({ type: "tab-created", tabId, restored: true });
-    } else {
-      this.onMessage({ type: "tab-created", tabId, restored: false });
-    }
+  private registerNewTab(tabId: string, key: string, cols: number, rows: number, restored: boolean): void {
+    const { pty, pollInterval, ctx } = this.setupPty(tabId, key, cols, rows);
+    this.tabs.set(tabId, { pty, pollInterval, idleTimer: ctx.idleTimer, clientAttached: true });
+    if (restored) this.replayScrollback(tabId);
+    this.onMessage({ type: "tab-created", tabId, restored });
+  }
+
+  private isClientAttached(tabId: string): boolean {
+    return this.tabs.get(tabId)?.clientAttached === true;
+  }
+
+  createTab(tabId: string, cols: number = 120, rows: number = 40): void {
+    if (this.isClientAttached(tabId)) return;
+    this.clearGraceTimer(tabId);
+    const key = this.sessionKey(tabId);
+    const isExisting = this.ensureTmuxSession(key, cols, rows);
+    if (this.reattachExistingTab(tabId)) return;
+    this.registerNewTab(tabId, key, cols, rows, isExisting);
   }
 
   private replayScrollback(tabId: string): void {

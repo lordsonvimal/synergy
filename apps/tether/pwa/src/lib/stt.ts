@@ -56,23 +56,21 @@ export function createSTT(callbacks: STTCallbacks): {
   let shouldRestart = false;
   let lastInterim = "";
 
-  recognition.onresult = (event: SpeechRecognitionEvent) => {
+  const getTranscript = (result: SpeechRecognitionResult): string =>
+    result[0]?.transcript ?? "";
+
+  const processResults = (event: SpeechRecognitionEvent): { interim: string; final: string } => {
     let interim = "";
     let final = "";
-
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const result = event.results[i];
-      if (!result) {
-        continue;
-      }
-      const transcript = result[0]?.transcript ?? "";
-      if (result.isFinal) {
-        final += transcript;
-      } else {
-        interim += transcript;
-      }
+      if (!result) continue;
+      if (result.isFinal) { final += getTranscript(result); } else { interim += getTranscript(result); }
     }
+    return { interim, final };
+  };
 
+  const emitResults = (interim: string, final: string): void => {
     if (final) {
       hadResult = true;
       lastInterim = "";
@@ -81,6 +79,11 @@ export function createSTT(callbacks: STTCallbacks): {
       lastInterim = interim;
       callbacks.onInterim(interim);
     }
+  };
+
+  recognition.onresult = (event: SpeechRecognitionEvent) => {
+    const { interim, final } = processResults(event);
+    emitResults(interim, final);
   };
 
   recognition.onerror = (event: SpeechRecognitionErrorEvent) => {

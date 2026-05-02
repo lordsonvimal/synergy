@@ -5,6 +5,13 @@ import { VoiceInput } from "./VoiceInput.js";
 import { KeysOverlay } from "./KeysOverlay.js";
 import { ShortcutPanel } from "./ShortcutPanel.js";
 
+function toggleButtonClass(active: boolean): string {
+  if (active) {
+    return "shrink-0 border w-10 h-10 rounded-md cursor-pointer transition-all flex items-center justify-center bg-primary-subtle border-primary text-primary hover:bg-primary-100";
+  }
+  return "shrink-0 border w-10 h-10 rounded-md cursor-pointer transition-all flex items-center justify-center bg-muted border-edge text-ink hover:bg-surface-raised hover:border-edge-strong";
+}
+
 export const TerminalToolbar: Component = () => {
   const { send } = useConnection();
   const { activeTabId } = usePanes();
@@ -36,11 +43,7 @@ export const TerminalToolbar: Component = () => {
       />
       <div class="flex items-center gap-2 w-full">
         <button
-          class={`shrink-0 border w-10 h-10 rounded-md cursor-pointer transition-all flex items-center justify-center ${
-            keysOpen()
-              ? "bg-primary-subtle border-primary text-primary hover:bg-primary-100"
-              : "bg-muted border-edge text-ink hover:bg-surface-raised hover:border-edge-strong"
-          }`}
+          class={toggleButtonClass(keysOpen())}
           onClick={() => setKeysOpen(!keysOpen())}
           aria-label={keysOpen() ? "Hide keys" : "Show keys"}
           data-testid="toolbar-keys-toggle"
@@ -51,11 +54,7 @@ export const TerminalToolbar: Component = () => {
           </svg>
         </button>
         <button
-          class={`shrink-0 border w-10 h-10 rounded-md cursor-pointer transition-all flex items-center justify-center ${
-            shortcutsOpen()
-              ? "bg-primary-subtle border-primary text-primary hover:bg-primary-100"
-              : "bg-muted border-edge text-ink hover:bg-surface-raised hover:border-edge-strong"
-          }`}
+          class={toggleButtonClass(shortcutsOpen())}
           onClick={() => setShortcutsOpen(!shortcutsOpen())}
           aria-label={shortcutsOpen() ? "Hide shortcuts" : "Show shortcuts"}
           data-testid="toolbar-shortcuts-toggle"

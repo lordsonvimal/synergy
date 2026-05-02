@@ -7,6 +7,66 @@ const INPUT_BASE = "w-full bg-canvas text-ink p-3 rounded-md text-[15px] outline
 const INPUT_DEFAULT = `${INPUT_BASE} border border-edge-strong focus:border-primary focus:ring-2 focus:ring-primary/25`;
 const INPUT_ERROR = `${INPUT_BASE} border border-error focus:ring-2 focus:ring-error/25`;
 
+function validateHost(host: string, touched: boolean): string {
+  if (!touched) return "";
+  if (!host.trim()) return "IP address is required";
+  return "";
+}
+
+function validatePort(port: number, touched: boolean): string {
+  if (!touched) return "";
+  if (!port) return "Port is required";
+  if (port < 1 || port > 65535) return "Port must be between 1 and 65535";
+  return "";
+}
+
+function getButtonLabel(connecting: boolean, hasError: boolean): string {
+  if (connecting) return "Connecting...";
+  if (hasError) return "Retry";
+  return "Connect";
+}
+
+function themeIcon(theme: string): string {
+  return theme === "dark" ? "☀️" : "🌙";
+}
+
+function themeLabel(theme: string): string {
+  return theme === "dark" ? "light" : "dark";
+}
+
+function inputClass(hasError: boolean): string {
+  return hasError ? INPUT_ERROR : INPUT_DEFAULT;
+}
+
+function modeButtonClass(active: boolean): string {
+  const base = "flex-1 px-3 py-2.5 text-sm border-none cursor-pointer transition-colors";
+  return active
+    ? `${base} bg-primary text-on-primary`
+    : `${base} bg-muted text-ink hover:bg-surface-raised`;
+}
+
+function modeDescription(mode: string): string {
+  return mode === "mirror"
+    ? "All devices share the same terminal sessions"
+    : "Each device gets its own terminal sessions";
+}
+
+function useConnectionTimeout(
+  connecting: () => boolean,
+  connected: () => boolean,
+  setConnecting: (v: boolean) => void,
+  setError: (v: string) => void
+): void {
+  createEffect(() => {
+    if (!connecting() || connected()) return;
+    const timeout = setTimeout(() => {
+      setConnecting(false);
+      setError("Unable to connect. Check that the server is running and the IP/port are correct.");
+    }, 5000);
+    return () => clearTimeout(timeout);
+  });
+}
+
 export const ConnectScreen: Component = () => {
   const { settings, updateSettings } = useSettings();
   const { connect, connected } = useConnection();
@@ -16,29 +76,13 @@ export const ConnectScreen: Component = () => {
   const [hostTouched, setHostTouched] = createSignal(false);
   const [portTouched, setPortTouched] = createSignal(false);
 
-  const hostError = (): string => {
-    if (!hostTouched()) return "";
-    if (!settings().host.trim()) return "IP address is required";
-    return "";
-  };
+  const hostError = (): string =>
+    validateHost(settings().host, hostTouched());
 
-  const portError = (): string => {
-    if (!portTouched()) return "";
-    const p = settings().port;
-    if (!p) return "Port is required";
-    if (p < 1 || p > 65535) return "Port must be between 1 and 65535";
-    return "";
-  };
+  const portError = (): string =>
+    validatePort(settings().port, portTouched());
 
-  createEffect(() => {
-    if (connecting() && !connected()) {
-      const timeout = setTimeout(() => {
-        setConnecting(false);
-        setError("Unable to connect. Check that the server is running and the IP/port are correct.");
-      }, 5000);
-      return () => clearTimeout(timeout);
-    }
-  });
+  useConnectionTimeout(connecting, connected, setConnecting, setError);
 
   const handleSubmit = (e: SubmitEvent): void => {
     e.preventDefault();
@@ -64,10 +108,10 @@ export const ConnectScreen: Component = () => {
         <button
           class="bg-transparent border-none text-ink text-lg cursor-pointer p-2 rounded-md hover:bg-muted"
           onClick={toggleTheme}
-          aria-label={`Switch to ${settings().theme === "dark" ? "light" : "dark"} mode`}
+          aria-label={`Switch to ${themeLabel(settings().theme)} mode`}
           data-testid="connect-screen-theme-toggle"
         >
-          {settings().theme === "dark" ? "☀️" : "🌙"}
+          {themeIcon(settings().theme)}
         </button>
       </header>
 
@@ -93,7 +137,7 @@ export const ConnectScreen: Component = () => {
               <label class="flex flex-col gap-1.5 text-sm text-ink-secondary font-medium">
                 <span>Mac IP <span class="text-error">*</span></span>
                 <input
-                  class={hostError() ? INPUT_ERROR : INPUT_DEFAULT}
+                  class={inputClass(!!hostError())}
                   type="text"
                   placeholder="192.168.1.100"
                   value={settings().host}
@@ -109,7 +153,7 @@ export const ConnectScreen: Component = () => {
               <label class="flex flex-col gap-1.5 text-sm text-ink-secondary font-medium">
                 <span>Port <span class="text-error">*</span></span>
                 <input
-                  class={portError() ? INPUT_ERROR : INPUT_DEFAULT}
+                  class={inputClass(!!portError())}
                   type="number"
                   placeholder="5100"
                   value={settings().port}
@@ -148,11 +192,7 @@ export const ConnectScreen: Component = () => {
                 >
                   <button
                     type="button"
-                    class={`flex-1 px-3 py-2.5 text-sm border-none cursor-pointer transition-colors ${
-                      settings().mode === "independent"
-                        ? "bg-primary text-on-primary"
-                        : "bg-muted text-ink hover:bg-surface-raised"
-                    }`}
+                    class={modeButtonClass(settings().mode === "independent")}
                     role="radio"
                     aria-checked={settings().mode === "independent"}
                     onClick={() => updateSettings({ mode: "independent" })}
@@ -162,11 +202,7 @@ export const ConnectScreen: Component = () => {
                   </button>
                   <button
                     type="button"
-                    class={`flex-1 px-3 py-2.5 text-sm border-none cursor-pointer transition-colors ${
-                      settings().mode === "mirror"
-                        ? "bg-primary text-on-primary"
-                        : "bg-muted text-ink hover:bg-surface-raised"
-                    }`}
+                    class={modeButtonClass(settings().mode === "mirror")}
                     role="radio"
                     aria-checked={settings().mode === "mirror"}
                     onClick={() => updateSettings({ mode: "mirror" })}
@@ -176,9 +212,7 @@ export const ConnectScreen: Component = () => {
                   </button>
                 </div>
                 <span class="text-xs text-ink-dim">
-                  {settings().mode === "mirror"
-                    ? "All devices share the same terminal sessions"
-                    : "Each device gets its own terminal sessions"}
+                  {modeDescription(settings().mode)}
                 </span>
               </div>
             </fieldset>
@@ -199,7 +233,7 @@ export const ConnectScreen: Component = () => {
               disabled={connecting()}
               data-testid="connect-screen-connect-button"
             >
-              {connecting() ? "Connecting..." : error() ? "Retry" : "Connect"}
+              {getButtonLabel(connecting(), !!error())}
             </button>
           </form>
         </section>

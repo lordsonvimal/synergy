@@ -9,6 +9,15 @@ import {
   useContext
 } from "solid-js";
 import { createStore, produce, reconcile } from "solid-js/store";
+import {
+  findLeafInTree,
+  collectLeaves,
+  findBranchById,
+  findSiblingLeaves,
+  removeLeaf,
+  replaceLeaf,
+  syncCountersFromTree
+} from "./panes-utils.js";
 
 export interface Tab {
   id: string;
@@ -77,33 +86,14 @@ const PanesContext = createContext<PanesContextValue>();
 
 const STORAGE_KEY = "tether-panes";
 
-let nextPaneId = 1;
-let nextTabId = 1;
+const counters = { pane: 1, tab: 1 };
 
 function genPaneId(): string {
-  return `pane-${nextPaneId++}`;
+  return `pane-${counters.pane++}`;
 }
 
 function genTabId(): string {
-  return `tab-${nextTabId++}`;
-}
-
-function syncCountersFromTree(node: SplitNode): void {
-  if (node.type === "leaf") {
-    const paneNum = parseInt(node.id.replace("pane-", ""), 10);
-    if (!isNaN(paneNum) && paneNum >= nextPaneId) {
-      nextPaneId = paneNum + 1;
-    }
-    for (const tab of node.tabs) {
-      const tabNum = parseInt(tab.id.replace("tab-", ""), 10);
-      if (!isNaN(tabNum) && tabNum >= nextTabId) {
-        nextTabId = tabNum + 1;
-      }
-    }
-  } else {
-    syncCountersFromTree(node.children[0]);
-    syncCountersFromTree(node.children[1]);
-  }
+  return `tab-${counters.tab++}`;
 }
 
 function loadPersistedState(): PanesState | null {
@@ -112,104 +102,23 @@ function loadPersistedState(): PanesState | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PanesState;
     if (!parsed.root || !parsed.activePaneId) return null;
-    syncCountersFromTree(parsed.root);
+    syncCountersFromTree(parsed.root, counters);
     return parsed;
   } catch {
     return null;
   }
 }
 
-function findLeafInTree(node: SplitNode, paneId: string): LeafNode | undefined {
-  if (node.type === "leaf") {
-    return node.id === paneId ? node : undefined;
-  }
-  return (
-    findLeafInTree(node.children[0], paneId) ??
-    findLeafInTree(node.children[1], paneId)
-  );
-}
-
-function collectLeaves(node: SplitNode, result: LeafNode[]): void {
-  if (node.type === "leaf") {
-    result.push(node);
-  } else {
-    collectLeaves(node.children[0], result);
-    collectLeaves(node.children[1], result);
-  }
-}
-
-function findBranchById(
-  node: SplitNode,
-  branchId: string
-): BranchNode | undefined {
-  if (node.type === "branch") {
-    if (node.id === branchId) return node;
-    return (
-      findBranchById(node.children[0], branchId) ??
-      findBranchById(node.children[1], branchId)
+function persistState(state: PanesState): void {
+  const data = JSON.parse(JSON.stringify(state));
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ root: data.root, activePaneId: data.activePaneId })
     );
+  } catch {
+    // localStorage may be unavailable
   }
-  return undefined;
-}
-
-function findSiblingLeaves(
-  node: SplitNode,
-  paneId: string
-): LeafNode[] | null {
-  if (node.type === "leaf") return null;
-  const [left, right] = node.children;
-  if (left.type === "leaf" && left.id === paneId) {
-    const result: LeafNode[] = [];
-    collectLeaves(right, result);
-    return result;
-  }
-  if (right.type === "leaf" && right.id === paneId) {
-    const result: LeafNode[] = [];
-    collectLeaves(left, result);
-    return result;
-  }
-  return (
-    findSiblingLeaves(left, paneId) ?? findSiblingLeaves(right, paneId)
-  );
-}
-
-function removeLeaf(
-  node: SplitNode,
-  paneId: string
-): SplitNode | null {
-  if (node.type === "leaf") return null;
-  if (node.children[0].type === "leaf" && node.children[0].id === paneId) {
-    return node.children[1];
-  }
-  if (node.children[1].type === "leaf" && node.children[1].id === paneId) {
-    return node.children[0];
-  }
-  const left = removeLeaf(node.children[0], paneId);
-  if (left) {
-    return { ...node, children: [left, node.children[1]] };
-  }
-  const right = removeLeaf(node.children[1], paneId);
-  if (right) {
-    return { ...node, children: [node.children[0], right] };
-  }
-  return null;
-}
-
-function replaceLeaf(
-  node: SplitNode,
-  paneId: string,
-  replacement: SplitNode
-): SplitNode {
-  if (node.type === "leaf") {
-    return node.id === paneId ? replacement : node;
-  }
-  return {
-    ...node,
-    children: [
-      replaceLeaf(node.children[0], paneId, replacement),
-      replaceLeaf(node.children[1], paneId, replacement)
-    ]
-  };
 }
 
 export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
@@ -230,22 +139,16 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
 
   const [state, setState] = createStore<PanesState>(initialState);
 
-  createEffect(() => {
-    const data = JSON.parse(JSON.stringify(state));
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ root: data.root, activePaneId: data.activePaneId })
-      );
-    } catch {}
-  });
+  createEffect(() => { persistState(state); });
 
   const [isNarrow, setIsNarrow] = createSignal(false);
 
   onMount(() => {
     const query = window.matchMedia("(max-width: 640px)");
     setIsNarrow(query.matches);
-    const handler = (e: MediaQueryListEvent): void => { setIsNarrow(e.matches); };
+    const handler = (e: MediaQueryListEvent): void => {
+      setIsNarrow(e.matches);
+    };
     query.addEventListener("change", handler);
     onCleanup(() => query.removeEventListener("change", handler));
   });
@@ -261,9 +164,8 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
     setState("activePaneId", paneId);
   };
 
-  const findLeaf = (paneId: string): LeafNode | undefined => {
-    return findLeafInTree(state.root, paneId);
-  };
+  const findLeaf = (paneId: string): LeafNode | undefined =>
+    findLeafInTree(state.root, paneId);
 
   const getAllLeaves = (): LeafNode[] => {
     const result: LeafNode[] = [];
@@ -271,9 +173,8 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
     return result;
   };
 
-  const getAllTabIds = (): string[] => {
-    return getAllLeaves().flatMap(leaf => leaf.tabs.map(t => t.id));
-  };
+  const getAllTabIds = (): string[] =>
+    getAllLeaves().flatMap(leaf => leaf.tabs.map(t => t.id));
 
   const getRoot = (): SplitNode => state.root;
 
@@ -295,15 +196,24 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
     return id;
   };
 
+  const closePane = (paneId: string): void => {
+    if (state.root.type === "leaf") return;
+    const newRoot = removeLeaf(state.root, paneId);
+    if (!newRoot) return;
+    const leaves: LeafNode[] = [];
+    collectLeaves(newRoot, leaves);
+    const firstLeaf = leaves[0];
+    const newActive = firstLeaf ? firstLeaf.id : state.activePaneId;
+    setState(reconcile({ root: newRoot, activePaneId: newActive }));
+  };
+
   const closeTab = (paneId: string, tabId: string): void => {
     const leaf = findLeafInTree(state.root, paneId);
     if (!leaf) return;
-
     if (leaf.tabs.length <= 1) {
       closePane(paneId);
       return;
     }
-
     setState(
       "root",
       produce((root) => {
@@ -321,20 +231,6 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
     );
   };
 
-  const closePane = (paneId: string): void => {
-    if (state.root.type === "leaf") return;
-
-    const newRoot = removeLeaf(state.root, paneId);
-    if (!newRoot) return;
-
-    const leaves: LeafNode[] = [];
-    collectLeaves(newRoot, leaves);
-    const firstLeaf = leaves[0];
-    const newActive = firstLeaf ? firstLeaf.id : state.activePaneId;
-
-    setState(reconcile({ root: newRoot, activePaneId: newActive }));
-  };
-
   const setActiveTab = (paneId: string, tabId: string): void => {
     setState(
       "root",
@@ -345,11 +241,7 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
     );
   };
 
-  const renameTab = (
-    paneId: string,
-    tabId: string,
-    label: string
-  ): void => {
+  const renameTab = (paneId: string, tabId: string, label: string): void => {
     setState(
       "root",
       produce((root) => {
@@ -361,52 +253,47 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
     );
   };
 
-  const reorderTab = (
-    paneId: string,
-    tabId: string,
-    targetIndex: number
-  ): void => {
+  const spliceAndInsert = (tabs: Tab[], currentIdx: number, targetIndex: number): void => {
+    const removed = tabs.splice(currentIdx, 1);
+    const tab = removed[0];
+    if (!tab) return;
+    const insertAt = targetIndex > currentIdx ? targetIndex - 1 : targetIndex;
+    tabs.splice(insertAt, 0, tab);
+  };
+
+  const reorderTab = (paneId: string, tabId: string, targetIndex: number): void => {
     setState(
       "root",
       produce((root) => {
         const leaf = findLeafInTree(root, paneId);
         if (!leaf) return;
         const currentIdx = leaf.tabs.findIndex(t => t.id === tabId);
-        if (currentIdx === -1) return;
-        if (currentIdx === targetIndex || currentIdx + 1 === targetIndex) return;
-        const removed = leaf.tabs.splice(currentIdx, 1);
-        const tab = removed[0];
-        if (!tab) return;
-        const insertAt = targetIndex > currentIdx
-          ? targetIndex - 1
-          : targetIndex;
-        leaf.tabs.splice(insertAt, 0, tab);
+        const isNoop = currentIdx === -1 || currentIdx === targetIndex || currentIdx + 1 === targetIndex;
+        if (isNoop) return;
+        spliceAndInsert(leaf.tabs, currentIdx, targetIndex);
       })
     );
   };
 
-  const mergePane = (paneId: string): { targetLabel: string } | null => {
+  const getFirstSibling = (paneId: string): LeafNode | null => {
     if (state.root.type === "leaf") return null;
     const siblings = findSiblingLeaves(state.root, paneId);
-    if (!siblings || siblings.length === 0) return null;
-    const firstSibling = siblings[0];
-    if (!firstSibling) return null;
-    return { targetLabel: firstSibling.tabs[0]?.label ?? firstSibling.id };
+    return siblings?.[0] ?? null;
+  };
+
+  const mergePane = (paneId: string): { targetLabel: string } | null => {
+    const sibling = getFirstSibling(paneId);
+    if (!sibling) return null;
+    return { targetLabel: sibling.tabs[0]?.label ?? sibling.id };
   };
 
   const confirmMerge = (paneId: string): void => {
-    if (state.root.type === "leaf") return;
-    const siblings = findSiblingLeaves(state.root, paneId);
-    if (!siblings || siblings.length === 0) return;
-    const targetPaneId = siblings[0]?.id;
-    if (!targetPaneId) return;
-
+    const sibling = getFirstSibling(paneId);
+    if (!sibling) return;
     const sourceLeaf = findLeafInTree(state.root, paneId);
     if (!sourceLeaf) return;
-
-    const tabIds = sourceLeaf.tabs.map(t => t.id);
-    for (const tabId of tabIds) {
-      moveTab(paneId, tabId, targetPaneId);
+    for (const tab of sourceLeaf.tabs) {
+      moveTab(paneId, tab.id, sibling.id);
     }
   };
 
@@ -423,17 +310,37 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
       activeTabId: newTabId
     };
 
+    const sourceLeaf = findLeafInTree(state.root, paneId);
+    if (!sourceLeaf) return newTabId;
+
     const branchId = `branch-${Date.now()}`;
     const newRoot = replaceLeaf(state.root, paneId, {
       type: "branch",
       id: branchId,
       direction,
-      children: [findLeafInTree(state.root, paneId)!, newLeaf],
+      children: [sourceLeaf, newLeaf],
       ratio: 0.5
     });
 
     setState(reconcile({ root: newRoot, activePaneId: newPaneId }));
     return newTabId;
+  };
+
+  const removeTabFromLeaf = (leaf: LeafNode, tabId: string): void => {
+    const idx = leaf.tabs.findIndex(t => t.id === tabId);
+    if (idx === -1) return;
+    leaf.tabs.splice(idx, 1);
+    if (leaf.activeTabId !== tabId) return;
+    const next = leaf.tabs[Math.min(idx, leaf.tabs.length - 1)];
+    if (next) leaf.activeTabId = next.id;
+  };
+
+  const removeTabFromClone = (root: SplitNode, fromPaneId: string, tabId: string): SplitNode => {
+    const clonedSource = findLeafInTree(root, fromPaneId);
+    if (!clonedSource) return root;
+    removeTabFromLeaf(clonedSource, tabId);
+    if (clonedSource.tabs.length === 0) return removeLeaf(root, fromPaneId) ?? root;
+    return root;
   };
 
   const splitPaneWithTab = (
@@ -456,28 +363,9 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
       activeTabId: tab.id
     };
 
-    // Deep-clone the tree so mutations don't create aliasing bugs
     let newRoot: SplitNode = JSON.parse(JSON.stringify(state.root));
+    newRoot = removeTabFromClone(newRoot, fromPaneId, tabId);
 
-    // 1. Remove the tab from source in the cloned tree
-    const clonedSource = findLeafInTree(newRoot, fromPaneId);
-    if (clonedSource) {
-      const idx = clonedSource.tabs.findIndex(t => t.id === tabId);
-      if (idx !== -1) {
-        clonedSource.tabs.splice(idx, 1);
-        if (clonedSource.activeTabId === tabId) {
-          const next = clonedSource.tabs[Math.min(idx, clonedSource.tabs.length - 1)];
-          if (next) clonedSource.activeTabId = next.id;
-        }
-      }
-      // If source is now empty, collapse it out of the tree
-      if (clonedSource.tabs.length === 0) {
-        const collapsed = removeLeaf(newRoot, fromPaneId);
-        if (collapsed) newRoot = collapsed;
-      }
-    }
-
-    // 2. Now split the target pane in the (already pruned) tree
     const targetLeaf = findLeafInTree(newRoot, targetPaneId);
     if (!targetLeaf) return;
 
@@ -497,6 +385,25 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
     setState(reconcile({ root: newRoot, activePaneId: newPaneId }));
   };
 
+  const transferTab = (
+    source: LeafNode,
+    target: LeafNode,
+    tabId: string,
+    insertIdx: number
+  ): void => {
+    const tabIdx = source.tabs.findIndex((t) => t.id === tabId);
+    if (tabIdx === -1) return;
+    const removed = source.tabs.splice(tabIdx, 1);
+    const tab = removed[0];
+    if (!tab) return;
+    target.tabs.splice(insertIdx, 0, tab);
+    target.activeTabId = tab.id;
+    if (source.activeTabId === tabId) {
+      const nextTab = source.tabs[Math.min(tabIdx, source.tabs.length - 1)];
+      if (nextTab) source.activeTabId = nextTab.id;
+    }
+  };
+
   const moveTab = (
     fromPaneId: string,
     tabId: string,
@@ -511,24 +418,7 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
         const source = findLeafInTree(root, fromPaneId);
         const target = findLeafInTree(root, toPaneId);
         if (!source || !target) return;
-
-        const tabIdx = source.tabs.findIndex((t) => t.id === tabId);
-        if (tabIdx === -1) return;
-
-        const removed = source.tabs.splice(tabIdx, 1);
-        const tab = removed[0];
-        if (!tab) return;
-
-        const insertIdx = index ?? target.tabs.length;
-        target.tabs.splice(insertIdx, 0, tab);
-        target.activeTabId = tab.id;
-
-        if (source.activeTabId === tabId) {
-          const nextTab = source.tabs[Math.min(tabIdx, source.tabs.length - 1)];
-          if (nextTab) {
-            source.activeTabId = nextTab.id;
-          }
-        }
+        transferTab(source, target, tabId, index ?? target.tabs.length);
       })
     );
 

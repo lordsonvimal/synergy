@@ -85,7 +85,7 @@ export const ShortcutPanel: Component<ShortcutPanelProps> = props => {
 
   return (
     <Show when={mounted()}>
-      <Portal mount={document.getElementById("shortcuts-layer")!}>
+      <Portal mount={document.getElementById("shortcuts-layer") as HTMLElement}>
         <div class="fixed inset-0" data-testid="shortcut-panel-backdrop">
           <div
             class="absolute inset-0"
@@ -103,7 +103,7 @@ export const ShortcutPanel: Component<ShortcutPanelProps> = props => {
               fallback={
                 <div class="p-3 flex items-center gap-2" data-testid="shortcut-edit-prompt">
                   <span class="text-xs text-ink-secondary shrink-0">
-                    {editing()!.label}:
+                    {editing()?.label}:
                   </span>
                   <input
                     type="text"

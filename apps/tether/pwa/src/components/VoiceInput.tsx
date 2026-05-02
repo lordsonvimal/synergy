@@ -78,23 +78,31 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
     stopTimer();
   });
 
+  const buildFinalText = (): string => {
+    const sep = accumulated() && interim() ? " " : "";
+    return (accumulated() + sep + interim()).trim();
+  };
+
+  const stopRecording = (): void => {
+    stt?.stop();
+    setRecording(false);
+    stopTimer();
+    const finalText = buildFinalText();
+    setInterim("");
+    setAccumulated("");
+    if (!finalText) return;
+    setReviewText(finalText);
+    setReviewing(true);
+    props.onReviewChange?.(true);
+  };
+
   const handleToggle = (): void => {
     if (!stt) {
       addToast("Speech recognition not supported in this browser", "error");
       return;
     }
     if (recording()) {
-      stt.stop();
-      setRecording(false);
-      stopTimer();
-      const finalText = accumulated() + (interim() ? (accumulated() ? " " : "") + interim() : "");
-      setInterim("");
-      if (finalText.trim()) {
-        setReviewText(finalText.trim());
-        setReviewing(true);
-        props.onReviewChange?.(true);
-      }
-      setAccumulated("");
+      stopRecording();
     } else {
       setAccumulated("");
       setInterim("");

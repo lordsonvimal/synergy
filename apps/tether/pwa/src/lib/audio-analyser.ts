@@ -22,15 +22,25 @@ export function createAudioAnalyser(): AudioAnalyser {
     dataArray = new Uint8Array(analyser.frequencyBinCount) as Uint8Array<ArrayBuffer>;
   };
 
-  const stop = (): void => {
+  const disconnectSource = (): void => {
     source?.disconnect();
     source = null;
+  };
+
+  const stopStream = (): void => {
     stream?.getTracks().forEach(t => t.stop());
     stream = null;
-    if (context?.state !== "closed") {
-      context?.close();
-    }
+  };
+
+  const closeContext = (): void => {
+    if (context?.state !== "closed") context?.close();
     context = null;
+  };
+
+  const stop = (): void => {
+    disconnectSource();
+    stopStream();
+    closeContext();
     analyser = null;
     dataArray = null;
   };
@@ -40,7 +50,8 @@ export function createAudioAnalyser(): AudioAnalyser {
     analyser.getByteFrequencyData(dataArray);
     let sum = 0;
     for (let i = 0; i < dataArray.length; i++) {
-      sum += dataArray[i]!;
+      const value = dataArray[i];
+      if (value !== undefined) sum += value;
     }
     return sum / (dataArray.length * 255);
   };

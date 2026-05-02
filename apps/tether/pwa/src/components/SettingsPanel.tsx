@@ -2,58 +2,58 @@ import { Component, Show, For, createSignal, createEffect } from "solid-js";
 import { Portal } from "solid-js/web";
 import { useSettings, Shortcut } from "../context/settings.js";
 import { useConnection } from "../context/connection.js";
+import {
+  FONT_SIZE_OPTIONS,
+  findDragTargetId,
+  reorderShortcuts,
+  flipTheme,
+  themeButtonLabel,
+  fontSizeButtonClass,
+  toggleBgClass,
+  toggleTranslate,
+  closingClass,
+  modeLabel
+} from "./settings-panel-utils.js";
 
 interface SettingsPanelProps {
   open: boolean;
   onClose: () => void;
 }
 
-const FONT_SIZE_OPTIONS: { value: "small" | "medium" | "large"; label: string }[] = [
-  { value: "small", label: "Small" },
-  { value: "medium", label: "Medium" },
-  { value: "large", label: "Large" }
-];
-
-export const SettingsPanel: Component<SettingsPanelProps> = props => {
-  const { settings, updateSettings } = useSettings();
-  const { disconnect } = useConnection();
+function useAnimatedMount(open: () => boolean): {
+  mounted: () => boolean;
+  closing: () => boolean;
+  handleAnimationEnd: () => void;
+} {
   const [mounted, setMounted] = createSignal(false);
   const [closing, setClosing] = createSignal(false);
-
   createEffect(() => {
-    if (props.open) {
-      setMounted(true);
-      setClosing(false);
-    } else if (mounted()) {
-      setClosing(true);
-    }
+    if (open()) { setMounted(true); setClosing(false); }
+    else if (mounted()) { setClosing(true); }
   });
-
   const handleAnimationEnd = (): void => {
-    if (closing()) {
-      setMounted(false);
-      setClosing(false);
-    }
+    if (closing()) { setMounted(false); setClosing(false); }
   };
+  return { mounted, closing, handleAnimationEnd };
+}
 
-  const toggleTheme = (): void => {
-    const next = settings().theme === "dark" ? "light" : "dark";
-    updateSettings({ theme: next });
-  };
-
-  const toggleChime = (): void => {
-    updateSettings({ chimeEnabled: !settings().chimeEnabled });
-  };
-
+function useShortcutEditor(settings: () => ReturnType<ReturnType<typeof useSettings>["settings"]>, updateSettings: ReturnType<typeof useSettings>["updateSettings"]): {
+  editingShortcut: () => string | null;
+  editLabel: () => string;
+  editCommand: () => string;
+  addingNew: () => boolean;
+  setEditLabel: (v: string) => void;
+  setEditCommand: (v: string) => void;
+  startEdit: (shortcut: Shortcut) => void;
+  startAdd: () => void;
+  cancelEdit: () => void;
+  saveEdit: () => void;
+  deleteShortcut: (id: string) => void;
+} {
   const [editingShortcut, setEditingShortcut] = createSignal<string | null>(null);
   const [editLabel, setEditLabel] = createSignal("");
   const [editCommand, setEditCommand] = createSignal("");
   const [addingNew, setAddingNew] = createSignal(false);
-
-  const [dragId, setDragId] = createSignal<string | null>(null);
-  const [dragOverId, setDragOverId] = createSignal<string | null>(null);
-  const [dragStartY, setDragStartY] = createSignal(0);
-  const [dragElRect, setDragElRect] = createSignal<{ top: number; height: number } | null>(null);
 
   const startEdit = (shortcut: Shortcut): void => {
     setEditingShortcut(shortcut.id);
@@ -74,71 +74,79 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
     setAddingNew(false);
   };
 
+  const buildUpdatedShortcuts = (label: string, command: string): Shortcut[] => {
+    const shortcuts = [...settings().shortcuts];
+    if (addingNew()) {
+      shortcuts.push({ id: `s${Date.now()}`, label, command });
+    } else {
+      const idx = shortcuts.findIndex(s => s.id === editingShortcut());
+      const existing = shortcuts[idx];
+      if (idx !== -1 && existing) shortcuts[idx] = { ...existing, label, command };
+    }
+    return shortcuts;
+  };
+
   const saveEdit = (): void => {
     const label = editLabel().trim();
     const command = editCommand().trim();
     if (!label || !command) return;
-
-    const shortcuts = [...settings().shortcuts];
-    if (addingNew()) {
-      shortcuts.push({
-        id: `s${Date.now()}`,
-        label,
-        command
-      });
-    } else {
-      const idx = shortcuts.findIndex(s => s.id === editingShortcut());
-      if (idx !== -1) {
-        shortcuts[idx] = { ...shortcuts[idx]!, label, command };
-      }
-    }
-    updateSettings({ shortcuts });
+    updateSettings({ shortcuts: buildUpdatedShortcuts(label, command) });
     setEditingShortcut(null);
     setAddingNew(false);
   };
 
   const deleteShortcut = (id: string): void => {
-    const shortcuts = settings().shortcuts.filter(s => s.id !== id);
-    updateSettings({ shortcuts });
-    if (editingShortcut() === id) {
-      setEditingShortcut(null);
-    }
+    updateSettings({ shortcuts: settings().shortcuts.filter(s => s.id !== id) });
+    if (editingShortcut() === id) setEditingShortcut(null);
   };
 
+  return { editingShortcut, editLabel, editCommand, addingNew, setEditLabel, setEditCommand, startEdit, startAdd, cancelEdit, saveEdit, deleteShortcut };
+}
+
+function useShortcutDrag(
+  settings: () => ReturnType<ReturnType<typeof useSettings>["settings"]>,
+  updateSettings: ReturnType<typeof useSettings>["updateSettings"],
+  isEditing: () => boolean
+): {
+  dragId: () => string | null;
+  dragOverId: () => string | null;
+  handleDragStart: (e: PointerEvent, id: string) => void;
+  handleDragMove: (e: PointerEvent) => void;
+  handleDragEnd: () => void;
+  shortcutDragClass: (id: string) => string;
+} {
+  const [dragId, setDragId] = createSignal<string | null>(null);
+  const [dragOverId, setDragOverId] = createSignal<string | null>(null);
+  const [dragStartY, setDragStartY] = createSignal(0);
+  const [dragElRect, setDragElRect] = createSignal<{ top: number; height: number } | null>(null);
+
   const handleDragStart = (e: PointerEvent, id: string): void => {
-    if (editingShortcut() || addingNew()) return;
+    if (isEditing()) return;
     const target = (e.currentTarget as HTMLElement).closest("[data-shortcut-id]") as HTMLElement | null;
     if (!target) return;
     target.setPointerCapture(e.pointerId);
     setDragId(id);
     setDragStartY(e.clientY);
-    setDragElRect({ top: target.getBoundingClientRect().top, height: target.getBoundingClientRect().height });
+    const rect = target.getBoundingClientRect();
+    setDragElRect({ top: rect.top, height: rect.height });
+  };
+
+  const dragFallback = (): string | null =>
+    settings().shortcuts.length > 0 ? "__before_first__" : null;
+
+  const computeDragOver = (e: PointerEvent): string | null => {
+    const currentDragId = dragId();
+    const rect = dragElRect();
+    if (!currentDragId || !rect) return null;
+    const currentCenter = rect.top + rect.height / 2 + (e.clientY - dragStartY());
+    const listEl = (e.currentTarget as HTMLElement).closest("[data-shortcut-list]");
+    if (!listEl) return dragFallback();
+    return findDragTargetId(listEl, currentDragId, currentCenter) ?? dragFallback();
   };
 
   const handleDragMove = (e: PointerEvent): void => {
     if (!dragId()) return;
-    const offset = e.clientY - dragStartY();
-
-    const rect = dragElRect();
-    if (!rect) return;
-    const currentCenter = rect.top + rect.height / 2 + offset;
-
-    const shortcuts = settings().shortcuts;
-    let targetId: string | null = null;
-    const listEl = (e.currentTarget as HTMLElement).closest("[data-shortcut-list]");
-    if (listEl) {
-      const items = listEl.querySelectorAll<HTMLElement>("[data-shortcut-id]");
-      for (const item of items) {
-        const itemId = item.getAttribute("data-shortcut-id");
-        if (itemId === dragId()) continue;
-        const itemRect = item.getBoundingClientRect();
-        const itemCenter = itemRect.top + itemRect.height / 2;
-        if (currentCenter > itemCenter) {
-          targetId = itemId;
-        }
-      }
-    }
-    setDragOverId(targetId ?? (shortcuts.length > 0 ? "__before_first__" : null));
+    setDragOverId(computeDragOver(e));
   };
 
   const handleDragEnd = (): void => {
@@ -147,45 +155,46 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
     setDragId(null);
     setDragOverId(null);
     setDragElRect(null);
-
     if (!sourceId) return;
-
-    const shortcuts = [...settings().shortcuts];
-    const sourceIdx = shortcuts.findIndex(s => s.id === sourceId);
-    if (sourceIdx === -1) return;
-
-    let targetIdx: number;
-    if (overId === "__before_first__" || overId === null) {
-      targetIdx = 0;
-    } else {
-      targetIdx = shortcuts.findIndex(s => s.id === overId) + 1;
-    }
-
-    if (sourceIdx === targetIdx || sourceIdx + 1 === targetIdx) return;
-
-    const [removed] = shortcuts.splice(sourceIdx, 1);
-    if (!removed) return;
-    const insertAt = targetIdx > sourceIdx ? targetIdx - 1 : targetIdx;
-    shortcuts.splice(insertAt, 0, removed);
-    updateSettings({ shortcuts });
+    const result = reorderShortcuts(settings().shortcuts, sourceId, overId);
+    if (result) updateSettings({ shortcuts: result });
   };
+
+  const shortcutDragClass = (id: string): string => {
+    if (dragId() === id) return "opacity-50 scale-95";
+    if (dragOverId() === id) return "border-t-2 border-t-primary";
+    return "";
+  };
+
+  return { dragId, dragOverId, handleDragStart, handleDragMove, handleDragEnd, shortcutDragClass };
+}
+
+export const SettingsPanel: Component<SettingsPanelProps> = props => {
+  const { settings, updateSettings } = useSettings();
+  const { disconnect } = useConnection();
+  const { mounted, closing, handleAnimationEnd } = useAnimatedMount(() => props.open);
+  const editor = useShortcutEditor(settings, updateSettings);
+  const drag = useShortcutDrag(settings, updateSettings, () => !!editor.editingShortcut() || editor.addingNew());
+
+  const toggleTheme = (): void => updateSettings({ theme: flipTheme(settings().theme) });
+  const toggleChime = (): void => updateSettings({ chimeEnabled: !settings().chimeEnabled });
 
   return (
     <Show when={mounted()}>
-      <Portal mount={document.getElementById("settings-layer")!}>
+      <Portal mount={document.getElementById("settings-layer") as HTMLElement}>
         <div
           class="fixed inset-0"
           data-testid="settings-panel-backdrop"
         >
           <div
             class={`absolute inset-0 bg-canvas/60 transition-opacity duration-200 ${
-              closing() ? "opacity-0" : "opacity-100"
+              closingClass(closing(), "opacity-100", "opacity-0")
             }`}
             onClick={props.onClose}
           />
           <aside
             class={`absolute top-0 left-0 bottom-0 w-full sm:w-80 bg-surface border-r border-edge shadow-xl flex flex-col ${
-              closing() ? "animate-slide-out-left" : "animate-slide-in-left"
+              closingClass(closing(), "animate-slide-in-left", "animate-slide-out-left")
             }`}
             role="dialog"
             aria-label="Settings"
@@ -221,7 +230,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                       onClick={toggleTheme}
                       data-testid="settings-theme-toggle"
                     >
-                      {settings().theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+                      {themeButtonLabel(settings().theme)}
                     </button>
                   </div>
 
@@ -236,11 +245,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                     >
                       {FONT_SIZE_OPTIONS.map(opt => (
                         <button
-                          class={`px-3 py-1.5 text-xs border-none cursor-pointer transition-colors ${
-                            settings().fontSize === opt.value
-                              ? "bg-primary text-on-primary"
-                              : "bg-muted text-ink hover:bg-surface-raised"
-                          }`}
+                          class={fontSizeButtonClass(settings().fontSize === opt.value)}
                           role="radio"
                           aria-checked={settings().fontSize === opt.value}
                           onClick={() => updateSettings({ fontSize: opt.value })}
@@ -271,9 +276,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                   <button
                     id="settings-chime"
                     class={`relative inline-flex items-center w-11 h-6 rounded-full cursor-pointer transition-colors shrink-0 ${
-                      settings().chimeEnabled
-                        ? "bg-primary"
-                        : "bg-muted border border-edge"
+                      toggleBgClass(settings().chimeEnabled)
                     }`}
                     role="switch"
                     aria-checked={settings().chimeEnabled}
@@ -283,9 +286,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                     <span
                       class="inline-block w-5 h-5 rounded-full bg-white shadow-sm transition-transform"
                       style={{
-                        transform: settings().chimeEnabled
-                          ? "translateX(22px)"
-                          : "translateX(2px)"
+                        transform: toggleTranslate(settings().chimeEnabled)
                       }}
                     />
                   </button>
@@ -300,21 +301,21 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                   </h3>
                   <button
                     class="text-xs text-primary cursor-pointer hover:text-primary-hover transition-colors bg-transparent border-none font-medium"
-                    onClick={startAdd}
+                    onClick={editor.startAdd}
                     data-testid="settings-shortcut-add"
                   >
                     + Add
                   </button>
                 </div>
 
-                <Show when={addingNew()}>
+                <Show when={editor.addingNew()}>
                   <div class="flex flex-col gap-2 mb-3 p-3 bg-muted rounded-lg border border-edge">
                     <input
                       type="text"
                       class="w-full bg-canvas border border-edge-strong rounded-md text-sm text-ink px-2.5 py-1.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/25 placeholder:text-ink-dim"
                       placeholder="Label"
-                      value={editLabel()}
-                      onInput={e => setEditLabel(e.currentTarget.value)}
+                      value={editor.editLabel()}
+                      onInput={e => editor.setEditLabel(e.currentTarget.value)}
                       autofocus
                       data-testid="settings-shortcut-new-label"
                     />
@@ -322,21 +323,21 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                       type="text"
                       class="w-full bg-canvas border border-edge-strong rounded-md text-sm text-ink px-2.5 py-1.5 font-mono outline-none focus:border-primary focus:ring-2 focus:ring-primary/25 placeholder:text-ink-dim"
                       placeholder="Command"
-                      value={editCommand()}
-                      onInput={e => setEditCommand(e.currentTarget.value)}
+                      value={editor.editCommand()}
+                      onInput={e => editor.setEditCommand(e.currentTarget.value)}
                       data-testid="settings-shortcut-new-command"
                     />
                     <div class="flex gap-2">
                       <button
                         class="flex-1 py-1.5 text-xs bg-primary text-on-primary border-none rounded-md cursor-pointer hover:bg-primary-hover transition-colors font-medium"
-                        onClick={saveEdit}
+                        onClick={editor.saveEdit}
                         data-testid="settings-shortcut-new-save"
                       >
                         Save
                       </button>
                       <button
                         class="flex-1 py-1.5 text-xs bg-surface text-ink border border-edge rounded-md cursor-pointer hover:bg-muted transition-colors"
-                        onClick={cancelEdit}
+                        onClick={editor.cancelEdit}
                       >
                         Cancel
                       </button>
@@ -351,7 +352,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                       <span class="text-ink-dim text-sm mb-2">No shortcuts yet</span>
                       <button
                         class="text-xs text-primary cursor-pointer hover:text-primary-hover transition-colors bg-transparent border-none font-medium"
-                        onClick={startAdd}
+                        onClick={editor.startAdd}
                       >
                         + Add your first shortcut
                       </button>
@@ -362,24 +363,20 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                     <For each={settings().shortcuts}>
                       {(shortcut) => (
                         <Show
-                          when={editingShortcut() === shortcut.id}
+                          when={editor.editingShortcut() === shortcut.id}
                           fallback={
                             <div
                               class={`flex items-center gap-1 rounded-md transition-all ${
-                                dragId() === shortcut.id
-                                  ? "opacity-50 scale-95"
-                                  : dragOverId() === shortcut.id
-                                    ? "border-t-2 border-t-primary"
-                                    : ""
+                                drag.shortcutDragClass(shortcut.id)
                               }`}
                               data-shortcut-id={shortcut.id}
                             >
                               <div
                                 class="flex items-center justify-center w-5 cursor-grab text-ink-dim hover:text-ink active:cursor-grabbing shrink-0 touch-none"
-                                onPointerDown={e => handleDragStart(e, shortcut.id)}
-                                onPointerMove={handleDragMove}
-                                onPointerUp={handleDragEnd}
-                                onPointerCancel={handleDragEnd}
+                                onPointerDown={e => drag.handleDragStart(e, shortcut.id)}
+                                onPointerMove={drag.handleDragMove}
+                                onPointerUp={drag.handleDragEnd}
+                                onPointerCancel={drag.handleDragEnd}
                               >
                                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                                   <circle cx="9" cy="6" r="1.5" />
@@ -392,7 +389,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                               </div>
                               <button
                                 class="flex-1 text-left bg-muted border border-edge rounded-md px-2.5 py-1.5 cursor-pointer hover:bg-surface-raised transition-colors min-w-0"
-                                onClick={() => startEdit(shortcut)}
+                                onClick={() => editor.startEdit(shortcut)}
                                 data-testid={`settings-shortcut-${shortcut.id}`}
                               >
                                 <span class="text-xs text-ink block font-medium truncate">{shortcut.label}</span>
@@ -400,7 +397,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                               </button>
                               <button
                                 class="flex items-center justify-center w-6 h-6 bg-transparent border-none text-ink-dim text-xs cursor-pointer hover:text-error rounded-md hover:bg-muted transition-colors shrink-0"
-                                onClick={() => deleteShortcut(shortcut.id)}
+                                onClick={() => editor.deleteShortcut(shortcut.id)}
                                 aria-label={`Delete ${shortcut.label}`}
                                 data-testid={`settings-shortcut-delete-${shortcut.id}`}
                               >
@@ -416,26 +413,26 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                             <input
                               type="text"
                               class="w-full bg-canvas border border-edge-strong rounded-md text-xs text-ink px-2 py-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
-                              value={editLabel()}
-                              onInput={e => setEditLabel(e.currentTarget.value)}
+                              value={editor.editLabel()}
+                              onInput={e => editor.setEditLabel(e.currentTarget.value)}
                               autofocus
                             />
                             <input
                               type="text"
                               class="w-full bg-canvas border border-edge-strong rounded-md text-xs text-ink px-2 py-1 font-mono outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
-                              value={editCommand()}
-                              onInput={e => setEditCommand(e.currentTarget.value)}
+                              value={editor.editCommand()}
+                              onInput={e => editor.setEditCommand(e.currentTarget.value)}
                             />
                             <div class="flex gap-2">
                               <button
                                 class="flex-1 py-1 text-xs bg-primary text-on-primary border-none rounded-md cursor-pointer hover:bg-primary-hover transition-colors font-medium"
-                                onClick={saveEdit}
+                                onClick={editor.saveEdit}
                               >
                                 Save
                               </button>
                               <button
                                 class="flex-1 py-1 text-xs bg-surface text-ink border border-edge rounded-md cursor-pointer hover:bg-muted transition-colors"
-                                onClick={cancelEdit}
+                                onClick={editor.cancelEdit}
                               >
                                 Cancel
                               </button>
@@ -464,9 +461,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                     <div class="flex flex-col">
                       <label class="text-sm text-ink">Mode</label>
                       <span class="text-xs text-ink-dim mt-0.5">
-                        {settings().mode === "mirror"
-                          ? "Shared sessions across devices"
-                          : "Separate sessions per device"}
+                        {modeLabel(settings().mode)}
                       </span>
                     </div>
                     <span class="text-sm text-ink-secondary font-medium capitalize">

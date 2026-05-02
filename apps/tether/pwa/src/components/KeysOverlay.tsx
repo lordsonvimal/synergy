@@ -47,7 +47,7 @@ export const KeysOverlay: Component<KeysOverlayProps> = props => {
 
   return (
     <Show when={mounted()}>
-      <Portal mount={document.getElementById("keys-layer")!}>
+      <Portal mount={document.getElementById("keys-layer") as HTMLElement}>
         <div class="fixed inset-0" data-testid="keys-overlay-backdrop">
           <div
             class="absolute inset-0"

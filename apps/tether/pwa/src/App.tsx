@@ -42,7 +42,7 @@ const Main: Component = () => {
         const leaves = getAllLeavesFromRoot();
         for (const leaf of leaves) {
           if (leaf.tabs.some((t) => t.id === msg.tabId)) {
-            closeTab(leaf.id, msg.tabId!);
+            closeTab(leaf.id, msg.tabId as string);
             break;
           }
         }

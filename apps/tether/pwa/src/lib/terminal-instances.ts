@@ -73,6 +73,28 @@ export function getAllInstances(): Map<string, TerminalInstance> {
   return instances;
 }
 
+function reattachExisting(
+  existing: TerminalInstance,
+  container: HTMLDivElement,
+  tabId: string,
+  send: (msg: unknown) => void
+): void {
+  if (!existing.terminal.element) return;
+  if (container.contains(existing.terminal.element)) return;
+  container.appendChild(existing.terminal.element);
+  requestAnimationFrame(() => {
+    existing.fitAddon.fit();
+    send({ type: "resize", tabId, cols: existing.terminal.cols, rows: existing.terminal.rows });
+  });
+}
+
+function setupTerminalStyles(container: HTMLDivElement): void {
+  const xtermEl = container.querySelector(".xterm") as HTMLElement | null;
+  if (xtermEl) xtermEl.style.height = "100%";
+  const screenEl = container.querySelector(".xterm-screen") as HTMLElement | null;
+  if (screenEl) screenEl.style.height = "100%";
+}
+
 export function createInstance(
   tabId: string,
   container: HTMLDivElement,
@@ -81,21 +103,7 @@ export function createInstance(
 ): TerminalInstance {
   const existing = instances.get(tabId);
   if (existing) {
-    if (
-      existing.terminal.element &&
-      !container.contains(existing.terminal.element)
-    ) {
-      container.appendChild(existing.terminal.element);
-      requestAnimationFrame(() => {
-        existing.fitAddon.fit();
-        send({
-          type: "resize",
-          tabId,
-          cols: existing.terminal.cols,
-          rows: existing.terminal.rows
-        });
-      });
-    }
+    reattachExisting(existing, container, tabId, send);
     return existing;
   }
 
@@ -115,34 +123,19 @@ export function createInstance(
   const fitAddon = new FitAddon();
   terminal.loadAddon(fitAddon);
   terminal.loadAddon(new WebLinksAddon());
-
   terminal.open(container);
-
-  const xtermEl = container.querySelector(".xterm") as HTMLElement;
-  if (xtermEl) xtermEl.style.height = "100%";
-  const screenEl = container.querySelector(".xterm-screen") as HTMLElement;
-  if (screenEl) screenEl.style.height = "100%";
+  setupTerminalStyles(container);
 
   requestAnimationFrame(() => {
     fitAddon.fit();
-    send({
-      type: "resize",
-      tabId,
-      cols: terminal.cols,
-      rows: terminal.rows
-    });
+    send({ type: "resize", tabId, cols: terminal.cols, rows: terminal.rows });
   });
 
   terminal.onData((data) => {
     send({ type: "key", tabId, data });
   });
 
-  const instance: TerminalInstance = {
-    terminal,
-    fitAddon,
-    resizeObserver: null,
-    resizeTimer: undefined
-  };
+  const instance: TerminalInstance = { terminal, fitAddon, resizeObserver: null, resizeTimer: undefined };
   instances.set(tabId, instance);
   return instance;
 }

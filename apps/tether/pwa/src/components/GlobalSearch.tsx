@@ -49,16 +49,14 @@ interface CommandResult {
 
 type SearchResult = TabResult | CommandResult;
 
-function isSectionStart(
-  results: SearchResult[],
-  idx: number
-): string | null {
+const SECTION_LABELS: Record<string, string> = { tab: "Tabs", command: "Commands" };
+
+function isSectionStart(results: SearchResult[], idx: number): string | null {
   const item = results[idx];
   if (!item) return null;
-  if (idx === 0) return item.kind === "tab" ? "Tabs" : "Commands";
   const prev = results[idx - 1];
-  if (prev && prev.kind !== item.kind) return "Commands";
-  return null;
+  const isNewSection = !prev || prev.kind !== item.kind;
+  return isNewSection ? SECTION_LABELS[item.kind] ?? null : null;
 }
 
 export const GlobalSearch: Component<GlobalSearchProps> = (props) => {
@@ -79,24 +77,17 @@ export const GlobalSearch: Component<GlobalSearchProps> = (props) => {
   const matchingTabs = (): TabResult[] => {
     if (isCommandMode()) return [];
     const q = effectiveQuery().toLowerCase();
-    const leaves = getAllLeaves();
-    const results: TabResult[] = [];
-    for (let p = 0; p < leaves.length; p++) {
-      const leaf = leaves[p];
-      if (!leaf) continue;
-      for (const tab of leaf.tabs) {
-        if (!q || tab.label.toLowerCase().includes(q)) {
-          results.push({
-            kind: "tab",
-            paneId: leaf.id,
-            tabId: tab.id,
-            label: tab.label,
-            paneIndex: p + 1
-          });
-        }
-      }
-    }
-    return results;
+    return getAllLeaves().flatMap((leaf, p) =>
+      leaf.tabs
+        .filter(tab => !q || tab.label.toLowerCase().includes(q))
+        .map(tab => ({
+          kind: "tab" as const,
+          paneId: leaf.id,
+          tabId: tab.id,
+          label: tab.label,
+          paneIndex: p + 1
+        }))
+    );
   };
 
   const matchingCommands = (): CommandResult[] => {
@@ -137,19 +128,14 @@ export const GlobalSearch: Component<GlobalSearchProps> = (props) => {
 
   const handleKeyDown = (e: KeyboardEvent): void => {
     const results = filtered();
-    if (e.key === "Escape") {
-      props.onClose();
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSelectedIdx(i => Math.min(i + 1, results.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSelectedIdx(i => Math.max(i - 1, 0));
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      const result = results[selectedIdx()];
-      if (result) selectResult(result);
-    }
+    const actions: Record<string, () => void> = {
+      Escape: () => props.onClose(),
+      ArrowDown: () => setSelectedIdx(i => Math.min(i + 1, results.length - 1)),
+      ArrowUp: () => setSelectedIdx(i => Math.max(i - 1, 0)),
+      Enter: () => { const r = results[selectedIdx()]; if (r) selectResult(r); }
+    };
+    const action = actions[e.key];
+    if (action) { e.preventDefault(); action(); }
   };
 
   const handleInputRef = (el: HTMLInputElement): void => {
@@ -177,11 +163,11 @@ export const GlobalSearch: Component<GlobalSearchProps> = (props) => {
     });
   });
 
-  const mount = document.getElementById("search-layer");
+  const mount = document.getElementById("search-layer") as HTMLElement | null;
 
   return (
     <Show when={props.open && mount}>
-      <Portal mount={mount!}>
+      <Portal mount={mount as HTMLElement}>
         <div class="fixed inset-0 flex justify-center pt-16 px-4">
           <div
             class="w-full max-w-md bg-surface-raised border border-edge rounded-xl shadow-xl overflow-hidden animate-fade-in"

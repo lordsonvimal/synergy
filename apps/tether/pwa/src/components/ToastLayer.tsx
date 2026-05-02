@@ -31,7 +31,7 @@ const ToastItem: Component<{ toast: Toast }> = (props) => {
 
 export const ToastLayer: Component = () => {
   return (
-    <Portal mount={document.getElementById("toast-layer")!}>
+    <Portal mount={document.getElementById("toast-layer") as HTMLElement}>
       <div class="fixed bottom-16 right-3 left-3 flex flex-col gap-2 pointer-events-none">
         <For each={getToasts()}>
           {toast => (

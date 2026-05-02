@@ -12,7 +12,7 @@ export function getBattery(): BatteryInfo {
       { encoding: "utf-8", timeout: 3000 }
     );
     const match = output.match(/(\d+)%/);
-    const level = match ? parseInt(match[1]!, 10) : 0;
+    const level = match ? parseInt(match[1] ?? "0", 10) : 0;
     const charging = /charging/.test(output) && !/discharging/.test(output);
     return { level, charging };
   } catch {

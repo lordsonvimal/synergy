@@ -52,6 +52,7 @@ interface PaneTerminalProps {
 }
 
 export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
+  // eslint-disable-next-line no-unassigned-vars -- SolidJS ref pattern
   let containerRef: HTMLDivElement | undefined;
   const { onMessage, send } = useConnection();
   const { settings } = useSettings();
@@ -63,81 +64,95 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   const paneTabIds = (): Set<string> =>
     new Set(props.pane.tabs.map((t) => t.id));
 
+  const writePtyData = (tabId: string, data: string): void => {
+    getInstance(tabId)?.terminal.write(data);
+  };
+
+  const replayPtyData = (tabId: string, data: string): void => {
+    const inst = getInstance(tabId);
+    if (!inst) return;
+    inst.terminal.clear();
+    inst.terminal.write(data);
+  };
+
+  const handlePtyMessage = (msg: { type: string; tabId: string; data?: string }): void => {
+    if (!msg.data) return;
+    if (msg.type === "pty") writePtyData(msg.tabId, msg.data);
+    else if (msg.type === "pty-replay") replayPtyData(msg.tabId, msg.data);
+  };
+
+  const handleCommandComplete = (tabId: string): void => {
+    const isActive = settings().chimeEnabled && tabId === activeTabId() && activePaneId() === props.paneId;
+    if (isActive) playChime();
+  };
+
   onMount(() => {
     onMessage((data) => {
       const msg = data as { type: string; tabId?: string; data?: string };
       if (!msg.tabId || !paneTabIds().has(msg.tabId)) return;
-      if (msg.type === "pty" && msg.data) {
-        getInstance(msg.tabId)?.terminal.write(msg.data);
-      } else if (msg.type === "pty-replay" && msg.data) {
-        const inst = getInstance(msg.tabId);
-        if (inst) {
-          inst.terminal.clear();
-          inst.terminal.write(msg.data);
-        }
-      } else if (msg.type === "command-complete") {
-        if (
-          settings().chimeEnabled &&
-          msg.tabId === activeTabId() &&
-          activePaneId() === props.paneId
-        ) {
-          playChime();
-        }
+      if (msg.type === "command-complete") {
+        handleCommandComplete(msg.tabId);
+      } else {
+        handlePtyMessage(msg as { type: string; tabId: string; data?: string });
       }
     });
   });
 
+  const hideAllTerminals = (): void => {
+    if (!containerRef) return;
+    for (const child of Array.from(containerRef.children)) {
+      const el = child as HTMLElement;
+      if (el.dataset.dropOverlay !== undefined) continue;
+      el.style.display = "none";
+    }
+  };
+
+  const ensureAttached = (el: HTMLElement | undefined): void => {
+    if (!el || !containerRef || containerRef.contains(el)) return;
+    containerRef.appendChild(el);
+  };
+
+  const showExistingTerminal = (tabId: string): boolean => {
+    const existing = getInstance(tabId);
+    if (!existing || !containerRef) return false;
+    ensureAttached(existing.terminal.element);
+    if (existing.terminal.element) existing.terminal.element.style.display = "";
+    requestAnimationFrame(() => {
+      existing.fitAddon.fit();
+      existing.terminal.focus();
+    });
+    return true;
+  };
+
+  const createNewTerminal = (tabId: string): void => {
+    if (!containerRef) return;
+    const instance = createInstance(
+      tabId,
+      containerRef,
+      { theme: settings().theme, fontSize: settings().fontSize },
+      send
+    );
+
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+    const resizeObserver = new ResizeObserver(() => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        instance.fitAddon.fit();
+        send({ type: "resize", tabId, cols: instance.terminal.cols, rows: instance.terminal.rows });
+      }, 100);
+    });
+    resizeObserver.observe(containerRef);
+    instance.resizeObserver = resizeObserver;
+    instance.resizeTimer = resizeTimer;
+  };
+
   createEffect(
     on(activeTabId, (tabId) => {
       if (!containerRef || !tabId) return;
-
-      for (const child of Array.from(containerRef.children)) {
-        const el = child as HTMLElement;
-        if (el.dataset.dropOverlay !== undefined) continue;
-        el.style.display = "none";
+      hideAllTerminals();
+      if (!showExistingTerminal(tabId)) {
+        createNewTerminal(tabId);
       }
-
-      const existing = getInstance(tabId);
-      if (existing) {
-        if (
-          existing.terminal.element &&
-          !containerRef.contains(existing.terminal.element)
-        ) {
-          containerRef.appendChild(existing.terminal.element);
-        }
-        if (existing.terminal.element) {
-          existing.terminal.element.style.display = "";
-        }
-        requestAnimationFrame(() => {
-          existing.fitAddon.fit();
-          existing.terminal.focus();
-        });
-        return;
-      }
-
-      const instance = createInstance(
-        tabId,
-        containerRef,
-        { theme: settings().theme, fontSize: settings().fontSize },
-        send
-      );
-
-      let resizeTimer: ReturnType<typeof setTimeout> | undefined;
-      const resizeObserver = new ResizeObserver(() => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-          instance.fitAddon.fit();
-          send({
-            type: "resize",
-            tabId,
-            cols: instance.terminal.cols,
-            rows: instance.terminal.rows
-          });
-        }, 100);
-      });
-      resizeObserver.observe(containerRef);
-      instance.resizeObserver = resizeObserver;
-      instance.resizeTimer = resizeTimer;
     })
   );
 
@@ -190,44 +205,40 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     setDropZone(null);
   };
 
+  const processDrop = (zone: DropZone, sourcePaneId: string, tabId: string): void => {
+    const split = zoneToSplit(zone);
+    if (split) {
+      splitPaneWithTab(props.paneId, split.direction, split.insertBefore, sourcePaneId, tabId);
+    } else if (zone === "center" && sourcePaneId !== props.paneId) {
+      moveTab(sourcePaneId, tabId, props.paneId);
+    }
+  };
+
   const handleDrop = (e: DragEvent): void => {
     e.preventDefault();
     e.stopPropagation();
     const zone = dropZone();
     setDropZone(null);
     if (!e.dataTransfer) return;
-
     const raw = e.dataTransfer.getData("application/x-tether-tab");
     if (!raw) return;
-    const { sourcePaneId, tabId } = JSON.parse(raw) as {
-      sourcePaneId: string;
-      tabId: string;
-    };
+    const { sourcePaneId, tabId } = JSON.parse(raw) as { sourcePaneId: string; tabId: string };
+    processDrop(zone, sourcePaneId, tabId);
+  };
 
-    const split = zoneToSplit(zone);
-    if (split) {
-      splitPaneWithTab(
-        props.paneId,
-        split.direction,
-        split.insertBefore,
-        sourcePaneId,
-        tabId
-      );
-    } else if (zone === "center" && sourcePaneId !== props.paneId) {
-      moveTab(sourcePaneId, tabId, props.paneId);
-    }
+  const ZONE_CLASSES: Record<string, string> = {
+    left: "inset-y-0 left-0 w-1/2",
+    right: "inset-y-0 right-0 w-1/2",
+    top: "inset-x-0 top-0 h-1/2",
+    bottom: "inset-x-0 bottom-0 h-1/2",
+    center: "inset-0"
   };
 
   const overlayClasses = (): string => {
     const zone = dropZone();
     if (!zone) return "hidden";
-    const base =
-      "absolute pointer-events-none bg-primary/20 border-2 border-primary border-dashed rounded-sm";
-    if (zone === "left") return `${base} inset-y-0 left-0 w-1/2`;
-    if (zone === "right") return `${base} inset-y-0 right-0 w-1/2`;
-    if (zone === "top") return `${base} inset-x-0 top-0 h-1/2`;
-    if (zone === "bottom") return `${base} inset-x-0 bottom-0 h-1/2`;
-    return `${base} inset-0`;
+    const base = "absolute pointer-events-none bg-primary/20 border-2 border-primary border-dashed rounded-sm";
+    return `${base} ${ZONE_CLASSES[zone] ?? "inset-0"}`;
   };
 
   return (

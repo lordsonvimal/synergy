@@ -83,13 +83,27 @@ function cleanupOrphans(): void {
 cleanupOrphans();
 console.log("[tmux] orphaned sessions cleaned");
 
+function resolveClientId(reqUrl: URL): string {
+  const mode = reqUrl.searchParams.get("mode") ?? "independent";
+  if (mode === "mirror") return MIRROR_CLIENT_ID;
+  return reqUrl.searchParams.get("clientId") ?? "default";
+}
+
+function handleDisconnect(ws: WebSocket, manager: TerminalManager): void {
+  const info = clients.get(ws);
+  clients.delete(ws);
+  if (!info) return;
+  clearInterval(info.batteryInterval);
+  const remaining = clientCountForId(info.clientId);
+  console.log(`[ws] client disconnected (id=${info.clientId}, remaining=${remaining}, total=${clients.size})`);
+  if (remaining === 0) {
+    manager.detachAll();
+  }
+}
+
 wss.on("connection", (ws, req) => {
   const reqUrl = new URL(req.url ?? "/", `https://${req.headers.host}`);
-  const mode = reqUrl.searchParams.get("mode") ?? "independent";
-  const clientId = mode === "mirror"
-    ? MIRROR_CLIENT_ID
-    : reqUrl.searchParams.get("clientId") ?? "default";
-
+  const clientId = resolveClientId(reqUrl);
   const manager = getOrCreateManager(clientId);
 
   const sendBattery = (): void => {
@@ -101,7 +115,7 @@ wss.on("connection", (ws, req) => {
   const batteryInterval = setInterval(sendBattery, 60_000);
 
   clients.set(ws, { ws, clientId, batteryInterval });
-  console.log(`[ws] client connected (id=${clientId}, mode=${mode}, total=${clients.size})`);
+  console.log(`[ws] client connected (id=${clientId}, total=${clients.size})`);
 
   const existingSessions = manager.getActiveSessions();
   if (existingSessions.length > 0) {
@@ -116,18 +130,7 @@ wss.on("connection", (ws, req) => {
     handleMessage(message, manager);
   });
 
-  ws.on("close", () => {
-    const info = clients.get(ws);
-    clients.delete(ws);
-    if (info) {
-      clearInterval(info.batteryInterval);
-      const remaining = clientCountForId(info.clientId);
-      console.log(`[ws] client disconnected (id=${info.clientId}, remaining=${remaining}, total=${clients.size})`);
-      if (remaining === 0) {
-        manager.detachAll();
-      }
-    }
-  });
+  ws.on("close", () => handleDisconnect(ws, manager));
 });
 
 process.on("SIGTERM", () => {

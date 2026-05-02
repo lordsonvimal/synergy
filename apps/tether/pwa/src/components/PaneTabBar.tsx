@@ -44,6 +44,7 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
   } | null>(null);
   const [dragOverIndex, setDragOverIndex] = createSignal<number | null>(null);
 
+  // eslint-disable-next-line no-unassigned-vars -- SolidJS ref pattern
   let scrollRef: HTMLDivElement | undefined;
 
   const tabs = () => props.pane.tabs;
@@ -55,44 +56,48 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
     setMergeConfirm(false);
   };
 
+  const isInsideTabBar = (target: HTMLElement): boolean =>
+    !!target.closest(`[data-testid="pane-tab-bar-${props.paneId}"]`);
+
+  const dismissMenusInside = (target: HTMLElement): void => {
+    if (contextMenu() && !target.closest("[data-context-menu]")) {
+      setContextMenu(null);
+    }
+    if (dropdownOpen() && !target.closest("[data-dropdown-menu]")) {
+      setDropdownOpen(false);
+    }
+  };
+
+  const handleOutsideClick = (e: MouseEvent): void => {
+    const target = e.target as HTMLElement;
+    if (mergeConfirm() && target.closest("#modal-layer")) return;
+    if (!isInsideTabBar(target)) {
+      dismissAll();
+    } else {
+      dismissMenusInside(target);
+    }
+  };
+
   onMount(() => {
-    const handler = (e: MouseEvent): void => {
-      const target = e.target as HTMLElement;
-      if (mergeConfirm() && target.closest("#modal-layer")) return;
-      const inTabBar = target.closest(
-        `[data-testid="pane-tab-bar-${props.paneId}"]`
-      );
-      if (!inTabBar) {
-        dismissAll();
-        return;
-      }
-      if (contextMenu() && !target.closest("[data-context-menu]")) {
-        setContextMenu(null);
-      }
-      if (dropdownOpen() && !target.closest("[data-dropdown-menu]")) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", handler);
-    onCleanup(() => document.removeEventListener("pointerdown", handler));
+    document.addEventListener("pointerdown", handleOutsideClick);
+    onCleanup(() => document.removeEventListener("pointerdown", handleOutsideClick));
   });
+
+  const getHiddenTabIds = (container: HTMLDivElement): string[] => {
+    const containerRect = container.getBoundingClientRect();
+    const buttons = container.querySelectorAll<HTMLElement>("[data-tab-id]");
+    return Array.from(buttons)
+      .filter(btn => {
+        const rect = btn.getBoundingClientRect();
+        return rect.left < containerRect.left - 1 || rect.right > containerRect.right + 1;
+      })
+      .map(btn => btn.getAttribute("data-tab-id"))
+      .filter((id): id is string => !!id);
+  };
 
   const updateOverflow = (): void => {
     if (!scrollRef) return;
-    const hidden: string[] = [];
-    const buttons = scrollRef.querySelectorAll<HTMLElement>("[data-tab-id]");
-    const containerRect = scrollRef.getBoundingClientRect();
-    for (const btn of buttons) {
-      const rect = btn.getBoundingClientRect();
-      const fullyVisible =
-        rect.left >= containerRect.left - 1 &&
-        rect.right <= containerRect.right + 1;
-      if (!fullyVisible) {
-        const tabId = btn.getAttribute("data-tab-id");
-        if (tabId) hidden.push(tabId);
-      }
-    }
-    setOverflowTabs(hidden);
+    setOverflowTabs(getHiddenTabIds(scrollRef));
   };
 
   onMount(() => {
@@ -286,20 +291,19 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
     }
   };
 
+  const computeIndicatorOffset = (idx: number, container: HTMLDivElement): number => {
+    const tabEls = container.querySelectorAll<HTMLElement>("[data-tab-id]");
+    const offset = container.scrollLeft - container.getBoundingClientRect().left;
+    const target = idx < tabEls.length ? tabEls[idx] : null;
+    if (target) return target.getBoundingClientRect().left + offset;
+    const last = tabEls[tabEls.length - 1];
+    return last ? last.getBoundingClientRect().right + offset : 0;
+  };
+
   const indicatorLeft = (): number | null => {
     const idx = dragOverIndex();
     if (idx === null || !scrollRef) return null;
-    const tabEls = scrollRef.querySelectorAll<HTMLElement>("[data-tab-id]");
-    const scrollLeft = scrollRef.scrollLeft;
-    const containerLeft = scrollRef.getBoundingClientRect().left;
-    if (idx < tabEls.length) {
-      const el = tabEls[idx];
-      if (!el) return null;
-      return el.getBoundingClientRect().left - containerLeft + scrollLeft;
-    }
-    const lastEl = tabEls[tabEls.length - 1];
-    if (!lastEl) return 0;
-    return lastEl.getBoundingClientRect().right - containerLeft + scrollLeft;
+    return computeIndicatorOffset(idx, scrollRef);
   };
 
   const isActive = () => activePaneId() === props.paneId;
@@ -496,7 +500,7 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
             return null;
           }
           return (
-            <Portal mount={document.getElementById("modal-layer")!}>
+            <Portal mount={document.getElementById("modal-layer") as HTMLElement}>
               <div class="fixed inset-0 flex items-center justify-center">
                 <div
                   class="absolute inset-0 bg-canvas/60"

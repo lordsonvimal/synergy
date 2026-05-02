@@ -61,6 +61,35 @@ const PERMISSION_MAP: Record<string, string> = {
   always: "a"
 };
 
+function handleTextOrKey(
+  message: TextMessage | KeyMessage | PermissionResponseMessage,
+  pty: ReturnType<TerminalManager["getTab"]> & {}
+): void {
+  if (message.type === "text") {
+    writeToTerminal(pty, message.data);
+  } else if (message.type === "permission_response") {
+    writeToTerminal(pty, PERMISSION_MAP[message.value] ?? "n");
+  } else {
+    pty.write(message.data);
+  }
+}
+
+function handleTabMessage(
+  message: TextMessage | PermissionResponseMessage | StopMessage | ResizeMessage | KeyMessage,
+  manager: TerminalManager
+): void {
+  const pty = manager.getTab(message.tabId);
+  if (!pty) return;
+
+  if (message.type === "stop") {
+    stopTerminal(pty);
+  } else if (message.type === "resize") {
+    manager.resizeTab(message.tabId, message.cols, message.rows);
+  } else {
+    handleTextOrKey(message, pty);
+  }
+}
+
 export function handleMessage(
   message: ClientMessage,
   manager: TerminalManager
@@ -72,27 +101,7 @@ export function handleMessage(
     case "close-tab":
       manager.closeTab(message.tabId);
       break;
-    default: {
-      const pty = manager.getTab(message.tabId);
-      if (!pty) return;
-
-      switch (message.type) {
-        case "text":
-          writeToTerminal(pty, message.data);
-          break;
-        case "permission_response":
-          writeToTerminal(pty, PERMISSION_MAP[message.value] ?? "n");
-          break;
-        case "stop":
-          stopTerminal(pty);
-          break;
-        case "resize":
-          manager.resizeTab(message.tabId, message.cols, message.rows);
-          break;
-        case "key":
-          pty.write(message.data);
-          break;
-      }
-    }
+    default:
+      handleTabMessage(message, manager);
   }
 }

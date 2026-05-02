@@ -10,6 +10,7 @@ export const Divider: Component<DividerProps> = (props) => {
   const { setRatio } = usePanes();
   const [dragging, setDragging] = createSignal(false);
 
+  // eslint-disable-next-line no-unassigned-vars -- SolidJS ref pattern
   let containerRef: HTMLDivElement | undefined;
 
   const handlePointerDown = (e: PointerEvent): void => {
