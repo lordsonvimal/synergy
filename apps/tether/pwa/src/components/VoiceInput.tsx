@@ -1,6 +1,7 @@
 import { Component, createSignal, onCleanup, Show } from "solid-js";
 import { createSTT } from "../lib/stt.js";
 import { addToast } from "../lib/toast.js";
+import { Waveform } from "./Waveform.js";
 
 interface VoiceInputProps {
   onSend: (text: string) => void;
@@ -128,24 +129,13 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
     }
   };
 
-  const displayText = (): string => {
-    const acc = accumulated();
-    const int = interim();
-    if (acc && int) {
-      return acc + " " + int;
-    }
-    return acc || int;
-  };
-
   return (
     <Show
       when={reviewing()}
       fallback={
         <div class="flex items-center gap-2">
-          <Show when={recording() && displayText()}>
-            <span class="text-xs text-ink-secondary truncate max-w-[140px]">
-              {displayText()}
-            </span>
+          <Show when={recording()}>
+            <Waveform />
           </Show>
           <Show when={recording()}>
             <span class="text-xs text-error font-mono tabular-nums">
