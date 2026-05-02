@@ -164,6 +164,49 @@ TTS was dropped — reading raw terminal output aloud (code blocks, file paths, 
 | FR-48 | App must cache static assets for offline shell loading | Should |
 | FR-49 | App icon must appear on home screen after installation | Must |
 
+### 2.13 Multi-Tab Terminals
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-70 | Multiple terminal tabs — each tab owns an independent PTY; server routes messages by tabId | Must |
+| FR-71 | Tab bar UI — create, switch, close, rename tabs; active tab visually distinguished | Must |
+| FR-72 | Session persistence per tab — each tab's PTY session survives disconnect/reload; reattach on reconnect | Must |
+| FR-73 | Tab metadata — user-assignable label per tab via double-click rename | Must |
+
+### 2.14 Split-Pane Layout
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-80 | Binary tree split layout — panes split horizontally or vertically, recursive nesting | Must |
+| FR-81 | Split via context menu — right-click tab to split right or split down, creating a new pane with a fresh terminal | Must |
+| FR-82 | Split via drag-and-drop — drag a tab to the edge (left/right/top/bottom quarter) of any pane's terminal area to split; blue dashed overlay previews the split zone | Must |
+| FR-83 | Resizable dividers — drag the divider between split panes to resize; ratio clamped 15%-85% | Must |
+| FR-84 | Active pane indicator — the focused pane has a 2px primary border on all 4 sides; inactive panes show a 1px edge border | Must |
+| FR-85 | Auto-collapse on narrow viewports — split direction forced to vertical on screens < 640px | Should |
+| FR-86 | Merge pane — context menu option to merge all tabs from current pane into the adjacent sibling pane, with a cancel-able confirmation dialog | Must |
+| FR-87 | Tab reorder within pane — drag a tab within the same tab bar to reorder; a vertical insertion line indicator tracks the drop position | Must |
+| FR-88 | Tab move between panes — drag a tab to another pane's tab bar to move it there; drop position determines insertion index | Must |
+| FR-89 | Close pane on last tab close — closing the last tab in a pane removes the pane and its sibling fills the space | Must |
+| FR-90 | Per-pane tab bar — each pane has its own tab bar with overflow dropdown, add button, context menu (rename, split, merge, close others/left/right) | Must |
+
+### 2.15 Global Tab Search
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-91 | Global search overlay — searches all tabs across all panes; triggered via Cmd/Ctrl+K or search icon in the status bar | Must |
+| FR-92 | Search results show tab label with matched text highlighted and pane number when multiple panes exist | Must |
+| FR-93 | Keyboard navigation in search — arrow keys to move selection, Enter to navigate to tab, Escape to close | Must |
+| FR-94 | Selecting a search result activates the target pane and switches to the selected tab | Must |
+
+### 2.16 Pane & Terminal Persistence
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-95 | Pane layout persistence — the split tree structure (panes, directions, ratios) is saved to localStorage and restored on reload | Must |
+| FR-96 | Tab metadata persistence — tab labels and active tab per pane are saved and restored | Must |
+| FR-97 | Terminal session persistence — each tab's PTY session survives page reload and reconnection; server preserves PTY sessions and replays scrollback on reattach | Must |
+| FR-98 | Graceful cleanup — when the server detects a tab's PTY has exited, it notifies the PWA to remove the tab; orphaned PTY sessions are cleaned up on server restart | Must |
+
 ---
 
 ## 3. Non-Functional Requirements
@@ -739,11 +782,29 @@ claude --version   # Verify
 - [ ] PWA icons and install prompt
 - [ ] Session persistence (reconnect to existing PTY session)
 
-### Phase 5 — Multi-Tab Terminals
-- [ ] Multiple terminal tabs — each tab owns an independent tmux session with its own PTY
-- [ ] Tab bar UI — create, switch, close tabs; active tab visually distinguished
-- [ ] Session persistence per tab — each tab's tmux session survives disconnect/reload; reattach on reconnect
-- [ ] Tab metadata — user-assignable label per tab, persisted across sessions
+### Phase 5 — Multi-Tab Terminals ✓
+- [x] Multiple terminal tabs — each tab owns an independent PTY via TerminalManager
+- [x] Tab bar UI — create, switch, close, rename tabs; active tab visually distinguished
+- [x] Tab metadata — user-assignable label per tab via double-click rename
+
+### Phase 6 — Split-Pane Layout ✓
+- [x] Binary tree split layout — recursive horizontal/vertical splitting
+- [x] Split via context menu (split right / split down)
+- [x] Split via drag-and-drop with visual preview overlay
+- [x] Resizable dividers with pointer capture
+- [x] Active pane indicator (border on all 4 sides)
+- [x] Auto-collapse to vertical on narrow viewports
+- [x] Merge pane with confirmation dialog
+- [x] Tab reorder within pane via drag-and-drop with insertion line indicator
+- [x] Tab move between panes via drag-and-drop
+- [x] Per-pane tab bar with overflow dropdown and context menu
+- [x] Global tab search (Cmd/Ctrl+K or status bar icon)
+
+### Phase 7 — Persistence
+- [ ] Pane layout persistence — save/restore split tree structure to localStorage
+- [ ] Tab metadata persistence — save/restore labels and active tab per pane
+- [ ] Terminal session persistence — PTY sessions survive disconnect/reload; replay scrollback on reattach
+- [ ] Graceful cleanup — server notifies PWA on PTY exit; orphaned sessions cleaned on restart
 
 ---
 
@@ -764,9 +825,10 @@ claude --version   # Verify
 
 ## 12. Future Enhancements (Post v1)
 
-- **Remote access via Tailscale** — use from outside home network
-- **Conversation history** — persist across sessions with SQLite
-- ~~**Multiple terminals**~~ — promoted to Phase 5
+- ~~**Remote access via Tailscale**~~ — Done (Phase 3b)
+- ~~**Multiple terminals**~~ — Done (Phase 5)
+- ~~**Split-pane layout**~~ — Done (Phase 6)
+- **Pane & terminal persistence** — Phase 7 (planned)
 - **File preview** — show files Claude is editing inline
 - **Diff viewer** — show code changes visually
 - **Upgrade TTS** — swap to Piper (local, natural voice) when quality matters

@@ -109,14 +109,42 @@ Key architecture decisions:
 | — | Error handling | Done | Toast system for user-facing errors |
 | — | Session persistence | Moved | Subsumed by Phase 5 (FR-72) — tmux-backed tabs handle persistence |
 
-## Phase 5: Multi-Tab Terminals — 0% done
+## Phase 5: Multi-Tab Terminals — Done
 
 | ID | Requirement | Status | Notes |
 |----|-------------|--------|-------|
 | FR-70 | Multiple terminal tabs | Done | Each tab owns an independent PTY via TerminalManager; server routes messages by tabId |
 | FR-71 | Tab bar UI | Done | Create, switch, close tabs; active tab visually distinguished; double-click to rename |
-| FR-72 | Session persistence per tab | TODO | Each tab's tmux session survives disconnect/reload; reattach on reconnect |
 | FR-73 | Tab metadata | Done | User-assignable label per tab via double-click rename in tab bar |
+
+## Phase 6: Split-Pane Layout — Done
+
+| ID | Requirement | Status | Notes |
+|----|-------------|--------|-------|
+| FR-80 | Binary tree split layout | Done | Recursive LeafNode/BranchNode tree in panes.tsx context; SplitContainer renders tree |
+| FR-81 | Split via context menu | Done | Right-click tab → Split Right / Split Down; creates new pane with fresh terminal |
+| FR-82 | Split via drag-and-drop | Done | Drag tab to edge of terminal body; blue dashed overlay previews split zone |
+| FR-83 | Resizable dividers | Done | Divider component with pointer capture; ratio clamped 15%-85% |
+| FR-84 | Active pane indicator | Done | Absolute-positioned border overlay (2px primary active, 1px edge inactive) on all 4 sides |
+| FR-85 | Auto-collapse on narrow viewports | Done | matchMedia (max-width: 640px) forces vertical direction |
+| FR-86 | Merge pane | Done | Context menu → Merge Pane with confirmation dialog showing target pane |
+| FR-87 | Tab reorder within pane | Done | Drag tab within same tab bar; insertion line indicator tracks cursor via midpoint calculation |
+| FR-88 | Tab move between panes | Done | Drag tab to another pane's tab bar to move it; handles empty-pane collapse |
+| FR-89 | Close pane on last tab close | Done | closeTab removes pane when last tab closed; sibling fills space |
+| FR-90 | Per-pane tab bar | Done | Overflow dropdown, add button, context menu (rename, split, merge, close others/left/right) |
+| FR-91 | Global tab search | Done | Cmd/Ctrl+K or StatusBar icon; Portal into #search-layer; arrow keys + Enter + Escape |
+| FR-92 | Search result highlighting | Done | Matched text highlighted; pane number shown when multiple panes exist |
+| FR-93 | Search keyboard navigation | Done | Arrow keys, Enter to select, Escape to close |
+| FR-94 | Search navigates to tab | Done | Selection activates target pane and switches to selected tab |
+
+## Phase 7: Persistence — TODO
+
+| ID | Requirement | Status | Notes |
+|----|-------------|--------|-------|
+| FR-95 | Pane layout persistence | TODO | Save/restore split tree structure (panes, directions, ratios) to localStorage |
+| FR-96 | Tab metadata persistence | TODO | Save/restore tab labels and active tab per pane to localStorage |
+| FR-97 | Terminal session persistence | TODO | PTY sessions survive disconnect/reload; server preserves sessions and replays scrollback on reattach |
+| FR-98 | Graceful cleanup | TODO | Server notifies PWA on PTY exit; orphaned PTY sessions cleaned on server restart |
 
 ## Recommended build order
 
@@ -131,4 +159,7 @@ Key architecture decisions:
 9. ~~FR-70 — Multi-tab terminals~~ ✓
 10. ~~FR-71 — Tab bar UI~~ ✓
 11. ~~FR-73 — Tab metadata (labels)~~ ✓
-12. FR-72 — Session persistence (tmux)
+12. ~~FR-80-94 — Split-pane layout + global search~~ ✓
+13. FR-95/96 — Pane layout + tab metadata persistence (localStorage)
+14. FR-97 — Terminal session persistence (server-side PTY reattach)
+15. FR-98 — Graceful cleanup (PTY exit notification, orphan cleanup)
