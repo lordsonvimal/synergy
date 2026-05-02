@@ -79,18 +79,18 @@ Key architecture decisions:
 | — | Hover states on all interactive elements | Done | Documented in CLAUDE.md |
 | — | DOM layer architecture | Done | No z-index, body child order |
 
-## Phase 3b: New Features — 0% done
+## Phase 3b: New Features — 70% done
 
 | ID | Requirement | Status | Notes |
 |----|-------------|--------|-------|
-| FR-50 | Completion chime | Done | 2s idle timeout triggers synthesized chime, respects chimeEnabled setting |
+| FR-50 | Completion chime | Done | Server-side process + idle detection, synthesized chime via Web Audio API |
 | FR-50a | Chime toggle in settings | Done | Toggle switch in settings panel, persisted in localStorage |
-| FR-51 | Shortcut command center panel | TODO | Quick-access slide-up sheet via DOM layer |
-| FR-52 | Shortcut: label + command, stored in localStorage | TODO | Part of settings context |
-| FR-53 | Tap shortcut to send to terminal | TODO | Sends command via WebSocket |
-| FR-54 | Long-press shortcut to edit before sending | TODO | Opens edit prompt |
-| FR-55 | Add/edit/reorder/delete shortcuts in settings | TODO | Settings panel section |
-| FR-56 | Default shortcuts on first launch | TODO | git status, claude, ls -la, cd ~ |
+| FR-51 | Shortcut command center panel | Done | Slide-up sheet via Portal into #shortcuts-layer, bolt icon in toolbar |
+| FR-52 | Shortcut: label + command, stored in localStorage | Done | Shortcut interface in settings context, persisted via settings |
+| FR-53 | Tap shortcut to send to terminal | Done | Tap sends command via WebSocket and closes panel |
+| FR-54 | Long-press shortcut to edit before sending | Done | 500ms long-press opens inline edit prompt with editable command |
+| FR-55 | Add/edit/reorder/delete shortcuts in settings | Done | Full CRUD with reorder arrows in settings panel Shortcuts section |
+| FR-56 | Default shortcuts on first launch | Done | git status, claude, ls -la, cd ~ |
 | FR-58 | Remote access via Tailscale | TODO | Server listens on 0.0.0.0 |
 | FR-59 | ConnectScreen accepts Tailscale IPs/hostnames | TODO | Already works — just documentation |
 | FR-60 | Server binds to 0.0.0.0 | TODO | Check current bind address |
@@ -112,7 +112,7 @@ Key architecture decisions:
 ## Recommended build order
 
 1. ~~FR-38/44 — Settings panel UI (theme, font size, chime toggle, shortcuts management)~~ ✓
-2. FR-51-56 — Shortcut command center
+2. ~~FR-51-56 — Shortcut command center~~ ✓
 3. ~~FR-50 — Completion chime (idle timeout + prompt detection hybrid)~~ ✓
 4. FR-58-62 — Tailscale remote access (server bind + cert + docs)
 5. NFR-06 — Wire auth on WebSocket upgrade

@@ -7,6 +7,12 @@ import {
   useContext
 } from "solid-js";
 
+export interface Shortcut {
+  id: string;
+  label: string;
+  command: string;
+}
+
 export interface Settings {
   host: string;
   port: number;
@@ -16,7 +22,15 @@ export interface Settings {
   theme: "dark" | "light";
   fontSize: "small" | "medium" | "large";
   chimeEnabled: boolean;
+  shortcuts: Shortcut[];
 }
+
+const DEFAULT_SHORTCUTS: Shortcut[] = [
+  { id: "s1", label: "git status", command: "git status" },
+  { id: "s2", label: "claude", command: "claude" },
+  { id: "s3", label: "ls -la", command: "ls -la" },
+  { id: "s4", label: "cd ~", command: "cd ~" }
+];
 
 const DEFAULT_SETTINGS: Settings = {
   host: "192.168.1.1",
@@ -26,7 +40,8 @@ const DEFAULT_SETTINGS: Settings = {
   ttsVoice: "",
   theme: "dark",
   fontSize: "medium",
-  chimeEnabled: true
+  chimeEnabled: true,
+  shortcuts: DEFAULT_SHORTCUTS
 };
 
 const STORAGE_KEY = "tether-settings";

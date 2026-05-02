@@ -53,3 +53,21 @@ footer[data-testid="input-bar"] {
 .animate-slide-out-left {
   animation: slide-out-left 200ms ease-in forwards;
 }
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 200ms ease-out;
+}
+
+@keyframes slide-down {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(16px); }
+}
+
+.animate-slide-down {
+  animation: slide-down 200ms ease-in forwards;
+}
