@@ -137,12 +137,12 @@ Key architecture decisions:
 | FR-93 | Search keyboard navigation | Done | Arrow keys, Enter to select, Escape to close |
 | FR-94 | Search navigates to tab | Done | Selection activates target pane and switches to selected tab |
 
-## Phase 7: Persistence — TODO
+## Phase 7: Persistence — In Progress
 
 | ID | Requirement | Status | Notes |
 |----|-------------|--------|-------|
-| FR-95 | Pane layout persistence | TODO | Save/restore split tree structure (panes, directions, ratios) to localStorage |
-| FR-96 | Tab metadata persistence | TODO | Save/restore tab labels and active tab per pane to localStorage |
+| FR-95 | Pane layout persistence | Done | Split tree (panes, directions, ratios) saved/restored from localStorage; ID counters synced on restore |
+| FR-96 | Tab metadata persistence | Done | Tab labels, active tab per pane, active pane ID all persisted; reconnect re-creates all PTYs |
 | FR-97 | Terminal session persistence | TODO | PTY sessions survive disconnect/reload; server preserves sessions and replays scrollback on reattach |
 | FR-98 | Graceful cleanup | TODO | Server notifies PWA on PTY exit; orphaned PTY sessions cleaned on server restart |
 
@@ -160,6 +160,6 @@ Key architecture decisions:
 10. ~~FR-71 — Tab bar UI~~ ✓
 11. ~~FR-73 — Tab metadata (labels)~~ ✓
 12. ~~FR-80-94 — Split-pane layout + global search~~ ✓
-13. FR-95/96 — Pane layout + tab metadata persistence (localStorage)
+13. ~~FR-95/96 — Pane layout + tab metadata persistence (localStorage)~~ ✓
 14. FR-97 — Terminal session persistence (server-side PTY reattach)
 15. FR-98 — Graceful cleanup (PTY exit notification, orphan cleanup)

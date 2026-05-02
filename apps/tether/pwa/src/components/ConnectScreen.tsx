@@ -10,7 +10,7 @@ const INPUT_ERROR = `${INPUT_BASE} border border-error focus:ring-2 focus:ring-e
 export const ConnectScreen: Component = () => {
   const { settings, updateSettings } = useSettings();
   const { connect, connected } = useConnection();
-  const { activeTabId } = usePanes();
+  const { getAllTabIds } = usePanes();
   const [connecting, setConnecting] = createSignal(false);
   const [error, setError] = createSignal("");
   const [hostTouched, setHostTouched] = createSignal(false);
@@ -47,7 +47,7 @@ export const ConnectScreen: Component = () => {
     if (hostError() || portError()) return;
     setError("");
     setConnecting(true);
-    connect(activeTabId());
+    connect(getAllTabIds);
   };
 
   const toggleTheme = (): void => {

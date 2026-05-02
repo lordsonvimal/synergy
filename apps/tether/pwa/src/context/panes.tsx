@@ -2,6 +2,7 @@ import {
   Component,
   JSX,
   createContext,
+  createEffect,
   createSignal,
   onMount,
   onCleanup,
@@ -67,11 +68,14 @@ interface PanesContextValue {
   setRatio: (branchId: string, ratio: number) => void;
   findLeaf: (paneId: string) => LeafNode | undefined;
   getAllLeaves: () => LeafNode[];
+  getAllTabIds: () => string[];
   getRoot: () => SplitNode;
   isNarrow: () => boolean;
 }
 
 const PanesContext = createContext<PanesContextValue>();
+
+const STORAGE_KEY = "tether-panes";
 
 let nextPaneId = 1;
 let nextTabId = 1;
@@ -82,6 +86,37 @@ function genPaneId(): string {
 
 function genTabId(): string {
   return `tab-${nextTabId++}`;
+}
+
+function syncCountersFromTree(node: SplitNode): void {
+  if (node.type === "leaf") {
+    const paneNum = parseInt(node.id.replace("pane-", ""), 10);
+    if (!isNaN(paneNum) && paneNum >= nextPaneId) {
+      nextPaneId = paneNum + 1;
+    }
+    for (const tab of node.tabs) {
+      const tabNum = parseInt(tab.id.replace("tab-", ""), 10);
+      if (!isNaN(tabNum) && tabNum >= nextTabId) {
+        nextTabId = tabNum + 1;
+      }
+    }
+  } else {
+    syncCountersFromTree(node.children[0]);
+    syncCountersFromTree(node.children[1]);
+  }
+}
+
+function loadPersistedState(): PanesState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PanesState;
+    if (!parsed.root || !parsed.activePaneId) return null;
+    syncCountersFromTree(parsed.root);
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
 function findLeafInTree(node: SplitNode, paneId: string): LeafNode | undefined {
@@ -178,10 +213,12 @@ function replaceLeaf(
 }
 
 export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
-  const initialPaneId = genPaneId();
-  const initialTabId = genTabId();
+  const persisted = loadPersistedState();
 
-  const [state, setState] = createStore<PanesState>({
+  const initialPaneId = persisted ? persisted.activePaneId : genPaneId();
+  const initialTabId = persisted ? "" : genTabId();
+
+  const initialState: PanesState = persisted ?? {
     root: {
       type: "leaf",
       id: initialPaneId,
@@ -189,6 +226,18 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
       activeTabId: initialTabId
     },
     activePaneId: initialPaneId
+  };
+
+  const [state, setState] = createStore<PanesState>(initialState);
+
+  createEffect(() => {
+    const data = JSON.parse(JSON.stringify(state));
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ root: data.root, activePaneId: data.activePaneId })
+      );
+    } catch {}
   });
 
   const [isNarrow, setIsNarrow] = createSignal(false);
@@ -220,6 +269,10 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
     const result: LeafNode[] = [];
     collectLeaves(state.root, result);
     return result;
+  };
+
+  const getAllTabIds = (): string[] => {
+    return getAllLeaves().flatMap(leaf => leaf.tabs.map(t => t.id));
   };
 
   const getRoot = (): SplitNode => state.root;
@@ -518,6 +571,7 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
         setRatio,
         findLeaf,
         getAllLeaves,
+        getAllTabIds,
         getRoot,
         isNarrow
       }}
