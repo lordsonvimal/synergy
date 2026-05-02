@@ -31,8 +31,10 @@ export class TerminalManager {
   private onMessage: MessageCallback = () => {};
   private graceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private gracePeriodMs: number;
+  private clientId: string;
 
-  constructor(gracePeriodMs: number = 300_000) {
+  constructor(clientId: string, gracePeriodMs: number = 300_000) {
+    this.clientId = clientId;
     this.gracePeriodMs = gracePeriodMs;
 
     if (!tmuxAvailable()) {
@@ -40,6 +42,10 @@ export class TerminalManager {
         "tmux is not installed. Install with: brew install tmux"
       );
     }
+  }
+
+  private sessionKey(tabId: string): string {
+    return `${this.clientId}_${tabId}`;
   }
 
   setMessageCallback(cb: MessageCallback): void {
@@ -53,10 +59,11 @@ export class TerminalManager {
 
     this.clearGraceTimer(tabId);
 
-    const isExisting = sessionExists(tabId);
+    const key = this.sessionKey(tabId);
+    const isExisting = sessionExists(key);
 
     if (!isExisting) {
-      createSession(tabId, cols, rows);
+      createSession(key, cols, rows);
     }
 
     if (this.tabs.has(tabId)) {
@@ -67,7 +74,7 @@ export class TerminalManager {
       return;
     }
 
-    const pty = attachSession(tabId, cols, rows);
+    const pty = attachSession(key, cols, rows);
     const shell = process.env.SHELL || "/bin/zsh";
     const shellName = basename(shell);
 
@@ -141,8 +148,8 @@ export class TerminalManager {
       clearTimeout(idleTimer);
       this.tabs.delete(tabId);
 
-      if (sessionExists(tabId)) {
-        killSession(tabId);
+      if (sessionExists(key)) {
+        killSession(key);
       }
 
       this.onMessage({ type: "tab-exited", tabId, exitCode: 0 });
@@ -159,7 +166,7 @@ export class TerminalManager {
   }
 
   private replayScrollback(tabId: string): void {
-    const scrollback = captureScrollback(tabId);
+    const scrollback = captureScrollback(this.sessionKey(tabId));
     if (scrollback) {
       this.onMessage({ type: "pty-replay", tabId, data: scrollback });
     }
@@ -173,21 +180,22 @@ export class TerminalManager {
     const session = this.tabs.get(tabId);
     if (!session) return;
     session.pty.resize(cols, rows);
-    resizeSession(tabId, cols, rows);
+    resizeSession(this.sessionKey(tabId), cols, rows);
   }
 
   closeTab(tabId: string): void {
     this.clearGraceTimer(tabId);
+    const key = this.sessionKey(tabId);
     const session = this.tabs.get(tabId);
     if (!session) {
-      killSession(tabId);
+      killSession(key);
       return;
     }
     clearInterval(session.pollInterval);
     clearTimeout(session.idleTimer);
     session.pty.kill();
     this.tabs.delete(tabId);
-    killSession(tabId);
+    killSession(key);
   }
 
   detachAll(): void {
@@ -200,7 +208,7 @@ export class TerminalManager {
   private startGraceTimer(tabId: string): void {
     this.clearGraceTimer(tabId);
     const timer = setTimeout(() => {
-      console.log(`[tmux] grace period expired for ${tabId}, killing session`);
+      console.log(`[tmux] grace period expired for ${this.sessionKey(tabId)}, killing session`);
       this.closeTab(tabId);
       this.graceTimers.delete(tabId);
     }, this.gracePeriodMs);
@@ -222,11 +230,15 @@ export class TerminalManager {
   }
 
   cleanupOrphans(): void {
-    const orphans = listTetherSessions();
-    for (const tabId of orphans) {
-      if (!this.tabs.has(tabId)) {
-        console.log(`[tmux] cleaning orphaned session: ${tabId}`);
-        killSession(tabId);
+    const prefix = `${this.clientId}_`;
+    const allSessions = listTetherSessions();
+    for (const sessionKey of allSessions) {
+      if (sessionKey.startsWith(prefix)) {
+        const tabId = sessionKey.slice(prefix.length);
+        if (!this.tabs.has(tabId)) {
+          console.log(`[tmux] cleaning orphaned session: ${sessionKey}`);
+          killSession(sessionKey);
+        }
       }
     }
   }

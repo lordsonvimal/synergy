@@ -27,9 +27,24 @@ export const ConnectionProvider: Component<{ children: JSX.Element }> = (
   let ws: WebSocketClient | null = null;
   const messageHandlers: Array<(data: unknown) => void> = [];
 
+  const getClientId = (): string => {
+    const key = "tether-client-id";
+    const stored = localStorage.getItem(key);
+    if (stored) return stored;
+    const id = crypto.randomUUID();
+    localStorage.setItem(key, id);
+    return id;
+  };
+
   const connect = (getTabIds: () => string[]): void => {
-    const { host, port, secret } = settings();
-    const params = secret ? `?token=${encodeURIComponent(secret)}` : "";
+    const { host, port, secret, mode } = settings();
+    const query = new URLSearchParams();
+    if (secret) query.set("token", secret);
+    query.set("mode", mode);
+    if (mode === "independent") {
+      query.set("clientId", getClientId());
+    }
+    const params = `?${query.toString()}`;
     ws = createWebSocket(`wss://${host}:${port}${params}`, {
       onOpen: () => {
         setConnected(true);

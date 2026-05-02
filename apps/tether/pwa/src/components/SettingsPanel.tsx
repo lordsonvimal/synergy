@@ -453,11 +453,26 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                 <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wide mb-4">
                   Connection
                 </h3>
-                <div class="flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full bg-success shrink-0" />
-                  <span class="text-sm text-ink font-mono">
-                    {settings().host}:{settings().port}
-                  </span>
+                <div class="flex flex-col gap-4">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-success shrink-0" />
+                    <span class="text-sm text-ink font-mono">
+                      {settings().host}:{settings().port}
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <div class="flex flex-col">
+                      <label class="text-sm text-ink">Mode</label>
+                      <span class="text-xs text-ink-dim mt-0.5">
+                        {settings().mode === "mirror"
+                          ? "Shared sessions across devices"
+                          : "Separate sessions per device"}
+                      </span>
+                    </div>
+                    <span class="text-sm text-ink-secondary font-medium capitalize">
+                      {settings().mode}
+                    </span>
+                  </div>
                 </div>
               </section>
             </div>

@@ -139,6 +139,48 @@ export const ConnectScreen: Component = () => {
                   Must match TETHER_SECRET on the server
                 </span>
               </label>
+              <div class="flex flex-col gap-1.5 text-sm text-ink-secondary font-medium">
+                <span>Mode</span>
+                <div
+                  class="flex border border-edge rounded-md overflow-hidden"
+                  role="radiogroup"
+                  aria-label="Connection mode"
+                >
+                  <button
+                    type="button"
+                    class={`flex-1 px-3 py-2.5 text-sm border-none cursor-pointer transition-colors ${
+                      settings().mode === "independent"
+                        ? "bg-primary text-on-primary"
+                        : "bg-muted text-ink hover:bg-surface-raised"
+                    }`}
+                    role="radio"
+                    aria-checked={settings().mode === "independent"}
+                    onClick={() => updateSettings({ mode: "independent" })}
+                    data-testid="connect-screen-mode-independent"
+                  >
+                    Independent
+                  </button>
+                  <button
+                    type="button"
+                    class={`flex-1 px-3 py-2.5 text-sm border-none cursor-pointer transition-colors ${
+                      settings().mode === "mirror"
+                        ? "bg-primary text-on-primary"
+                        : "bg-muted text-ink hover:bg-surface-raised"
+                    }`}
+                    role="radio"
+                    aria-checked={settings().mode === "mirror"}
+                    onClick={() => updateSettings({ mode: "mirror" })}
+                    data-testid="connect-screen-mode-mirror"
+                  >
+                    Mirror
+                  </button>
+                </div>
+                <span class="text-xs text-ink-dim">
+                  {settings().mode === "mirror"
+                    ? "All devices share the same terminal sessions"
+                    : "Each device gets its own terminal sessions"}
+                </span>
+              </div>
             </fieldset>
 
             {error() && (

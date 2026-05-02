@@ -12,6 +12,7 @@ import { validateToken } from "./auth.js";
 const PORT = Number(process.env.PORT) || 5100;
 const CERT_DIR = resolve(import.meta.dirname, "../../certs");
 const GRACE_PERIOD_MS = Number(process.env.GRACE_PERIOD_MS) || 300_000;
+const MIRROR_CLIENT_ID = "mirror";
 
 const app = express();
 
@@ -39,31 +40,57 @@ const wss = new WebSocketServer({
   }
 });
 
-const manager = new TerminalManager(GRACE_PERIOD_MS);
+interface ClientInfo {
+  ws: WebSocket;
+  clientId: string;
+  batteryInterval: ReturnType<typeof setInterval>;
+}
 
-manager.cleanupOrphans();
-console.log("[tmux] orphaned sessions cleaned");
+const clients = new Map<WebSocket, ClientInfo>();
+const managers = new Map<string, TerminalManager>();
 
-let activeClient: WebSocket | null = null;
+function getOrCreateManager(clientId: string): TerminalManager {
+  const existing = managers.get(clientId);
+  if (existing) return existing;
 
-function sendToClient(data: Record<string, unknown>): void {
-  if (activeClient && activeClient.readyState === WebSocket.OPEN) {
-    activeClient.send(JSON.stringify(data));
+  const manager = new TerminalManager(clientId, GRACE_PERIOD_MS);
+  manager.setMessageCallback((data) => {
+    const payload = JSON.stringify(data);
+    for (const info of clients.values()) {
+      if (info.clientId === clientId && info.ws.readyState === WebSocket.OPEN) {
+        info.ws.send(payload);
+      }
+    }
+  });
+  managers.set(clientId, manager);
+  return manager;
+}
+
+function clientCountForId(clientId: string): number {
+  let count = 0;
+  for (const info of clients.values()) {
+    if (info.clientId === clientId) count++;
+  }
+  return count;
+}
+
+function cleanupOrphans(): void {
+  for (const [, manager] of managers) {
+    manager.cleanupOrphans();
   }
 }
 
-manager.setMessageCallback(sendToClient);
+cleanupOrphans();
+console.log("[tmux] orphaned sessions cleaned");
 
-wss.on("connection", (ws) => {
-  console.log("[ws] client connected");
+wss.on("connection", (ws, req) => {
+  const reqUrl = new URL(req.url ?? "/", `https://${req.headers.host}`);
+  const mode = reqUrl.searchParams.get("mode") ?? "independent";
+  const clientId = mode === "mirror"
+    ? MIRROR_CLIENT_ID
+    : reqUrl.searchParams.get("clientId") ?? "default";
 
-  if (activeClient && activeClient.readyState === WebSocket.OPEN) {
-    console.log("[ws] replacing previous client connection");
-    activeClient.close(4000, "Replaced by new connection");
-  }
-
-  activeClient = ws;
-  manager.setMessageCallback(sendToClient);
+  const manager = getOrCreateManager(clientId);
 
   const sendBattery = (): void => {
     const info = getBattery();
@@ -72,6 +99,9 @@ wss.on("connection", (ws) => {
 
   sendBattery();
   const batteryInterval = setInterval(sendBattery, 60_000);
+
+  clients.set(ws, { ws, clientId, batteryInterval });
+  console.log(`[ws] client connected (id=${clientId}, mode=${mode}, total=${clients.size})`);
 
   const existingSessions = manager.getActiveSessions();
   if (existingSessions.length > 0) {
@@ -87,24 +117,32 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("close", () => {
-    console.log("[ws] client disconnected");
-    clearInterval(batteryInterval);
-    if (activeClient === ws) {
-      activeClient = null;
+    const info = clients.get(ws);
+    clients.delete(ws);
+    if (info) {
+      clearInterval(info.batteryInterval);
+      const remaining = clientCountForId(info.clientId);
+      console.log(`[ws] client disconnected (id=${info.clientId}, remaining=${remaining}, total=${clients.size})`);
+      if (remaining === 0) {
+        manager.detachAll();
+      }
     }
-    manager.detachAll();
   });
 });
 
 process.on("SIGTERM", () => {
   console.log("[server] SIGTERM received, cleaning up");
-  manager.destroyAll();
+  for (const [, manager] of managers) {
+    manager.destroyAll();
+  }
   process.exit(0);
 });
 
 process.on("SIGINT", () => {
   console.log("[server] SIGINT received, cleaning up");
-  manager.destroyAll();
+  for (const [, manager] of managers) {
+    manager.destroyAll();
+  }
   process.exit(0);
 });
 

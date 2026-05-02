@@ -13,6 +13,8 @@ export interface Shortcut {
   command: string;
 }
 
+export type ConnectionMode = "independent" | "mirror";
+
 export interface Settings {
   host: string;
   port: number;
@@ -24,6 +26,7 @@ export interface Settings {
   chimeEnabled: boolean;
   shortcuts: Shortcut[];
   secret: string;
+  mode: ConnectionMode;
 }
 
 const DEFAULT_SHORTCUTS: Shortcut[] = [
@@ -43,7 +46,8 @@ const DEFAULT_SETTINGS: Settings = {
   fontSize: "medium",
   chimeEnabled: true,
   shortcuts: DEFAULT_SHORTCUTS,
-  secret: ""
+  secret: "",
+  mode: "independent"
 };
 
 const STORAGE_KEY = "tether-settings";
