@@ -2,6 +2,7 @@ import { Component, createSignal, onCleanup, Show } from "solid-js";
 import { createSTT } from "../lib/stt.js";
 import { addToast } from "../lib/toast.js";
 import { Waveform } from "./Waveform.js";
+import { MicIcon, StopIcon } from "./icons.js";
 
 interface VoiceInputProps {
   onSend: (text: string) => void;
@@ -143,7 +144,7 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
             </span>
           </Show>
           <button
-            class={`w-10 h-10 rounded-full border-none text-on-primary text-base cursor-pointer transition-transform active:scale-95 ${
+            class={`flex items-center justify-center w-10 h-10 rounded-full border-none text-on-primary cursor-pointer transition-transform active:scale-95 ${
               recording()
                 ? "bg-error animate-pulse-recording"
                 : "bg-primary hover:bg-primary-hover"
@@ -152,7 +153,9 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
             aria-label={recording() ? "Stop recording" : "Start recording"}
             data-testid="mic-button"
           >
-            {recording() ? "⏹" : "🎙"}
+            <Show when={recording()} fallback={<MicIcon />}>
+              <StopIcon />
+            </Show>
           </button>
         </div>
       }
