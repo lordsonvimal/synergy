@@ -8,9 +8,7 @@ interface PaneProps {
 }
 
 export const Pane: Component<PaneProps> = (props) => {
-  const { activePaneId, setActivePane } = usePanes();
-
-  const isActive = () => activePaneId() === props.pane.id;
+  const { setActivePane } = usePanes();
 
   const handleClick = (): void => {
     setActivePane(props.pane.id);
@@ -18,17 +16,10 @@ export const Pane: Component<PaneProps> = (props) => {
 
   return (
     <div
-      class="relative flex flex-col flex-1 min-h-0 min-w-0"
+      class="flex flex-col flex-1 min-h-0 min-w-0 border border-edge"
       onClick={handleClick}
       data-testid={`pane-${props.pane.id}`}
     >
-      <div
-        class={`absolute inset-0 pointer-events-none z-10 ${
-          isActive()
-            ? "border-2 border-primary"
-            : "border border-edge"
-        }`}
-      />
       <PaneTabBar paneId={props.pane.id} pane={props.pane} />
       <PaneTerminal paneId={props.pane.id} pane={props.pane} />
     </div>

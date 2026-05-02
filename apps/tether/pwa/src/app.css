@@ -80,3 +80,12 @@ footer[data-testid="input-bar"] {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+.xterm-viewport {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.xterm-viewport::-webkit-scrollbar {
+  display: none;
+}

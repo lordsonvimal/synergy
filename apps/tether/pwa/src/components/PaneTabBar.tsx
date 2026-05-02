@@ -306,8 +306,10 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
 
   return (
     <nav
-      class={`flex items-center h-9 border-b shrink-0 ${
-        isActive() ? "bg-surface border-primary" : "bg-surface border-edge"
+      class={`flex items-center h-9 shrink-0 ${
+        isActive()
+          ? "bg-surface border-t-2 border-t-primary border-b border-b-edge"
+          : "bg-muted border-b border-b-edge"
       }`}
       data-testid={`pane-tab-bar-${props.paneId}`}
     >
@@ -324,8 +326,8 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
             <button
               class={`flex items-center gap-1.5 h-full px-3 text-xs border-r border-edge cursor-pointer whitespace-nowrap shrink-0 ${
                 tab.id === activeTabId()
-                  ? "bg-canvas text-primary font-semibold border-b-2 border-b-primary"
-                  : "bg-surface text-ink-secondary hover:bg-muted hover:text-ink"
+                  ? "bg-canvas text-ink font-medium"
+                  : "bg-transparent text-ink-secondary hover:bg-surface hover:text-ink"
               } ${
                 dragSourceTabId() === tab.id ? "opacity-40" : ""
               } transition-colors`}
