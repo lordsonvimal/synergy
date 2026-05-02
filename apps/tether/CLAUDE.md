@@ -6,18 +6,18 @@ Remote terminal PWA — phone tethered to your Mac. Renders a full PTY session v
 
 Two components sharing a single `package.json`:
 
-- **Relay Server** (`server/src/`) — Node.js + TypeScript. Express serves the PWA over HTTPS (port 5100), WebSocket (`ws`) bridges the phone to a Claude Code pseudo-terminal (`node-pty`).
+- **Relay Server** (`server/src/`) — Node.js + TypeScript. Express serves the PWA over HTTPS (port 5100), WebSocket (`ws`) bridges the phone to tmux sessions via `node-pty`. Each tab maps to a tmux session (`tether-{tabId}`). A singleton `TerminalManager` persists across WebSocket reconnections.
 - **PWA** (`pwa/src/`) — SolidJS + TypeScript, built with Vite (port 5101). Tailwind CSS v4 for styling. Uses browser-native Web Speech API for STT/TTS. No audio leaves the phone — only transcribed text is sent over WebSocket.
 
 ```
-Phone (PWA) ◄──WSS (same WiFi)──► Relay Server :5100 ◄──node-pty──► Claude Code (Terminal)
+Phone (PWA) ◄──WSS (same WiFi)──► Relay Server :5100 ◄──node-pty──► tmux sessions ◄──► Shell/Claude
 ```
 
 ## Tech Stack
 
 | Layer | Tech |
 |-------|------|
-| Server | Node.js, TypeScript, Express, ws, node-pty, strip-ansi |
+| Server | Node.js, TypeScript, Express, ws, node-pty, tmux, strip-ansi |
 | Server dev | tsx (runtime), tsconfig strict |
 | PWA | SolidJS, TypeScript, Vite |
 | PWA styling | Tailwind CSS v4 (no custom CSS, extend @theme for colors) |
@@ -43,7 +43,8 @@ tether/
 │   └── src/
 │       ├── index.ts          # Express + WSS entry point (port 5100)
 │       ├── handler.ts        # WebSocket message handler
-│       ├── terminal.ts       # PTY manager: spawn Claude, pipe I/O
+│       ├── tmux.ts            # tmux session lifecycle (create, attach, capture, kill)
+│       ├── terminal.ts       # Singleton terminal manager: tmux-backed sessions, reattach + scrollback replay
 │       ├── permissions.ts    # Detect permission patterns in stdout
 │       ├── ansi.ts           # ANSI escape code stripping
 │       └── auth.ts           # Shared secret validation
@@ -144,14 +145,22 @@ Defined in `pwa/src/app.css` under `@theme`:
 All messages are JSON. Direction indicated as Phone→Server or Server→Phone.
 
 ```
-Phone→Server:  { type: "text", data: string }              # Voice/typed prompt
-Phone→Server:  { type: "permission_response", value: "yes"|"no"|"always" }
-Phone→Server:  { type: "stop" }                            # Ctrl+C to PTY
+Phone→Server:  { type: "create-tab", tabId: string, cols?: number, rows?: number }
+Phone→Server:  { type: "close-tab", tabId: string }
+Phone→Server:  { type: "text", tabId: string, data: string }
+Phone→Server:  { type: "permission_response", tabId: string, value: "yes"|"no"|"always" }
+Phone→Server:  { type: "stop", tabId: string }
+Phone→Server:  { type: "resize", tabId: string, cols: number, rows: number }
+Phone→Server:  { type: "key", tabId: string, data: string }
 
-Server→Phone:  { type: "output", text: string, streaming: boolean }
-Server→Phone:  { type: "output_complete", fullText: string }
-Server→Phone:  { type: "permission", action: string, options: string[] }
-Server→Phone:  { type: "status", connected: boolean, claudeReady: boolean }
+Server→Phone:  { type: "tab-created", tabId: string, restored: boolean }
+Server→Phone:  { type: "pty", tabId: string, data: string }
+Server→Phone:  { type: "pty-replay", tabId: string, data: string }         # Scrollback replay on reattach
+Server→Phone:  { type: "command-complete", tabId: string }
+Server→Phone:  { type: "permission", tabId: string, action: string, options: string[] }
+Server→Phone:  { type: "tab-exited", tabId: string, exitCode: number }
+Server→Phone:  { type: "sessions-available", tabIds: string[] }            # Sent on connect when sessions exist
+Server→Phone:  { type: "battery", level: number, charging: boolean }
 ```
 
 ## DOM Layer Architecture
@@ -185,11 +194,12 @@ Overlays use **DOM source order** for stacking — no z-index needed. Each layer
 ## Key Design Decisions
 
 - **Web Speech API for all speech processing** — no whisper.cpp, no server-side audio. STT and TTS both run in the browser. The server only handles text strings.
-- **node-pty for Claude Code** — full PTY emulation preserves Claude's interactive behavior (permissions, streaming, colors).
-- **ANSI stripping** — Claude Code output contains ANSI escape codes; strip them before sending to the phone.
+- **tmux-backed terminal sessions** — each tab maps to a tmux session (`tether-{tabId}`). Sessions survive client disconnects, browser reloads, and server restarts. node-pty attaches to tmux for I/O piping. Scrollback replayed via `tmux capture-pane -e` on reattach.
+- **Singleton TerminalManager** — one instance shared across all WebSocket connections. On disconnect, sessions are detached (not destroyed). On reconnect, existing tmux sessions are reattached with scrollback replay. A 5-minute grace timer kills sessions with no connected client.
 - **Permission detection** — parse stdout for `Allow ...? [y/n/a]` patterns and send structured messages to the PWA instead of raw text.
-- **Single user, single session** — no multi-user auth needed for v1. Shared secret token for basic access control.
+- **Single user, single session** — no multi-user auth needed for v1. Shared secret token for basic access control. New connections replace the previous client.
 - **HTTPS required** — Web Speech API on mobile requires a secure context. Use mkcert for trusted local HTTPS.
+- **Orphan cleanup** — on server start, any leftover `tether-*` tmux sessions from previous runs are killed. On SIGTERM/SIGINT, all sessions are destroyed cleanly.
 
 ## Implementation Phases
 
@@ -199,6 +209,8 @@ Build in this order — each phase is independently testable:
 2. **Permissions & Polish**: Permission detection + card UI + voice permissions + stop button + reconnect + text input
 3. **UX**: Waveform viz + battery display + settings panel + syntax highlighting + themes
 4. **Hardening**: Auth + error handling + service worker caching + PWA install + session persistence
+5. **Multi-Tab**: Multiple terminal tabs with per-pane tab bars + split-pane layout
+6. **Persistence**: Pane/tab localStorage persistence + tmux-backed session persistence + graceful cleanup
 
 ## Requirements
 

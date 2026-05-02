@@ -1,8 +1,7 @@
 import {
   TerminalManager,
   writeToTerminal,
-  stopTerminal,
-  resizeTerminal
+  stopTerminal
 } from "./terminal.js";
 
 interface TextMessage {
@@ -38,6 +37,8 @@ interface KeyMessage {
 interface CreateTabMessage {
   type: "create-tab";
   tabId: string;
+  cols?: number;
+  rows?: number;
 }
 
 interface CloseTabMessage {
@@ -66,7 +67,7 @@ export function handleMessage(
 ): void {
   switch (message.type) {
     case "create-tab":
-      manager.createTab(message.tabId);
+      manager.createTab(message.tabId, message.cols, message.rows);
       break;
     case "close-tab":
       manager.closeTab(message.tabId);
@@ -86,7 +87,7 @@ export function handleMessage(
           stopTerminal(pty);
           break;
         case "resize":
-          resizeTerminal(pty, message.cols, message.rows);
+          manager.resizeTab(message.tabId, message.cols, message.rows);
           break;
         case "key":
           pty.write(message.data);

@@ -69,6 +69,12 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       if (!msg.tabId || !paneTabIds().has(msg.tabId)) return;
       if (msg.type === "pty" && msg.data) {
         getInstance(msg.tabId)?.terminal.write(msg.data);
+      } else if (msg.type === "pty-replay" && msg.data) {
+        const inst = getInstance(msg.tabId);
+        if (inst) {
+          inst.terminal.clear();
+          inst.terminal.write(msg.data);
+        }
       } else if (msg.type === "command-complete") {
         if (
           settings().chimeEnabled &&

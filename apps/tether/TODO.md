@@ -16,8 +16,9 @@ Key architecture decisions:
 - TerminalToolbar: keyboard toggle (keys overlay via DOM layer), mic button
 - Keys overlay renders into `#keys-layer` (DOM layer pattern, no z-index)
 - Toast notifications render into `#toast-layer` (highest priority layer)
-- Battery info comes from the server (laptop `pmset`) via WebSocket every 10s
+- Battery info comes from the server (laptop `pmset`) via WebSocket every 60s
 - Terminal supports light/dark themes reactively
+- **tmux-backed sessions** — each tab maps to a tmux session (`tether-{tabId}`), surviving disconnects, reloads, and server restarts. Singleton TerminalManager with 5-min grace timer. Scrollback replayed on reattach via `tmux capture-pane -e`.
 
 ## Phase 1: Core MVP — Done
 
@@ -97,7 +98,7 @@ Key architecture decisions:
 | FR-61 | Remote access documentation | Done | setup.sh documents local WiFi, Cloudflare Tunnel, and Tailscale options |
 | FR-62 | HTTPS cert for extra IPs | Done | generate-cert.sh accepts extra SANs as args (e.g. Tailscale IP) |
 
-## Phase 4: Hardening — 0% done
+## Phase 4: Hardening — Done
 
 | ID | Requirement | Status | Notes |
 |----|-------------|--------|-------|
@@ -137,14 +138,14 @@ Key architecture decisions:
 | FR-93 | Search keyboard navigation | Done | Arrow keys, Enter to select, Escape to close |
 | FR-94 | Search navigates to tab | Done | Selection activates target pane and switches to selected tab |
 
-## Phase 7: Persistence — In Progress
+## Phase 7: Persistence — Done
 
 | ID | Requirement | Status | Notes |
 |----|-------------|--------|-------|
 | FR-95 | Pane layout persistence | Done | Split tree (panes, directions, ratios) saved/restored from localStorage; ID counters synced on restore |
 | FR-96 | Tab metadata persistence | Done | Tab labels, active tab per pane, active pane ID all persisted; reconnect re-creates all PTYs |
-| FR-97 | Terminal session persistence | TODO | PTY sessions survive disconnect/reload; server preserves sessions and replays scrollback on reattach |
-| FR-98 | Graceful cleanup | TODO | Server notifies PWA on PTY exit; orphaned PTY sessions cleaned on server restart |
+| FR-97 | Terminal session persistence | Done | tmux-backed sessions survive disconnect/reload/server crash; server replays scrollback via `capture-pane -e` on reattach; each tab maps to tmux session `tether-{tabId}` |
+| FR-98 | Graceful cleanup | Done | Server sends `tab-exited` on tmux session exit; orphaned `tether-*` sessions cleaned on server start; 5-min grace timer kills sessions with no connected client; SIGTERM/SIGINT handlers destroy all sessions |
 
 ## Recommended build order
 
@@ -161,5 +162,5 @@ Key architecture decisions:
 11. ~~FR-73 — Tab metadata (labels)~~ ✓
 12. ~~FR-80-94 — Split-pane layout + global search~~ ✓
 13. ~~FR-95/96 — Pane layout + tab metadata persistence (localStorage)~~ ✓
-14. FR-97 — Terminal session persistence (server-side PTY reattach)
-15. FR-98 — Graceful cleanup (PTY exit notification, orphan cleanup)
+14. ~~FR-97 — Terminal session persistence (tmux-backed reattach)~~ ✓
+15. ~~FR-98 — Graceful cleanup (PTY exit notification, orphan cleanup)~~ ✓

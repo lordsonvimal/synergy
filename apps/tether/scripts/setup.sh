@@ -11,6 +11,11 @@ if ! command -v node &>/dev/null; then
   exit 1
 fi
 
+if ! command -v tmux &>/dev/null; then
+  echo "Installing tmux..."
+  brew install tmux
+fi
+
 if ! command -v mkcert &>/dev/null; then
   echo "Installing mkcert..."
   brew install mkcert
