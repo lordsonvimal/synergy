@@ -55,7 +55,7 @@ Key architecture decisions:
 | — | Toast notification system | Done | lib/toast.ts + ToastLayer (DOM layer) |
 | — | Keys overlay (no layout shift) | Done | KeysOverlay via Portal into #keys-layer |
 
-## Phase 3: UX Enhancements — 70% done
+## Phase 3: UX Enhancements — Done
 
 | ID | Requirement | Status | Notes |
 |----|-------------|--------|-------|
@@ -72,7 +72,7 @@ Key architecture decisions:
 | FR-40 | Settings: TTS voice selection | N/A | TTS dropped |
 | FR-41 | Settings: auto-read toggle | N/A | TTS dropped — replaced by chime toggle in FR-50 |
 | FR-42 | Settings: TTS speed | N/A | TTS dropped |
-| FR-50 | Completion chime | TODO | Audio notification when terminal goes idle after output |
+| FR-50 | Completion chime | Done | Synthesized two-tone chime via Web Audio API on 2s idle after output |
 | FR-43 | Settings: theme toggle | Done | StatusBar toggle + terminal light/dark themes |
 | FR-44 | Settings: font size | Done | Segmented control (small/medium/large) in settings panel, reactively updates terminal |
 | FR-45 | Settings persist in localStorage | Done | settings.tsx |
@@ -83,7 +83,7 @@ Key architecture decisions:
 
 | ID | Requirement | Status | Notes |
 |----|-------------|--------|-------|
-| FR-50 | Completion chime | TODO | Idle timeout + prompt detection hybrid |
+| FR-50 | Completion chime | Done | 2s idle timeout triggers synthesized chime, respects chimeEnabled setting |
 | FR-50a | Chime toggle in settings | Done | Toggle switch in settings panel, persisted in localStorage |
 | FR-51 | Shortcut command center panel | TODO | Quick-access slide-up sheet via DOM layer |
 | FR-52 | Shortcut: label + command, stored in localStorage | TODO | Part of settings context |
@@ -113,9 +113,9 @@ Key architecture decisions:
 
 1. ~~FR-38/44 — Settings panel UI (theme, font size, chime toggle, shortcuts management)~~ ✓
 2. FR-51-56 — Shortcut command center
-3. FR-50 — Completion chime (idle timeout + prompt detection hybrid)
+3. ~~FR-50 — Completion chime (idle timeout + prompt detection hybrid)~~ ✓
 4. FR-58-62 — Tailscale remote access (server bind + cert + docs)
 5. NFR-06 — Wire auth on WebSocket upgrade
-6. FR-05 — Waveform visualization
+6. ~~FR-05 — Waveform visualization~~ ✓
 7. FR-46/49 — Generate PWA icons
 8. FR-48 — Service worker asset caching

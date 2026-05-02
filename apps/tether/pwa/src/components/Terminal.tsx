@@ -5,6 +5,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import "xterm/css/xterm.css";
 import { useConnection } from "../context/connection.js";
 import { useSettings } from "../context/settings.js";
+import { playChime } from "../lib/chime.js";
 
 const darkTheme: ITheme = {
   background: "#0B1120",
@@ -121,6 +122,10 @@ export const Terminal: Component = () => {
       const msg = data as { type: string; data?: string };
       if (msg.type === "pty" && msg.data) {
         terminal?.write(msg.data);
+      } else if (msg.type === "command-complete") {
+        if (settings().chimeEnabled) {
+          playChime();
+        }
       }
     });
 
