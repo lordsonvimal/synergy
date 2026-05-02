@@ -60,12 +60,16 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
 
   const activeTabId = () => props.pane.activeTabId;
 
+  const paneTabIds = (): Set<string> =>
+    new Set(props.pane.tabs.map((t) => t.id));
+
   onMount(() => {
     onMessage((data) => {
       const msg = data as { type: string; tabId?: string; data?: string };
-      if (msg.type === "pty" && msg.data && msg.tabId) {
+      if (!msg.tabId || !paneTabIds().has(msg.tabId)) return;
+      if (msg.type === "pty" && msg.data) {
         getInstance(msg.tabId)?.terminal.write(msg.data);
-      } else if (msg.type === "command-complete" && msg.tabId) {
+      } else if (msg.type === "command-complete") {
         if (
           settings().chimeEnabled &&
           msg.tabId === activeTabId() &&

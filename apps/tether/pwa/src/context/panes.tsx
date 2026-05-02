@@ -351,8 +351,9 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
     const sourceLeaf = findLeafInTree(state.root, paneId);
     if (!sourceLeaf) return;
 
-    for (const tab of sourceLeaf.tabs) {
-      moveTab(paneId, tab.id, targetPaneId);
+    const tabIds = sourceLeaf.tabs.map(t => t.id);
+    for (const tabId of tabIds) {
+      moveTab(paneId, tabId, targetPaneId);
     }
   };
 

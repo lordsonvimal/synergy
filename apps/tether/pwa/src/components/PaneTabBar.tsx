@@ -7,6 +7,7 @@ import {
   onMount,
   onCleanup
 } from "solid-js";
+import { Portal } from "solid-js/web";
 import { usePanes, LeafNode } from "../context/panes.js";
 import { useConnection } from "../context/connection.js";
 import { destroyInstance } from "../lib/terminal-instances.js";
@@ -57,8 +58,19 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
   onMount(() => {
     const handler = (e: MouseEvent): void => {
       const target = e.target as HTMLElement;
-      if (!target.closest(`[data-testid="pane-tab-bar-${props.paneId}"]`)) {
+      if (mergeConfirm() && target.closest("#modal-layer")) return;
+      const inTabBar = target.closest(
+        `[data-testid="pane-tab-bar-${props.paneId}"]`
+      );
+      if (!inTabBar) {
         dismissAll();
+        return;
+      }
+      if (contextMenu() && !target.closest("[data-context-menu]")) {
+        setContextMenu(null);
+      }
+      if (dropdownOpen() && !target.closest("[data-dropdown-menu]")) {
+        setDropdownOpen(false);
       }
     };
     document.addEventListener("pointerdown", handler);
@@ -374,7 +386,7 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
             +{overflowTabs().length}
           </button>
           <Show when={dropdownOpen()}>
-            <div class="absolute top-full right-0 mt-1 bg-surface-raised border border-edge rounded-lg shadow-lg min-w-40 py-1 z-10">
+            <div data-dropdown-menu class="absolute top-full right-0 mt-1 bg-surface-raised border border-edge rounded-lg shadow-lg min-w-40 py-1 z-10">
               <For each={overflowTabs()}>
                 {(tabId) => (
                   <button
@@ -407,6 +419,7 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
         {(menu) => (
           <>
             <div
+              data-context-menu
               class="fixed bg-surface-raised border border-edge rounded-lg shadow-lg py-1 min-w-44 z-10"
               style={{
                 left: `${menu().x}px`,
@@ -472,7 +485,7 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
         )}
       </Show>
 
-      {/* Merge confirmation */}
+      {/* Merge confirmation — portaled to modal layer so dividers can't overlap */}
       <Show when={mergeConfirm()}>
         {(() => {
           const info = mergePane(props.paneId);
@@ -481,36 +494,38 @@ export const PaneTabBar: Component<PaneTabBarProps> = (props) => {
             return null;
           }
           return (
-            <div class="fixed inset-0 flex items-center justify-center z-10">
-              <div
-                class="absolute inset-0 bg-canvas/60"
-                onClick={() => setMergeConfirm(false)}
-              />
-              <div class="relative bg-surface-raised border border-edge rounded-xl shadow-xl p-5 max-w-72">
-                <p class="text-sm text-ink mb-1 font-medium">Merge pane?</p>
-                <p class="text-xs text-ink-secondary mb-4">
-                  All tabs in this pane will move into the adjacent pane
-                  ({info.targetLabel}).
-                </p>
-                <div class="flex gap-2 justify-end">
-                  <button
-                    class="px-3 py-1.5 text-xs bg-surface border border-edge rounded-md text-ink cursor-pointer hover:bg-muted transition-colors"
-                    onClick={() => setMergeConfirm(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    class="px-3 py-1.5 text-xs bg-primary border-none rounded-md text-on-primary cursor-pointer hover:bg-primary-hover transition-colors"
-                    onClick={() => {
-                      confirmMerge(props.paneId);
-                      setMergeConfirm(false);
-                    }}
-                  >
-                    Merge
-                  </button>
+            <Portal mount={document.getElementById("modal-layer")!}>
+              <div class="fixed inset-0 flex items-center justify-center">
+                <div
+                  class="absolute inset-0 bg-canvas/60"
+                  onClick={() => setMergeConfirm(false)}
+                />
+                <div class="relative bg-surface-raised border border-edge rounded-xl shadow-xl p-5 max-w-72">
+                  <p class="text-sm text-ink mb-1 font-medium">Merge pane?</p>
+                  <p class="text-xs text-ink-secondary mb-4">
+                    All tabs in this pane will move into the adjacent pane
+                    ({info.targetLabel}).
+                  </p>
+                  <div class="flex gap-2 justify-end">
+                    <button
+                      class="px-3 py-1.5 text-xs bg-surface border border-edge rounded-md text-ink cursor-pointer hover:bg-muted transition-colors"
+                      onClick={() => setMergeConfirm(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      class="px-3 py-1.5 text-xs bg-primary border-none rounded-md text-on-primary cursor-pointer hover:bg-primary-hover transition-colors"
+                      onClick={() => {
+                        confirmMerge(props.paneId);
+                        setMergeConfirm(false);
+                      }}
+                    >
+                      Merge
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Portal>
           );
         })()}
       </Show>
