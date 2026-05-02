@@ -1,11 +1,13 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
+import { URL } from "url";
 import https from "https";
 import express from "express";
 import { WebSocketServer } from "ws";
 import { createTerminal, destroyTerminal } from "./terminal.js";
 import { handleMessage } from "./handler.js";
 import { getBattery } from "./battery.js";
+import { validateToken } from "./auth.js";
 
 const PORT = Number(process.env.PORT) || 5100;
 const CERT_DIR = resolve(import.meta.dirname, "../../certs");
@@ -22,7 +24,19 @@ const server = https.createServer(
   app
 );
 
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({
+  server,
+  verifyClient: (info, cb) => {
+    const reqUrl = new URL(info.req.url ?? "/", `https://${info.req.headers.host}`);
+    const token = reqUrl.searchParams.get("token") ?? undefined;
+    if (validateToken(token)) {
+      cb(true);
+    } else {
+      console.log("[ws] auth rejected — invalid token");
+      cb(false, 401, "Unauthorized");
+    }
+  }
+});
 
 wss.on("connection", (ws) => {
   console.log("[ws] client connected");

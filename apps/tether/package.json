@@ -6,10 +6,10 @@
   "packageManager": "yarn@4.7.0",
   "scripts": {
     "dev": "concurrently \"yarn dev:server\" \"yarn dev:pwa\"",
-    "dev:server": "tsx watch server/src/index.ts",
+    "dev:server": "tsx watch --env-file=.env server/src/index.ts",
     "dev:pwa": "vite --port 5101",
     "build": "vite build && tsc --project server/tsconfig.json --noEmit",
-    "serve": "node dist/server/index.js",
+    "serve": "node --env-file=.env dist/server/index.js",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -122,6 +122,21 @@ export const ConnectScreen: Component = () => {
                   <span class="text-sm text-error mt-1">{portError()}</span>
                 </Show>
               </label>
+              <label class="flex flex-col gap-1.5 text-sm text-ink-secondary font-medium">
+                <span>Secret</span>
+                <input
+                  class={INPUT_DEFAULT}
+                  type="password"
+                  placeholder="Leave blank if not set"
+                  value={settings().secret}
+                  onInput={(e) => updateSettings({ secret: e.currentTarget.value })}
+                  autocomplete="off"
+                  data-testid="connect-screen-secret-input"
+                />
+                <span class="text-xs text-ink-dim">
+                  Must match TETHER_SECRET on the server
+                </span>
+              </label>
             </fieldset>
 
             {error() && (

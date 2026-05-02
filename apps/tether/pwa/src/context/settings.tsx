@@ -23,6 +23,7 @@ export interface Settings {
   fontSize: "small" | "medium" | "large";
   chimeEnabled: boolean;
   shortcuts: Shortcut[];
+  secret: string;
 }
 
 const DEFAULT_SHORTCUTS: Shortcut[] = [
@@ -41,7 +42,8 @@ const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
   fontSize: "medium",
   chimeEnabled: true,
-  shortcuts: DEFAULT_SHORTCUTS
+  shortcuts: DEFAULT_SHORTCUTS,
+  secret: ""
 };
 
 const STORAGE_KEY = "tether-settings";

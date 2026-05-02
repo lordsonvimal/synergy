@@ -28,8 +28,9 @@ export const ConnectionProvider: Component<{ children: JSX.Element }> = (
   const messageHandlers: Array<(data: unknown) => void> = [];
 
   const connect = (): void => {
-    const { host, port } = settings();
-    ws = createWebSocket(`wss://${host}:${port}`, {
+    const { host, port, secret } = settings();
+    const params = secret ? `?token=${encodeURIComponent(secret)}` : "";
+    ws = createWebSocket(`wss://${host}:${port}${params}`, {
       onOpen: () => setConnected(true),
       onClose: () => setConnected(false),
       onMessage: (data) => {
