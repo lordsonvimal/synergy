@@ -11,7 +11,7 @@ import { useSettings } from "./settings.js";
 
 interface ConnectionContextValue {
   connected: () => boolean;
-  connect: () => void;
+  connect: (initialTabId: string) => void;
   disconnect: () => void;
   send: (message: unknown) => void;
   onMessage: (handler: (data: unknown) => void) => void;
@@ -25,13 +25,21 @@ export const ConnectionProvider: Component<{ children: JSX.Element }> = (
   const { settings } = useSettings();
   const [connected, setConnected] = createSignal(false);
   let ws: WebSocketClient | null = null;
+  let pendingInitialTabId: string | null = null;
   const messageHandlers: Array<(data: unknown) => void> = [];
 
-  const connect = (): void => {
+  const connect = (initialTabId: string): void => {
     const { host, port, secret } = settings();
     const params = secret ? `?token=${encodeURIComponent(secret)}` : "";
+    pendingInitialTabId = initialTabId;
     ws = createWebSocket(`wss://${host}:${port}${params}`, {
-      onOpen: () => setConnected(true),
+      onOpen: () => {
+        setConnected(true);
+        if (pendingInitialTabId) {
+          ws?.send({ type: "create-tab", tabId: pendingInitialTabId });
+          pendingInitialTabId = null;
+        }
+      },
       onClose: () => setConnected(false),
       onMessage: (data) => {
         for (const handler of messageHandlers) {

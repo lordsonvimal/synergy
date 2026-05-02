@@ -9,88 +9,120 @@ export interface ServerMessage {
 
 type MessageCallback = (message: ServerMessage) => void;
 
-export function createTerminal(onMessage: MessageCallback): IPty {
-  const shell = process.env.SHELL || "/bin/zsh";
-  const shellName = basename(shell);
-  const pty = spawn(shell, ["-l"], {
-    name: "xterm-256color",
-    cols: 120,
-    rows: 40,
-    cwd: process.env.HOME || process.cwd(),
-    env: process.env as Record<string, string>
-  });
+interface TabSession {
+  pty: IPty;
+  pollInterval: ReturnType<typeof setInterval>;
+  idleTimer: ReturnType<typeof setTimeout> | undefined;
+}
 
-  let buffer = "";
-  const MAX_BUFFER = 4096;
-  let wasRunning = false;
-  let pollInterval: ReturnType<typeof setInterval> | undefined;
-  let idleTimer: ReturnType<typeof setTimeout> | undefined;
-  let outputBytes = 0;
-  const IDLE_THRESHOLD_MS = 3000;
-  const MIN_OUTPUT_BYTES = 100;
+export class TerminalManager {
+  private tabs = new Map<string, TabSession>();
+  private onMessage: MessageCallback;
 
-  pollInterval = setInterval(() => {
-    try {
+  constructor(onMessage: MessageCallback) {
+    this.onMessage = onMessage;
+  }
+
+  createTab(tabId: string): void {
+    if (this.tabs.has(tabId)) return;
+
+    const shell = process.env.SHELL || "/bin/zsh";
+    const shellName = basename(shell);
+    const pty = spawn(shell, ["-l"], {
+      name: "xterm-256color",
+      cols: 120,
+      rows: 40,
+      cwd: process.env.HOME || process.cwd(),
+      env: process.env as Record<string, string>
+    });
+
+    let buffer = "";
+    const MAX_BUFFER = 4096;
+    let wasRunning = false;
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    let outputBytes = 0;
+    const IDLE_THRESHOLD_MS = 3000;
+    const MIN_OUTPUT_BYTES = 100;
+
+    const pollInterval = setInterval(() => {
+      try {
+        const fg = basename(pty.process);
+        const isShell = fg === shellName;
+        if (wasRunning && isShell) {
+          clearTimeout(idleTimer);
+          outputBytes = 0;
+          this.onMessage({ type: "command-complete", tabId });
+        }
+        wasRunning = !isShell;
+      } catch {
+        // PTY may be disposed
+      }
+    }, 500);
+
+    pty.onData((raw) => {
+      buffer += raw;
+
+      const permission = detectPermission(buffer);
+      if (permission) {
+        this.onMessage({
+          type: "permission",
+          tabId,
+          action: permission.action,
+          options: permission.options
+        });
+        buffer = "";
+        return;
+      }
+
+      if (buffer.length > MAX_BUFFER) {
+        buffer = buffer.slice(-MAX_BUFFER);
+      }
+
+      this.onMessage({ type: "pty", tabId, data: raw });
+
       const fg = basename(pty.process);
       const isShell = fg === shellName;
-      if (wasRunning && isShell) {
+      if (!isShell) {
+        outputBytes += raw.length;
         clearTimeout(idleTimer);
-        outputBytes = 0;
-        onMessage({ type: "command-complete" });
+        idleTimer = setTimeout(() => {
+          if (outputBytes >= MIN_OUTPUT_BYTES) {
+            this.onMessage({ type: "command-complete", tabId });
+          }
+          outputBytes = 0;
+        }, IDLE_THRESHOLD_MS);
       }
-      wasRunning = !isShell;
-    } catch {
-      // PTY may be disposed
-    }
-  }, 500);
-
-  pty.onData((raw) => {
-    buffer += raw;
-
-    const permission = detectPermission(buffer);
-    if (permission) {
-      onMessage({
-        type: "permission",
-        action: permission.action,
-        options: permission.options
-      });
-      buffer = "";
-      return;
-    }
-
-    if (buffer.length > MAX_BUFFER) {
-      buffer = buffer.slice(-MAX_BUFFER);
-    }
-
-    onMessage({ type: "pty", data: raw });
-
-    // Idle detection for interactive processes (e.g. Claude CLI)
-    const fg = basename(pty.process);
-    const isShell = fg === shellName;
-    if (!isShell) {
-      outputBytes += raw.length;
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => {
-        if (outputBytes >= MIN_OUTPUT_BYTES) {
-          onMessage({ type: "command-complete" });
-        }
-        outputBytes = 0;
-      }, IDLE_THRESHOLD_MS);
-    }
-  });
-
-  pty.onExit(({ exitCode }) => {
-    clearInterval(pollInterval);
-    clearTimeout(idleTimer);
-    onMessage({
-      type: "status",
-      connected: false,
-      claudeReady: false,
-      exitCode
     });
-  });
 
-  return pty;
+    pty.onExit(({ exitCode }) => {
+      clearInterval(pollInterval);
+      clearTimeout(idleTimer);
+      this.tabs.delete(tabId);
+      this.onMessage({ type: "tab-exited", tabId, exitCode });
+    });
+
+    this.tabs.set(tabId, { pty, pollInterval, idleTimer });
+    this.onMessage({ type: "tab-created", tabId });
+  }
+
+  getTab(tabId: string): IPty | undefined {
+    return this.tabs.get(tabId)?.pty;
+  }
+
+  closeTab(tabId: string): void {
+    const session = this.tabs.get(tabId);
+    if (!session) return;
+    clearInterval(session.pollInterval);
+    clearTimeout(session.idleTimer);
+    session.pty.kill();
+    this.tabs.delete(tabId);
+  }
+
+  destroyAll(): void {
+    for (const [tabId] of this.tabs) {
+      this.closeTab(tabId);
+    }
+  }
 }
 
 export function writeToTerminal(pty: IPty, text: string): void {
@@ -103,8 +135,4 @@ export function resizeTerminal(pty: IPty, cols: number, rows: number): void {
 
 export function stopTerminal(pty: IPty): void {
   pty.write("\x03");
-}
-
-export function destroyTerminal(pty: IPty): void {
-  pty.kill();
 }

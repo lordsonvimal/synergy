@@ -107,7 +107,16 @@ Key architecture decisions:
 | FR-48 | Cache static assets | Done | SW caches shell (network-first), hashed assets + icons (cache-first), Google Fonts (cache-first); auto-purges old caches on version bump |
 | FR-49 | App icon on home screen | Done | All sizes generated from SVG source |
 | — | Error handling | Done | Toast system for user-facing errors |
-| — | Session persistence | TODO | Terminal state lost on reload |
+| — | Session persistence | Moved | Subsumed by Phase 5 (FR-72) — tmux-backed tabs handle persistence |
+
+## Phase 5: Multi-Tab Terminals — 0% done
+
+| ID | Requirement | Status | Notes |
+|----|-------------|--------|-------|
+| FR-70 | Multiple terminal tabs | Done | Each tab owns an independent PTY via TerminalManager; server routes messages by tabId |
+| FR-71 | Tab bar UI | Done | Create, switch, close tabs; active tab visually distinguished; double-click to rename |
+| FR-72 | Session persistence per tab | TODO | Each tab's tmux session survives disconnect/reload; reattach on reconnect |
+| FR-73 | Tab metadata | Done | User-assignable label per tab via double-click rename in tab bar |
 
 ## Recommended build order
 
@@ -119,3 +128,7 @@ Key architecture decisions:
 6. ~~FR-05 — Waveform visualization~~ ✓
 7. ~~FR-46/49 — Generate PWA icons~~ ✓
 8. ~~FR-48 — Service worker asset caching~~ ✓
+9. ~~FR-70 — Multi-tab terminals~~ ✓
+10. ~~FR-71 — Tab bar UI~~ ✓
+11. ~~FR-73 — Tab metadata (labels)~~ ✓
+12. FR-72 — Session persistence (tmux)

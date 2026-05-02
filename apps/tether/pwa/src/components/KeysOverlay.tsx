@@ -1,6 +1,7 @@
 import { Component, Show, createSignal, createEffect } from "solid-js";
 import { Portal } from "solid-js/web";
 import { useConnection } from "../context/connection.js";
+import { useTabs } from "../context/tabs.js";
 
 interface KeysOverlayProps {
   open: boolean;
@@ -9,6 +10,7 @@ interface KeysOverlayProps {
 
 export const KeysOverlay: Component<KeysOverlayProps> = props => {
   const { send } = useConnection();
+  const { activeTabId } = useTabs();
   const [mounted, setMounted] = createSignal(false);
   const [closing, setClosing] = createSignal(false);
 
@@ -29,7 +31,7 @@ export const KeysOverlay: Component<KeysOverlayProps> = props => {
   };
 
   const sendKey = (data: string): void => {
-    send({ type: "key", data });
+    send({ type: "key", tabId: activeTabId(), data });
   };
 
   const keys = [

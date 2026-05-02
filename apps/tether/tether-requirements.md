@@ -739,6 +739,12 @@ claude --version   # Verify
 - [ ] PWA icons and install prompt
 - [ ] Session persistence (reconnect to existing PTY session)
 
+### Phase 5 — Multi-Tab Terminals
+- [ ] Multiple terminal tabs — each tab owns an independent tmux session with its own PTY
+- [ ] Tab bar UI — create, switch, close tabs; active tab visually distinguished
+- [ ] Session persistence per tab — each tab's tmux session survives disconnect/reload; reattach on reconnect
+- [ ] Tab metadata — user-assignable label per tab, persisted across sessions
+
 ---
 
 ## 11. Known Limitations
@@ -760,7 +766,7 @@ claude --version   # Verify
 
 - **Remote access via Tailscale** — use from outside home network
 - **Conversation history** — persist across sessions with SQLite
-- **Multiple terminals** — manage more than one Claude Code session
+- ~~**Multiple terminals**~~ — promoted to Phase 5
 - **File preview** — show files Claude is editing inline
 - **Diff viewer** — show code changes visually
 - **Upgrade TTS** — swap to Piper (local, natural voice) when quality matters

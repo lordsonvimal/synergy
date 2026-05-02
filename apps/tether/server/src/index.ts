@@ -4,7 +4,7 @@ import { URL } from "url";
 import https from "https";
 import express from "express";
 import { WebSocketServer } from "ws";
-import { createTerminal, destroyTerminal } from "./terminal.js";
+import { TerminalManager } from "./terminal.js";
 import { handleMessage } from "./handler.js";
 import { getBattery } from "./battery.js";
 import { validateToken } from "./auth.js";
@@ -41,7 +41,7 @@ const wss = new WebSocketServer({
 wss.on("connection", (ws) => {
   console.log("[ws] client connected");
 
-  const pty = createTerminal((data) => {
+  const manager = new TerminalManager((data) => {
     ws.send(JSON.stringify(data));
   });
 
@@ -55,13 +55,13 @@ wss.on("connection", (ws) => {
 
   ws.on("message", (raw) => {
     const message = JSON.parse(String(raw));
-    handleMessage(message, pty);
+    handleMessage(message, manager);
   });
 
   ws.on("close", () => {
     console.log("[ws] client disconnected");
     clearInterval(batteryInterval);
-    destroyTerminal(pty);
+    manager.destroyAll();
   });
 });
 

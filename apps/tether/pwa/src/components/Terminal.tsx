@@ -1,10 +1,17 @@
-import { Component, onMount, onCleanup, createEffect } from "solid-js";
+import {
+  Component,
+  createEffect,
+  on,
+  onCleanup,
+  onMount
+} from "solid-js";
 import { Terminal as XTerm, ITheme } from "xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "xterm/css/xterm.css";
 import { useConnection } from "../context/connection.js";
 import { useSettings } from "../context/settings.js";
+import { useTabs } from "../context/tabs.js";
 import { playChime } from "../lib/chime.js";
 
 const darkTheme: ITheme = {
@@ -61,116 +68,199 @@ const FONT_SIZE_MAP: Record<string, number> = {
   large: 17
 };
 
-export const Terminal: Component = () => {
-  let containerRef: HTMLDivElement | undefined;
-  let terminal: XTerm | undefined;
-  let fitAddon: FitAddon | undefined;
+interface TerminalInstance {
+  terminal: XTerm;
+  fitAddon: FitAddon;
+  resizeObserver: ResizeObserver;
+  resizeTimer: ReturnType<typeof setTimeout> | undefined;
+}
 
-  const { onMessage, send } = useConnection();
-  const { settings } = useSettings();
+const instances = new Map<string, TerminalInstance>();
 
-  onMount(() => {
-    if (!containerRef) {
-      return;
-    }
-
-    const currentTheme = settings().theme === "light" ? lightTheme : darkTheme;
-
-    terminal = new XTerm({
-      theme: currentTheme,
-      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-      fontSize: FONT_SIZE_MAP[settings().fontSize] ?? 14,
-      lineHeight: 1.4,
-      cursorBlink: true,
-      scrollback: 5000,
-      convertEol: true,
-      allowProposedApi: true,
-      scrollOnUserInput: true
-    });
-
-    fitAddon = new FitAddon();
-    terminal.loadAddon(fitAddon);
-    terminal.loadAddon(new WebLinksAddon());
-
-    terminal.open(containerRef);
-
-    const xtermEl = containerRef.querySelector(".xterm") as HTMLElement;
-    if (xtermEl) {
-      xtermEl.style.height = "100%";
-    }
-    const screenEl = containerRef.querySelector(".xterm-screen") as HTMLElement;
-    if (screenEl) {
-      screenEl.style.height = "100%";
-    }
-
-    requestAnimationFrame(() => {
-      fitAddon?.fit();
-      if (terminal) {
+function getOrCreateInstance(
+  tabId: string,
+  container: HTMLDivElement,
+  settings: { theme: string; fontSize: string },
+  send: (msg: unknown) => void
+): TerminalInstance {
+  const existing = instances.get(tabId);
+  if (existing) {
+    if (existing.terminal.element && !container.contains(existing.terminal.element)) {
+      container.appendChild(existing.terminal.element);
+      requestAnimationFrame(() => {
+        existing.fitAddon.fit();
         send({
           type: "resize",
-          cols: terminal.cols,
-          rows: terminal.rows
+          tabId,
+          cols: existing.terminal.cols,
+          rows: existing.terminal.rows
         });
-      }
-    });
+      });
+    }
+    return existing;
+  }
 
-    terminal.onData((data) => {
-      send({ type: "key", data });
-    });
+  const currentTheme = settings.theme === "light" ? lightTheme : darkTheme;
+  const terminal = new XTerm({
+    theme: currentTheme,
+    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+    fontSize: FONT_SIZE_MAP[settings.fontSize] ?? 14,
+    lineHeight: 1.4,
+    cursorBlink: true,
+    scrollback: 5000,
+    convertEol: true,
+    allowProposedApi: true,
+    scrollOnUserInput: true
+  });
 
+  const fitAddon = new FitAddon();
+  terminal.loadAddon(fitAddon);
+  terminal.loadAddon(new WebLinksAddon());
+
+  terminal.open(container);
+
+  const xtermEl = container.querySelector(".xterm") as HTMLElement;
+  if (xtermEl) xtermEl.style.height = "100%";
+  const screenEl = container.querySelector(
+    ".xterm-screen"
+  ) as HTMLElement;
+  if (screenEl) screenEl.style.height = "100%";
+
+  requestAnimationFrame(() => {
+    fitAddon.fit();
+    send({
+      type: "resize",
+      tabId,
+      cols: terminal.cols,
+      rows: terminal.rows
+    });
+  });
+
+  terminal.onData((data) => {
+    send({ type: "key", tabId, data });
+  });
+
+  let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+  const resizeObserver = new ResizeObserver(() => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      fitAddon.fit();
+      send({
+        type: "resize",
+        tabId,
+        cols: terminal.cols,
+        rows: terminal.rows
+      });
+    }, 100);
+  });
+  resizeObserver.observe(container);
+
+  const instance: TerminalInstance = {
+    terminal,
+    fitAddon,
+    resizeObserver,
+    resizeTimer
+  };
+  instances.set(tabId, instance);
+  return instance;
+}
+
+export function destroyTabTerminal(tabId: string): void {
+  const instance = instances.get(tabId);
+  if (!instance) return;
+  clearTimeout(instance.resizeTimer);
+  instance.resizeObserver.disconnect();
+  instance.terminal.dispose();
+  instances.delete(tabId);
+}
+
+export const Terminal: Component = () => {
+  let containerRef: HTMLDivElement | undefined;
+  const { onMessage, send } = useConnection();
+  const { settings } = useSettings();
+  const { activeTabId } = useTabs();
+
+  onMount(() => {
     onMessage((data) => {
-      const msg = data as { type: string; data?: string };
-      if (msg.type === "pty" && msg.data) {
-        terminal?.write(msg.data);
-      } else if (msg.type === "command-complete") {
-        if (settings().chimeEnabled) {
+      const msg = data as {
+        type: string;
+        tabId?: string;
+        data?: string;
+      };
+      if (msg.type === "pty" && msg.data && msg.tabId) {
+        instances.get(msg.tabId)?.terminal.write(msg.data);
+      } else if (msg.type === "command-complete" && msg.tabId) {
+        if (settings().chimeEnabled && msg.tabId === activeTabId()) {
           playChime();
         }
       }
     });
-
-    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
-    const resizeObserver = new ResizeObserver(() => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        fitAddon?.fit();
-        if (terminal) {
-          send({
-            type: "resize",
-            cols: terminal.cols,
-            rows: terminal.rows
-          });
-        }
-      }, 100);
-    });
-
-    resizeObserver.observe(containerRef);
-
-    onCleanup(() => {
-      clearTimeout(resizeTimer);
-      resizeObserver.disconnect();
-      terminal?.dispose();
-    });
   });
+
+  createEffect(
+    on(activeTabId, (tabId) => {
+      if (!containerRef || !tabId) return;
+
+      for (const [id, inst] of instances) {
+        if (inst.terminal.element) {
+          inst.terminal.element.style.display =
+            id === tabId ? "" : "none";
+        }
+      }
+
+      const existing = instances.get(tabId);
+      if (existing) {
+        if (existing.terminal.element) {
+          existing.terminal.element.style.display = "";
+        }
+        requestAnimationFrame(() => {
+          existing.fitAddon.fit();
+          existing.terminal.focus();
+        });
+        return;
+      }
+
+      getOrCreateInstance(
+        tabId,
+        containerRef,
+        { theme: settings().theme, fontSize: settings().fontSize },
+        send
+      );
+    })
+  );
 
   createEffect(() => {
     const theme = settings().theme === "light" ? lightTheme : darkTheme;
-    if (terminal) {
-      terminal.options.theme = theme;
+    for (const [, inst] of instances) {
+      inst.terminal.options.theme = theme;
     }
   });
 
   createEffect(() => {
     const size = FONT_SIZE_MAP[settings().fontSize] ?? 14;
-    if (terminal) {
-      terminal.options.fontSize = size;
-      fitAddon?.fit();
-      send({ type: "resize", cols: terminal.cols, rows: terminal.rows });
+    for (const [tabId, inst] of instances) {
+      inst.terminal.options.fontSize = size;
+      inst.fitAddon.fit();
+      send({
+        type: "resize",
+        tabId,
+        cols: inst.terminal.cols,
+        rows: inst.terminal.rows
+      });
     }
   });
 
+  onCleanup(() => {
+    for (const [, inst] of instances) {
+      clearTimeout(inst.resizeTimer);
+      inst.resizeObserver.disconnect();
+      inst.terminal.dispose();
+    }
+    instances.clear();
+  });
+
   const focusTerminal = (): void => {
-    terminal?.focus();
+    instances.get(activeTabId())?.terminal.focus();
   };
 
   return (

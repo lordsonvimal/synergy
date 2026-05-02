@@ -71,3 +71,12 @@ footer[data-testid="input-bar"] {
 .animate-slide-down {
   animation: slide-down 200ms ease-in forwards;
 }
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
