@@ -102,10 +102,10 @@ Key architecture decisions:
 | ID | Requirement | Status | Notes |
 |----|-------------|--------|-------|
 | NFR-06 | Shared secret auth | Done | Server validates token on WS upgrade, PWA sends via query param, secret field in ConnectScreen |
-| FR-46 | Installable PWA | TODO | Manifest exists, icons missing |
+| FR-46 | Installable PWA | Done | Manifest + icons (192, 512, SVG, apple-touch, favicon) |
 | FR-47 | Standalone mode | Done | manifest.json has standalone |
 | FR-48 | Cache static assets | TODO | sw.js only caches / and /manifest.json |
-| FR-49 | App icon on home screen | TODO | icons/ directory empty |
+| FR-49 | App icon on home screen | Done | All sizes generated from SVG source |
 | — | Error handling | Done | Toast system for user-facing errors |
 | — | Session persistence | TODO | Terminal state lost on reload |
 
@@ -117,5 +117,5 @@ Key architecture decisions:
 4. ~~FR-58-62 — Tailscale remote access (server bind + cert + docs)~~ ✓
 5. ~~NFR-06 — Wire auth on WebSocket upgrade~~ ✓
 6. ~~FR-05 — Waveform visualization~~ ✓
-7. FR-46/49 — Generate PWA icons
+7. ~~FR-46/49 — Generate PWA icons~~ ✓
 8. FR-48 — Service worker asset caching
