@@ -1,17 +1,17 @@
 import { Component, Show, onMount, onCleanup, createSignal } from "solid-js";
 import { ConnectionProvider, useConnection } from "./context/connection.js";
 import { SettingsProvider } from "./context/settings.js";
-import { TabsProvider, useTabs } from "./context/tabs.js";
+import { PanesProvider, usePanes } from "./context/panes.js";
 import { StatusBar } from "./components/StatusBar.js";
-import { TabBar } from "./components/TabBar.js";
-import { Terminal, destroyTabTerminal } from "./components/Terminal.js";
+import { SplitContainer } from "./components/SplitContainer.js";
 import { TerminalToolbar } from "./components/TerminalToolbar.js";
 import { ConnectScreen } from "./components/ConnectScreen.js";
 import { ToastLayer } from "./components/ToastLayer.js";
+import { destroyInstance } from "./lib/terminal-instances.js";
 
 const Main: Component = () => {
   const { connected, onMessage } = useConnection();
-  const { closeTab } = useTabs();
+  const { closeTab, getRoot } = usePanes();
   const [viewHeight, setViewHeight] = createSignal(window.innerHeight);
 
   onMount(() => {
@@ -27,11 +27,31 @@ const Main: Component = () => {
     onMessage((data) => {
       const msg = data as { type: string; tabId?: string };
       if (msg.type === "tab-exited" && msg.tabId) {
-        destroyTabTerminal(msg.tabId);
-        closeTab(msg.tabId);
+        destroyInstance(msg.tabId);
+        const leaves = getAllLeavesFromRoot();
+        for (const leaf of leaves) {
+          if (leaf.tabs.some((t) => t.id === msg.tabId)) {
+            closeTab(leaf.id, msg.tabId!);
+            break;
+          }
+        }
       }
     });
   });
+
+  const getAllLeavesFromRoot = () => {
+    const result: Array<{ id: string; tabs: Array<{ id: string }> }> = [];
+    const collect = (node: ReturnType<typeof getRoot>): void => {
+      if (node.type === "leaf") {
+        result.push(node);
+      } else {
+        collect(node.children[0]);
+        collect(node.children[1]);
+      }
+    };
+    collect(getRoot());
+    return result;
+  };
 
   return (
     <Show when={connected()} fallback={<ConnectScreen />}>
@@ -41,8 +61,9 @@ const Main: Component = () => {
         data-testid="tether-main"
       >
         <StatusBar />
-        <TabBar />
-        <Terminal />
+        <div class="flex-1 flex min-h-0 min-w-0 overflow-hidden">
+          <SplitContainer node={getRoot()} />
+        </div>
         <TerminalToolbar />
       </div>
     </Show>
@@ -52,12 +73,12 @@ const Main: Component = () => {
 export const App: Component = () => {
   return (
     <SettingsProvider>
-      <TabsProvider>
+      <PanesProvider>
         <ConnectionProvider>
           <Main />
           <ToastLayer />
         </ConnectionProvider>
-      </TabsProvider>
+      </PanesProvider>
     </SettingsProvider>
   );
 };

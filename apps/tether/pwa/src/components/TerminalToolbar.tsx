@@ -1,13 +1,13 @@
 import { Component, createSignal } from "solid-js";
 import { useConnection } from "../context/connection.js";
-import { useTabs } from "../context/tabs.js";
+import { usePanes } from "../context/panes.js";
 import { VoiceInput } from "./VoiceInput.js";
 import { KeysOverlay } from "./KeysOverlay.js";
 import { ShortcutPanel } from "./ShortcutPanel.js";
 
 export const TerminalToolbar: Component = () => {
   const { send } = useConnection();
-  const { activeTabId } = useTabs();
+  const { activeTabId } = usePanes();
   const [keysOpen, setKeysOpen] = createSignal(false);
   const [shortcutsOpen, setShortcutsOpen] = createSignal(false);
   const [isReviewing, setIsReviewing] = createSignal(false);

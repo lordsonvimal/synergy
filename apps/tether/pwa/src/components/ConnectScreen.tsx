@@ -1,7 +1,7 @@
 import { Component, createSignal, createEffect, Show } from "solid-js";
 import { useSettings } from "../context/settings.js";
 import { useConnection } from "../context/connection.js";
-import { useTabs } from "../context/tabs.js";
+import { usePanes } from "../context/panes.js";
 
 const INPUT_BASE = "w-full bg-canvas text-ink p-3 rounded-md text-[15px] outline-none placeholder:text-ink-dim transition-colors";
 const INPUT_DEFAULT = `${INPUT_BASE} border border-edge-strong focus:border-primary focus:ring-2 focus:ring-primary/25`;
@@ -10,7 +10,7 @@ const INPUT_ERROR = `${INPUT_BASE} border border-error focus:ring-2 focus:ring-e
 export const ConnectScreen: Component = () => {
   const { settings, updateSettings } = useSettings();
   const { connect, connected } = useConnection();
-  const { activeTabId } = useTabs();
+  const { activeTabId } = usePanes();
   const [connecting, setConnecting] = createSignal(false);
   const [error, setError] = createSignal("");
   const [hostTouched, setHostTouched] = createSignal(false);
