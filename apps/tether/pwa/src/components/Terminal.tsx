@@ -54,6 +54,12 @@ const lightTheme: ITheme = {
   brightWhite: "#FFFFFF"
 };
 
+const FONT_SIZE_MAP: Record<string, number> = {
+  small: 12,
+  medium: 14,
+  large: 17
+};
+
 export const Terminal: Component = () => {
   let containerRef: HTMLDivElement | undefined;
   let terminal: XTerm | undefined;
@@ -72,7 +78,7 @@ export const Terminal: Component = () => {
     terminal = new XTerm({
       theme: currentTheme,
       fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-      fontSize: 14,
+      fontSize: FONT_SIZE_MAP[settings().fontSize] ?? 14,
       lineHeight: 1.4,
       cursorBlink: true,
       scrollback: 5000,
@@ -146,6 +152,15 @@ export const Terminal: Component = () => {
     const theme = settings().theme === "light" ? lightTheme : darkTheme;
     if (terminal) {
       terminal.options.theme = theme;
+    }
+  });
+
+  createEffect(() => {
+    const size = FONT_SIZE_MAP[settings().fontSize] ?? 14;
+    if (terminal) {
+      terminal.options.fontSize = size;
+      fitAddon?.fit();
+      send({ type: "resize", cols: terminal.cols, rows: terminal.rows });
     }
   });
 

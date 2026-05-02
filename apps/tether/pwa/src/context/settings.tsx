@@ -15,6 +15,7 @@ export interface Settings {
   ttsVoice: string;
   theme: "dark" | "light";
   fontSize: "small" | "medium" | "large";
+  chimeEnabled: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -24,7 +25,8 @@ const DEFAULT_SETTINGS: Settings = {
   ttsSpeed: 1.0,
   ttsVoice: "",
   theme: "dark",
-  fontSize: "medium"
+  fontSize: "medium",
+  chimeEnabled: true
 };
 
 const STORAGE_KEY = "tether-settings";
