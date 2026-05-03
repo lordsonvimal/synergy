@@ -147,7 +147,71 @@ Key architecture decisions:
 | FR-97 | Terminal session persistence | Done | tmux-backed sessions survive disconnect/reload/server crash; server replays scrollback via `capture-pane -e` on reattach; each tab maps to tmux session `tether-{tabId}` |
 | FR-98 | Graceful cleanup | Done | Server sends `tab-exited` on tmux session exit; orphaned `tether-*` sessions cleaned on server start; 5-min grace timer kills sessions with no connected client; SIGTERM/SIGINT handlers destroy all sessions |
 
-## Recommended build order
+## Phase 8: File Explorer — Planned
+
+Full specification: `file-explorer-requirements.md`
+
+| ID | Requirement | Status | Notes |
+|----|-------------|--------|-------|
+| FE-01 | Collapsible sidebar panel (slide-in from left) | | Same animation pattern as settings panel |
+| FE-02 | Toggle via folder icon in StatusBar | | |
+| FE-03 | Fetch CWD of active terminal via tmux on open | | `tmux display-message -p '#{pane_current_path}'` |
+| FE-04 | Independent sidebar navigation (doesn't cd in terminal) | | |
+| FE-05 | "Open in terminal" action sends `cd <path>` to active tab | | |
+| FE-06 | Re-fetch CWD on sidebar open (no polling) | | |
+| FE-07 | Re-fetch CWD on active tab change while sidebar is open | | |
+| FE-08 | Breadcrumb bar — clickable path segments to jump up | | |
+| FE-10 | File/folder list with icons, size, modified date | | Folders first, then files |
+| FE-13 | Sort options: name, modified, size | | |
+| FE-14 | Hidden files toggle (show/hide dotfiles) | | |
+| FE-20 | File preview in a non-terminal tab | | New pane tab type |
+| FE-22 | Code/text preview with highlight.js + line numbers | | Already a dependency |
+| FE-23 | Image preview (jpg, png, gif, svg, webp) | | `<img>` tag |
+| FE-24 | Markdown preview with `marked` | | Already a dependency |
+| FE-25 | PDF preview (iframe desktop, download iOS) | | |
+| FE-26 | Video/audio preview | | Native `<video>`/`<audio>` |
+| FE-40 | Sidebar search — filter current directory in real-time | | |
+| FE-41 | Deep recursive search (depth-limited, 300ms debounce) | | |
+| FE-44 | GlobalSearch integration — "Files" section; `/` prefix = files-only mode; paginated (20/page); mode switcher pills (Tabs/Files/Commands) | | |
+| FE-50 | Context menu (right-click desktop, long-press mobile) | | |
+| FE-51 | Copy full path / Copy relative path | | |
+| FE-53 | Rename (inline edit) | | |
+| FE-54 | Delete with confirmation dialog | | |
+| FE-55 | File/folder info (size, modified, permissions, owner) | | |
+| FE-57 | New file / New folder | | |
+| FE-59 | Download file | | |
+| FE-60 | Paste path into terminal cursor | | |
+| FE-70 | Swipe-left quick actions on mobile (delete, rename) | | |
+| FE-73 | Full-screen overlay on mobile (<768px) | | |
+| FE-74 | Side panel (280px) on desktop (>=1024px) | | |
+| FE-81 | Drag file from sidebar to terminal to paste path | | Desktop only |
+| FE-82 | Keyboard shortcut to toggle sidebar | | |
+| FE-83 | Keyboard navigation in sidebar (arrows, Enter, Backspace) | | |
+| FE-90 | Pinned/favorite directories | | |
+
+### Server endpoints needed
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/cwd/:tabId` | Get CWD of a tmux session |
+| `GET /api/files?dir=<path>` | List directory contents |
+| `GET /api/file?path=<path>` | Serve file content for preview/download |
+| `GET /api/files/search?dir=<path>&q=<query>` | Recursive file search |
+| `POST /api/files/rename` | Rename file or folder |
+| `POST /api/files/delete` | Delete file or folder |
+| `POST /api/files/create` | Create new file or folder |
+| `GET /api/files/info?path=<path>` | File/folder metadata |
+
+### Recommended build order
+
+1. Phase 8a — Server endpoints (cwd, list, serve, info, security)
+2. Phase 8b — Sidebar UI (panel, breadcrumb, file list, sort, hidden toggle, states)
+3. Phase 8c — File preview (non-terminal tab type, code/image/markdown/pdf/video/audio)
+4. Phase 8d — Context actions (menu, copy, rename, delete, info, open-in-terminal, new)
+5. Phase 8e — File search (sidebar filter, recursive search, GlobalSearch integration)
+6. Phase 8f — Advanced (swipe actions, drag-to-terminal, pull-to-refresh, keyboard nav, pins)
+
+## Completed phases
 
 1. ~~FR-38/44 — Settings panel UI (theme, font size, chime toggle, shortcuts management)~~ ✓
 2. ~~FR-51-56 — Shortcut command center~~ ✓

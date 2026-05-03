@@ -207,6 +207,29 @@ TTS was dropped — reading raw terminal output aloud (code blocks, file paths, 
 | FR-97 | Terminal session persistence — each tab's PTY session survives page reload and reconnection; server preserves PTY sessions and replays scrollback on reattach | Must |
 | FR-98 | Graceful cleanup — when the server detects a tab's PTY has exited, it notifies the PWA to remove the tab; orphaned PTY sessions are cleaned up on server restart | Must |
 
+### 2.17 File Explorer
+
+Full specification: `file-explorer-requirements.md`
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FE-01 | Collapsible sidebar panel (slide-in from left), toggled via folder icon in StatusBar | Must |
+| FE-03 | On open, fetch CWD of active terminal via `tmux display-message -p '#{pane_current_path}'` and list directory contents | Must |
+| FE-04 | Independent navigation — browsing in the sidebar does not cd in the terminal | Must |
+| FE-05 | "Open in terminal" action — sends `cd <path>` to the active terminal on explicit user action | Must |
+| FE-08 | Breadcrumb bar — clickable path segments to jump to any ancestor directory | Must |
+| FE-10 | File/folder list with type icons, file size, and last modified date | Must |
+| FE-14 | Hidden files toggle — show/hide dotfiles | Must |
+| FE-20 | File preview in a non-terminal pane tab — code (highlight.js), images, markdown (marked), PDF, video, audio | Must |
+| FE-40 | Sidebar search input — filters current directory in real-time, with recursive deep search option | Must |
+| FE-44 | GlobalSearch integration — "Files" section in search results using active terminal's CWD | Should |
+| FE-50 | Context menu (right-click desktop, long-press mobile) — copy path, rename, delete, info, open in terminal, new file/folder, download | Must |
+| FE-70 | Swipe-left quick actions on mobile (delete, rename) | Should |
+| FE-73 | Full-screen overlay on mobile (<768px), side panel (280px) on desktop (>=1024px) | Must |
+| FE-81 | Drag file from sidebar to terminal to paste its path (desktop) | Should |
+| FE-82 | Keyboard shortcut to toggle sidebar | Should |
+| FE-90 | Pinned/favorite directories | Could |
+
 ---
 
 ## 3. Non-Functional Requirements
@@ -828,8 +851,8 @@ claude --version   # Verify
 - ~~**Remote access via Tailscale**~~ — Done (Phase 3b)
 - ~~**Multiple terminals**~~ — Done (Phase 5)
 - ~~**Split-pane layout**~~ — Done (Phase 6)
-- **Pane & terminal persistence** — Phase 7 (planned)
-- **File preview** — show files Claude is editing inline
+- **Pane & terminal persistence** — Phase 7 (done)
+- ~~**File preview**~~ — Phase 8: File Explorer (planned) — see `file-explorer-requirements.md`
 - **Diff viewer** — show code changes visually
 - **Upgrade TTS** — swap to Piper (local, natural voice) when quality matters
 - **Play Store** — wrap with Bubblewrap TWA for Google Play listing
