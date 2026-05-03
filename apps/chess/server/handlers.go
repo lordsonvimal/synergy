@@ -16,7 +16,7 @@ import (
 
 func ShowGameModes(c *gin.Context) {
 	modes := game.ListGameModes()
-	Render(c, http.StatusOK, pages.GameModesPage(modes))
+	Render(c, http.StatusOK, pages.GameModesPage(modes, CSRFToken(c)))
 }
 
 func CreateGame(c *gin.Context) {

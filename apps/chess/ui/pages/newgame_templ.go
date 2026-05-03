@@ -46,7 +46,7 @@ func NewGamePage(g *game.Game) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<script type=\"module\" src=\"https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js\"></script> <div class=\"flex flex-col lg:flex-row lg:items-start gap-4 p-4 lg:h-full\" data-signals=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<script type=\"module\" src=\"/assets/datastar.js\"></script> <div class=\"flex flex-col lg:flex-row lg:items-start gap-4 p-4 lg:h-full\" data-signals=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

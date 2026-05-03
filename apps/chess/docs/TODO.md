@@ -84,9 +84,9 @@
 
 ## 7. Security
 
-- [ ] Validate WebSocket `CheckOrigin` — currently accepts all origins
-- [ ] Add CSRF protection on POST forms (`/game`, `/game/:gameID/select/:square`)
-- [ ] Bundle Datastar locally instead of loading from CDN (local-first principle)
+- [x] Validate WebSocket `CheckOrigin` — resolved: removed unused WebSocket code (server/ws.go) and gorilla/websocket dependency
+- [x] Add CSRF protection on POST forms (`/game`, `/game/:gameID/select/:square`)
+- [x] Bundle Datastar locally instead of loading from CDN (local-first principle)
 
 ## 8. Error Handling & UX
 
@@ -102,7 +102,7 @@
 - [ ] Gate `requestAnimationFrame` loop in `initClock.js` — only run when clock elements exist
 - [ ] Fix `sync.js` — `document.getElementById` at module top will fail if DOM not ready
 - [ ] Wire clock UI elements into templates (referenced in JS but never rendered)
-- [ ] Remove or wire `GameWS` handler into routes (defined but unused)
+- [x] Remove or wire `GameWS` handler into routes — removed (server/ws.go deleted)
 - [ ] Remove stale `esbuild` Makefile target (references non-existent `js/index.ts`)
 - [x] Fix `tailwind.config.js` — removed (Tailwind v4 uses CSS-based config, file was dead)
 - [ ] Move WAL file output to a configurable data directory (not app root)

@@ -42,8 +42,10 @@ func main() {
 	router.Use(logger.RedactedStructuredLogger(logger.GlobalLogger())) // Structured logging with token redaction (access_token, auth_token, etc.)
 	router.Use(gin.Recovery())                                         // Use default recovery for panic logging/handling
 	router.Use(store.StoreContext(gameStore))                          // Add gameStore to context
+	router.Use(server.CSRFMiddleware())
 
 	router.Static("/static", "./dist")
+	router.Static("/assets", "./assets")
 	router.StaticFile("/favicon.svg", "assets/favicon.svg")
 
 	server.InitRoutes(router)
