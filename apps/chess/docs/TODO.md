@@ -15,9 +15,9 @@
 
 ## 2. Design System (Everwise Crest Tokens)
 
-- [ ] Import `@synergy/theme/tokens.css` and `@synergy/theme/dark.css` in `ui/styles/style.css`
-- [ ] Configure Tailwind to resolve the theme package path
-- [ ] Replace all default Tailwind palette classes with brand tokens:
+- [x] Import `@synergy/theme/tokens.css` and `@synergy/theme/dark.css` in `ui/styles/style.css`
+- [x] Configure Tailwind to resolve the theme package path (Tailwind v4 uses CSS imports; removed dead `tailwind.config.js`)
+- [x] Replace all default Tailwind palette classes with brand tokens:
 
 | Location | Current | Replace With |
 |----------|---------|--------------|
@@ -104,7 +104,7 @@
 - [ ] Wire clock UI elements into templates (referenced in JS but never rendered)
 - [ ] Remove or wire `GameWS` handler into routes (defined but unused)
 - [ ] Remove stale `esbuild` Makefile target (references non-existent `js/index.ts`)
-- [ ] Fix `tailwind.config.js` — uses CJS `module.exports` but `package.json` has `"type": "module"`
+- [x] Fix `tailwind.config.js` — removed (Tailwind v4 uses CSS-based config, file was dead)
 - [ ] Move WAL file output to a configurable data directory (not app root)
 
 ## 10. Testing

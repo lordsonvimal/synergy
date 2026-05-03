@@ -31,7 +31,7 @@ func GameInfoPanel() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<aside class=\"w-72 bg-white shadow-lg rounded-xl p-6 flex flex-col gap-6\"><h2 class=\"text-2xl font-bold text-gray-900 border-b pb-2 mb-4\">Game Info</h2><!-- Turn --><div class=\"flex items-center justify-between\"><span class=\"font-semibold text-gray-700\">Turn:</span> <span data-text=\"$sideToMove === 0 ? 'White' : 'Black'\" data-class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<aside class=\"w-72 bg-surface border border-edge rounded-lg shadow-md p-6 flex flex-col gap-6\"><h2 class=\"text-2xl font-bold text-ink border-b border-edge pb-2 mb-4\">Game Info</h2><!-- Turn --><div class=\"flex items-center justify-between\"><span class=\"font-semibold text-ink-secondary\">Turn:</span> <span data-text=\"$sideToMove === 0 ? 'White' : 'Black'\" data-class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -39,8 +39,8 @@ func GameInfoPanel() templ.Component {
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(fmt.Sprintf(`
           (() => {
             return {
-              'bg-blue-600': $sideToMove === 0,
-              'bg-gray-800': $sideToMove === 1,
+              'bg-primary': $sideToMove === 0,
+              'bg-ink': $sideToMove === 1,
             };
           })()
 			    `)))
@@ -51,7 +51,7 @@ func GameInfoPanel() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"px-3 py-1 rounded-full text-white font-medium\"></span></div><!-- Check --><div class=\"flex items-center justify-between\" data-show=\"$isCheck\" style=\"display: none\"><span class=\"font-semibold text-gray-700\">Check:</span> <span class=\"px-3 py-1 bg-red-600 text-white rounded-full font-semibold\">King in check!</span></div><!-- Game State --><div class=\"flex flex-col\"><span class=\"font-semibold text-gray-700 mb-1\">Game State:</span> <span data-text=\"$gameStateText\" class=\"px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium\"></span></div><!-- Winner --><div class=\"flex items-center justify-between\" data-show=\"$winner !== 255\" style=\"display: none\"><span class=\"font-semibold text-gray-700\">Winner:</span> <span data-text=\"$winner === 0 ? 'White' : 'Black'\" class=\"px-3 py-1 bg-green-600 text-white rounded-full font-bold\"></span></div></aside>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"px-3 py-1 rounded-full text-on-primary font-medium\"></span></div><!-- Check --><div class=\"flex items-center justify-between\" data-show=\"$isCheck\" style=\"display: none\"><span class=\"font-semibold text-ink-secondary\">Check:</span> <span class=\"px-3 py-1 bg-error text-on-primary rounded-full font-semibold\">King in check!</span></div><!-- Game State --><div class=\"flex flex-col\"><span class=\"font-semibold text-ink-secondary mb-1\">Game State:</span> <span data-text=\"$gameStateText\" class=\"px-3 py-1 bg-warning-subtle text-warning rounded-full font-medium\"></span></div><!-- Winner --><div class=\"flex items-center justify-between\" data-show=\"$winner !== 255\" style=\"display: none\"><span class=\"font-semibold text-ink-secondary\">Winner:</span> <span data-text=\"$winner === 0 ? 'White' : 'Black'\" class=\"px-3 py-1 bg-success text-on-primary rounded-full font-bold\"></span></div></aside>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

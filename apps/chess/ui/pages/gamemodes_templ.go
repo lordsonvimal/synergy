@@ -32,7 +32,7 @@ func GameModesPage(modes []game.GameMode) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><title>ChessLab — Game Modes</title><link href=\"/static/style.css\" rel=\"stylesheet\"></head><body class=\"bg-gray-100 min-h-screen flex items-center justify-center\"><div class=\"w-full max-w-2xl p-6\"><h1 class=\"text-3xl font-bold text-center mb-6\">Choose a Game Mode</h1><div class=\"grid gap-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><title>ChessLab — Game Modes</title><link href=\"/static/style.css\" rel=\"stylesheet\"></head><body class=\"bg-canvas min-h-screen flex items-center justify-center\"><div class=\"w-full max-w-2xl p-6\"><h1 class=\"text-3xl font-bold text-center mb-6\">Choose a Game Mode</h1><div class=\"grid gap-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -50,7 +50,7 @@ func GameModesPage(modes []game.GameMode) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"> <button type=\"submit\" class=\"w-full bg-white rounded-xl shadow p-4 text-left hover:bg-blue-50 hover:shadow-md transition\"><div class=\"flex justify-between items-center\"><div><div class=\"text-lg font-semibold\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"> <button type=\"submit\" class=\"w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left hover:bg-primary-subtle hover:shadow-md transition\"><div class=\"flex justify-between items-center\"><div><div class=\"text-lg font-semibold\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -63,7 +63,7 @@ func GameModesPage(modes []game.GameMode) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><div class=\"text-sm text-gray-600\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><div class=\"text-sm text-ink-secondary\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -76,7 +76,7 @@ func GameModesPage(modes []game.GameMode) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div></div><div class=\"text-sm text-gray-500\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div></div><div class=\"text-sm text-ink-dim\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

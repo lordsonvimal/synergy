@@ -11,7 +11,7 @@ templ GameModesPage(modes []game.GameMode) {
 			<title>ChessLab — Game Modes</title>
 			<link href="/static/style.css" rel="stylesheet"/>
 		</head>
-		<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+		<body class="bg-canvas min-h-screen flex items-center justify-center">
 			<div class="w-full max-w-2xl p-6">
 				<h1 class="text-3xl font-bold text-center mb-6">
 					Choose a Game Mode
@@ -22,19 +22,19 @@ templ GameModesPage(modes []game.GameMode) {
 							<input type="hidden" name="mode" value={ mode.Name }/>
 							<button
 								type="submit"
-								class="w-full bg-white rounded-xl shadow p-4 text-left
-								   hover:bg-blue-50 hover:shadow-md transition"
+								class="w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left
+								   hover:bg-primary-subtle hover:shadow-md transition"
 							>
 								<div class="flex justify-between items-center">
 									<div>
 										<div class="text-lg font-semibold">
 											{ mode.Name }
 										</div>
-										<div class="text-sm text-gray-600">
+										<div class="text-sm text-ink-secondary">
 											{ mode.Variant }
 										</div>
 									</div>
-									<div class="text-sm text-gray-500">
+									<div class="text-sm text-ink-dim">
 										{ helpers.FormatTime(mode.TimeNs) } + { helpers.FormatInc(mode.Increment) }
 									</div>
 								</div>

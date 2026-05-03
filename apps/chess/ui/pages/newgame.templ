@@ -15,7 +15,7 @@ templ NewGamePage(g *game.Game) {
 		</head>
 		<!-- Connect SSE live updates once in a page -->
 		<body
-			class="bg-gray-100 h-full"
+			class="bg-canvas h-full"
 			data-signals={ templ.JSONString(ui_store.NewChessBoardSignals()) }
 		>
 			<div class="flex gap-4 h-full">
