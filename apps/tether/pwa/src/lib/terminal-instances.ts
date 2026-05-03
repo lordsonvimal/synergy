@@ -113,7 +113,7 @@ export function createInstance(
     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
     fontSize: FONT_SIZE_MAP[settings.fontSize] ?? 14,
     lineHeight: 1.4,
-    cursorBlink: true,
+    cursorBlink: false,
     scrollback: 5000,
     convertEol: true,
     allowProposedApi: true,
@@ -130,6 +130,34 @@ export function createInstance(
     fitAddon.fit();
     send({ type: "resize", tabId, cols: terminal.cols, rows: terminal.rows });
   });
+
+  terminal.attachCustomKeyEventHandler((e) => {
+    if (e.key === "Enter" && e.shiftKey) {
+      if (e.type === "keydown") {
+        send({ type: "key", tabId, data: "\x1b\r" });
+      }
+      return false;
+    }
+    if (e.metaKey && e.key === "ArrowLeft") {
+      if (e.type === "keydown") {
+        send({ type: "key", tabId, data: "\x01" });
+      }
+      return false;
+    }
+    if (e.metaKey && e.key === "ArrowRight") {
+      if (e.type === "keydown") {
+        send({ type: "key", tabId, data: "\x05" });
+      }
+      return false;
+    }
+    return true;
+  });
+
+  const textarea = container.querySelector(".xterm-helper-textarea");
+  if (textarea) {
+    textarea.addEventListener("focus", () => { terminal.options.cursorBlink = true; });
+    textarea.addEventListener("blur", () => { terminal.options.cursorBlink = false; });
+  }
 
   terminal.onData((data) => {
     send({ type: "key", tabId, data });

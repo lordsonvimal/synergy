@@ -10,6 +10,7 @@ import { Portal } from "solid-js/web";
 import { usePanes } from "../context/panes.js";
 import { useSettings, Shortcut } from "../context/settings.js";
 import { useConnection } from "../context/connection.js";
+import { getInstance } from "../lib/terminal-instances.js";
 
 function escapeHtml(str: string): string {
   return str
@@ -116,14 +117,18 @@ export const GlobalSearch: Component<GlobalSearchProps> = (props) => {
     if (result.kind === "tab") {
       setActivePane(result.paneId);
       setActiveTab(result.paneId, result.tabId);
+      props.onClose();
+      requestAnimationFrame(() => {
+        getInstance(result.tabId)?.terminal.focus();
+      });
     } else {
       send({
         type: "text",
         tabId: activeTabId(),
         data: result.shortcut.command
       });
+      props.onClose();
     }
-    props.onClose();
   };
 
   const handleKeyDown = (e: KeyboardEvent): void => {

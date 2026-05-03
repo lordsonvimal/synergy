@@ -46,6 +46,15 @@ export function createSession(
     cwd: process.env.HOME || process.cwd(),
     stdio: "pipe"
   });
+  execFileSync("tmux", [
+    "set-option", "-t", name, "mouse", "on"
+  ], { stdio: "pipe" });
+  execFileSync("tmux", [
+    "set-option", "-t", name, "extended-keys", "on"
+  ], { stdio: "pipe" });
+  execFileSync("tmux", [
+    "set-option", "-t", name, "allow-passthrough", "on"
+  ], { stdio: "pipe" });
 }
 
 export function attachSession(tabId: string, cols: number, rows: number): IPty {
