@@ -45,7 +45,7 @@ func GameModesPage(modes []game.GameMode) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex items-center justify-center min-h-full\"><div class=\"w-full max-w-2xl p-6\"><h1 class=\"text-2xl font-bold text-ink mb-6\">Choose a Game Mode</h1><div class=\"grid gap-4\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex items-center justify-center min-h-full\"><div class=\"w-full max-w-2xl px-4 py-6 sm:px-6\"><h1 class=\"text-2xl font-bold text-ink mb-6\">Choose a Game Mode</h1><div class=\"grid gap-4\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -126,7 +126,7 @@ func GameModesPage(modes []game.GameMode) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = layouts.Layout("ChessLeap — Game Modes").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layouts.Layout("ChessLeap — Game Modes", false).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -10,7 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "github.com/lordsonvimal/synergy/apps/chess/ui/components"
 
-func Layout(title string) templ.Component {
+func Layout(title string, showBack bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -44,7 +44,17 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\"><link href=\"/static/style.css\" rel=\"stylesheet\"><script>\n\t\t\t\t(function() {\n\t\t\t\t\tconst t = localStorage.getItem(\"theme\");\n\t\t\t\t\tif (t) { document.documentElement.setAttribute(\"data-theme\", t); }\n\t\t\t\t\telse if (window.matchMedia(\"(prefers-color-scheme: dark)\").matches) {\n\t\t\t\t\t\tdocument.documentElement.setAttribute(\"data-theme\", \"dark\");\n\t\t\t\t\t}\n\t\t\t\t})();\n\t\t\t</script></head><body class=\"bg-canvas text-ink h-full flex flex-col\"><header class=\"flex items-center justify-between px-4 py-3 border-b border-edge bg-surface shrink-0\"><a href=\"/\" class=\"flex items-center gap-2 text-lg font-semibold text-ink tracking-tight\"><img src=\"/favicon.svg\" alt=\"ChessLeap logo\" width=\"28\" height=\"28\" class=\"rounded-md\"> ChessLeap</a>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\"><link href=\"/static/style.css\" rel=\"stylesheet\"><script>\n\t\t\t\t(function() {\n\t\t\t\t\tconst t = localStorage.getItem(\"theme\");\n\t\t\t\t\tif (t) { document.documentElement.setAttribute(\"data-theme\", t); }\n\t\t\t\t\telse if (window.matchMedia(\"(prefers-color-scheme: dark)\").matches) {\n\t\t\t\t\t\tdocument.documentElement.setAttribute(\"data-theme\", \"dark\");\n\t\t\t\t\t}\n\t\t\t\t})();\n\t\t\t</script></head><body class=\"bg-canvas text-ink h-full flex flex-col\"><header class=\"flex items-center justify-between px-4 py-3 border-b border-edge bg-surface shrink-0\"><div class=\"flex items-center gap-2\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if showBack {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<a href=\"/\" class=\"p-1 rounded-md hover:bg-muted text-ink-secondary transition\" aria-label=\"Back to game modes\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 18l-6-6 6-6\"></path></svg></a> ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<a href=\"/\" class=\"flex items-center gap-2 text-lg font-semibold text-ink tracking-tight\"><img src=\"/favicon.svg\" alt=\"ChessLeap logo\" width=\"28\" height=\"28\" class=\"rounded-md\"> ChessLeap</a></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -52,7 +62,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</header><main class=\"flex-1 overflow-auto\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</header><main class=\"flex-1 overflow-auto\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -60,7 +70,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</main><footer class=\"shrink-0 border-t border-edge bg-surface px-4 py-2 flex items-center justify-between\"><span class=\"text-xs text-ink-dim\">ChessLeap</span> <span class=\"text-xs text-ink-dim\">v0.1.0</span></footer></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</main><footer class=\"shrink-0 border-t border-edge bg-surface px-4 py-2 flex items-center justify-between\"><span class=\"text-xs text-ink-dim\">ChessLeap</span> <span class=\"text-xs text-ink-dim\">v0.1.0</span></footer></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

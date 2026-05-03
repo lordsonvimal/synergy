@@ -5,9 +5,9 @@ import "github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/layouts"
 
 templ GameModesPage(modes []game.GameMode) {
-	@layouts.Layout("ChessLeap — Game Modes") {
+	@layouts.Layout("ChessLeap — Game Modes", false) {
 		<div class="flex items-center justify-center min-h-full">
-			<div class="w-full max-w-2xl p-6">
+			<div class="w-full max-w-2xl px-4 py-6 sm:px-6">
 				<h1 class="text-2xl font-bold text-ink mb-6">
 					Choose a Game Mode
 				</h1>

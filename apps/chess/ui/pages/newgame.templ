@@ -6,17 +6,17 @@ import "github.com/lordsonvimal/synergy/apps/chess/ui/layouts"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 
 templ NewGamePage(g *game.Game) {
-	@layouts.Layout("ChessLeap") {
+	@layouts.Layout("ChessLeap", true) {
 		<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js"></script>
 		<div
-			class="flex gap-4 h-full"
+			class="flex flex-col lg:flex-row gap-4 h-full p-4"
 			data-signals={ templ.JSONString(ui_store.NewChessBoardSignals()) }
 		>
-			<section class="flex-1 relative">
+			<section class="flex-1 relative min-h-0">
 				@components.RenderChessBoard(g)
 				@components.RenderPromotionOverlay(g)
 			</section>
-			<aside>
+			<aside class="w-full lg:w-72 shrink-0">
 				@components.GameInfoPanel()
 			</aside>
 		</div>

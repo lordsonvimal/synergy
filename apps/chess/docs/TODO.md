@@ -68,11 +68,11 @@
 
 ## 5. Responsive Design
 
-- [ ] Add viewport meta tag to all pages
-- [ ] Implement mobile layout: stack board above game info panel vertically on small screens
-- [ ] Make game info panel (`aside w-72`) responsive — full-width below `lg` breakpoint
-- [ ] Add app shell: top bar with game title, back navigation, theme toggle
-- [ ] Constrain game modes page to `max-w-2xl mx-auto` (already partially done) with proper padding
+- [x] Add viewport meta tag to all pages
+- [x] Implement mobile layout: stack board above game info panel vertically on small screens
+- [x] Make game info panel (`aside w-72`) responsive — full-width below `lg` breakpoint
+- [x] Add app shell: top bar with game title, back navigation, theme toggle
+- [x] Constrain game modes page to `max-w-2xl mx-auto` (already partially done) with proper padding
 - [ ] Test at 375px, 768px, 1024px breakpoints
 
 ## 6. Layout Consolidation
