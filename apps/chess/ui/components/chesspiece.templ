@@ -8,8 +8,12 @@ import (
 templ RenderChessPiece(color engine.Color, piece engine.Piece) {
 	{{
 		label := helpers.ColorName(color) + " " + helpers.PieceName(piece)
+		pieceClass := "chess-piece-white"
+		if color == engine.Black {
+			pieceClass = "chess-piece-black"
+		}
 	}}
-	<span aria-label={ label } role="img">
+	<span aria-label={ label } role="img" class={ pieceClass }>
 		if color == engine.White {
 			switch piece {
 				case engine.Pawn:

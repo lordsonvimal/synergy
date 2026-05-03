@@ -42,9 +42,9 @@ func RenderChessSquare(g *game.Game, rank int, file int) templ.Component {
 
 		id := fmt.Sprintf("square-%d", sq)
 
-		bg := "bg-surface"
+		bg := "bg-chess-light"
 		if (rank+file)%2 == 0 {
-			bg = "bg-muted"
+			bg = "bg-chess-dark"
 		}
 
 		onClick := templ.JSExpression("@post('/game/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
@@ -130,14 +130,13 @@ func RenderChessSquare(g *game.Game, rank int, file int) templ.Component {
 				const isSelected = $selectedSquare === square;
 				const isTarget   = $possibleMoves.includes(square);
 				return {
-					'ring ring-inset ring-1': isSelected || isTarget,
-					'ring-primary bg-primary-subtle': isTarget,
-					'ring-accent bg-accent-subtle': isSelected
+					'chess-sq-target': isTarget && !isSelected,
+					'chess-sq-selected': isSelected
 				};
 			})()
 			`, sq)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/chesssquare.templ`, Line: 48, Col: 10}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/chesssquare.templ`, Line: 47, Col: 10}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {

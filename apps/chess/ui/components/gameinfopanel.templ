@@ -16,19 +16,19 @@ templ GameInfoPanel() {
 				data-class={ templ.JSExpression(fmt.Sprintf(`
           (() => {
             return {
-              'bg-primary': $sideToMove === 0,
-              'bg-ink': $sideToMove === 1,
+              'chess-turn-white': $sideToMove === 0,
+              'chess-turn-black': $sideToMove === 1,
             };
           })()
 			    `)) }
-				class="px-3 py-1 rounded-full text-on-primary font-medium"
+				class="px-3 py-1 rounded-full font-medium"
 			></span>
 		</div>
 		<!-- Check -->
 		<div class="flex items-center justify-between" data-show="$isCheck" style="display: none">
 			<span class="font-semibold text-ink-secondary">Check:</span>
 			<span
-				class="px-3 py-1 bg-error text-on-primary rounded-full font-semibold"
+				class="px-3 py-1 bg-error-subtle text-error rounded-full font-semibold"
 			>
 				King in check!
 			</span>
@@ -46,7 +46,7 @@ templ GameInfoPanel() {
 			<span class="font-semibold text-ink-secondary">Winner:</span>
 			<span
 				data-text="$winner === 0 ? 'White' : 'Black'"
-				class="px-3 py-1 bg-success text-on-primary rounded-full font-bold"
+				class="px-3 py-1 bg-success-subtle text-success rounded-full font-bold"
 			></span>
 		</div>
 	</aside>

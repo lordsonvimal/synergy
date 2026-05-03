@@ -15,9 +15,9 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 
 		id := fmt.Sprintf("square-%d", sq)
 
-		bg := "bg-surface"
+		bg := "bg-chess-light"
 		if (rank+file)%2 == 0 {
-			bg = "bg-muted"
+			bg = "bg-chess-dark"
 		}
 
 		onClick := templ.JSExpression("@post('/game/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
@@ -40,9 +40,8 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 				const isSelected = $selectedSquare === square;
 				const isTarget   = $possibleMoves.includes(square);
 				return {
-					'ring ring-inset ring-1': isSelected || isTarget,
-					'ring-primary bg-primary-subtle': isTarget,
-					'ring-accent bg-accent-subtle': isSelected
+					'chess-sq-target': isTarget && !isSelected,
+					'chess-sq-selected': isSelected
 				};
 			})()
 			`, sq)) }

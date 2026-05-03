@@ -39,8 +39,8 @@ func GameInfoPanel() templ.Component {
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(fmt.Sprintf(`
           (() => {
             return {
-              'bg-primary': $sideToMove === 0,
-              'bg-ink': $sideToMove === 1,
+              'chess-turn-white': $sideToMove === 0,
+              'chess-turn-black': $sideToMove === 1,
             };
           })()
 			    `)))
@@ -51,7 +51,7 @@ func GameInfoPanel() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"px-3 py-1 rounded-full text-on-primary font-medium\"></span></div><!-- Check --><div class=\"flex items-center justify-between\" data-show=\"$isCheck\" style=\"display: none\"><span class=\"font-semibold text-ink-secondary\">Check:</span> <span class=\"px-3 py-1 bg-error text-on-primary rounded-full font-semibold\">King in check!</span></div><!-- Game State --><div class=\"flex flex-col\"><span class=\"font-semibold text-ink-secondary mb-1\">Game State:</span> <span data-text=\"$gameStateText\" class=\"px-3 py-1 bg-warning-subtle text-warning rounded-full font-medium\"></span></div><!-- Winner --><div class=\"flex items-center justify-between\" data-show=\"$winner !== 255\" style=\"display: none\"><span class=\"font-semibold text-ink-secondary\">Winner:</span> <span data-text=\"$winner === 0 ? 'White' : 'Black'\" class=\"px-3 py-1 bg-success text-on-primary rounded-full font-bold\"></span></div></aside>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"px-3 py-1 rounded-full font-medium\"></span></div><!-- Check --><div class=\"flex items-center justify-between\" data-show=\"$isCheck\" style=\"display: none\"><span class=\"font-semibold text-ink-secondary\">Check:</span> <span class=\"px-3 py-1 bg-error-subtle text-error rounded-full font-semibold\">King in check!</span></div><!-- Game State --><div class=\"flex flex-col\"><span class=\"font-semibold text-ink-secondary mb-1\">Game State:</span> <span data-text=\"$gameStateText\" class=\"px-3 py-1 bg-warning-subtle text-warning rounded-full font-medium\"></span></div><!-- Winner --><div class=\"flex items-center justify-between\" data-show=\"$winner !== 255\" style=\"display: none\"><span class=\"font-semibold text-ink-secondary\">Winner:</span> <span data-text=\"$winner === 0 ? 'White' : 'Black'\" class=\"px-3 py-1 bg-success-subtle text-success rounded-full font-bold\"></span></div></aside>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

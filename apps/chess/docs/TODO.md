@@ -51,7 +51,7 @@
 - [x] Respect `prefers-color-scheme: dark` as system default
 - [x] Store user preference in `localStorage` key `theme`
 - [x] Add theme toggle button in game UI
-- [ ] Test all components in both light and dark themes
+- [x] Test all components in both light and dark themes
 
 ## 4. Semantic HTML & Accessibility
 
