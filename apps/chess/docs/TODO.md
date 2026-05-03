@@ -73,7 +73,7 @@
 - [x] Make game info panel (`aside w-72`) responsive — full-width below `lg` breakpoint
 - [x] Add app shell: top bar with game title, back navigation, theme toggle
 - [x] Constrain game modes page to `max-w-2xl mx-auto` (already partially done) with proper padding
-- [ ] Test at 375px, 768px, 1024px breakpoints
+- [x] Test at 375px, 768px, 1024px breakpoints
 
 ## 6. Layout Consolidation
 
@@ -92,7 +92,7 @@
 
 - [ ] Add loading state on game mode form submission
 - [ ] Add user-friendly error UI for failed game creation (not bare `c.String`)
-- [ ] Add back navigation from game page to game modes
+- [x] Add back navigation from game page to game modes
 - [ ] Add empty state for game modes page (when no modes available)
 - [ ] Add error recovery UI (retry buttons)
 - [ ] Surface silent failures (SSE disconnect, WebSocket drop) to user via toast/banner

@@ -9,10 +9,10 @@ templ NewGamePage(g *game.Game) {
 	@layouts.Layout("ChessLeap", true) {
 		<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js"></script>
 		<div
-			class="flex flex-col lg:flex-row gap-4 h-full p-4"
+			class="flex flex-col lg:flex-row lg:items-start gap-4 p-4 lg:h-full"
 			data-signals={ templ.JSONString(ui_store.NewChessBoardSignals()) }
 		>
-			<section class="flex-1 relative min-h-0">
+			<section class="relative lg:flex-1 lg:min-h-0 lg:h-full">
 				@components.RenderChessBoard(g)
 				@components.RenderPromotionOverlay(g)
 			</section>

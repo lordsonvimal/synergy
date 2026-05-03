@@ -20,16 +20,16 @@ templ GameModesPage(modes []game.GameMode) {
 								class="w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left
 								   hover:bg-primary-subtle hover:shadow-md transition cursor-pointer"
 							>
-								<div class="flex justify-between items-center">
-									<div>
-										<div class="text-lg font-semibold text-ink">
+								<div class="flex justify-between items-center gap-3">
+									<div class="min-w-0">
+										<div class="text-lg font-semibold text-ink truncate">
 											{ mode.Name }
 										</div>
 										<div class="text-sm text-ink-secondary">
 											{ mode.Variant }
 										</div>
 									</div>
-									<div class="text-sm text-ink-dim">
+									<div class="text-sm text-ink-dim whitespace-nowrap shrink-0">
 										{ helpers.FormatTime(mode.TimeNs) } + { helpers.FormatInc(mode.Increment) }
 									</div>
 								</div>

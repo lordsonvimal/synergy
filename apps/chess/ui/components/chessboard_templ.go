@@ -31,7 +31,7 @@ func RenderChessBoard(g *game.Game) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"relative h-full flex items-center justify-center\" id=\"chessboard\"><div class=\"bg-chess-frame rounded-lg p-1 sm:p-2 shadow-lg w-full max-w-[560px] aspect-square\"><div class=\"grid grid-cols-8 grid-rows-8 w-full h-full\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"relative h-full flex items-center justify-center\" id=\"chessboard\"><div class=\"bg-chess-frame rounded-lg p-1 sm:p-2 shadow-lg w-[min(100%,calc(100vh-10rem),560px)] aspect-square mx-auto\"><div class=\"grid grid-cols-8 grid-rows-8 w-full h-full\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
