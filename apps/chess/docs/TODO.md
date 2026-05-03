@@ -2,16 +2,16 @@
 
 ## 1. Nx Integration
 
-- [ ] Add `project.json` with `dev`, `serve`, `build`, and `lint` targets (model after `apps/core/project.json`)
-- [ ] `dev` target: run `make live` (parallel templ + air + tailwind)
-- [ ] `serve` target: run compiled binary (`./tmp/bin/main`)
-- [ ] `build` target: `templ generate` + `go build` + Tailwind build
-- [ ] `lint` target: `golangci-lint run`
-- [ ] Add `"dev"` script to `package.json` so Nx can discover it
-- [ ] Fix `build` script output path — currently references `internal/static/css/tailwind.css` but actual output is `./dist/style.css`
-- [ ] Add `"private": true` to `package.json`
-- [ ] Remove `"main": "index.js"` from `package.json` (not applicable to Go app)
-- [ ] Remove `package-lock.json` — repo uses Yarn
+- [x] Add `project.json` with `dev`, `serve`, `build`, and `lint` targets (model after `apps/core/project.json`)
+- [x] `dev` target: run `make live` (parallel templ + air + tailwind)
+- [x] `serve` target: run compiled binary (`./dist/main`)
+- [x] `build` target: `templ generate` + `go build` + Tailwind build
+- [x] `lint` target: `golangci-lint run`
+- [x] Add `"dev"` script to `package.json` so Nx can discover it
+- [x] Fix `build` script output path — now uses `./dist/style.css`
+- [x] Add `"private": true` to `package.json`
+- [x] Remove `"main": "index.js"` from `package.json` (not applicable to Go app)
+- [x] Remove `package-lock.json` — repo uses Yarn
 
 ## 2. Design System (Everwise Crest Tokens)
 

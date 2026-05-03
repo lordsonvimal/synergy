@@ -1,5 +1,6 @@
 {
   "name": "chess",
+  "private": true,
   "version": "1.0.0",
   "description": "multiplayer chess game",
   "keywords": [
@@ -15,9 +16,9 @@
   "license": "ISC",
   "author": "lordson vimal",
   "type": "module",
-  "main": "index.js",
   "scripts": {
-    "build": "tailwindcss build -o internal/static/css/tailwind.css --minify",
+    "dev": "make live",
+    "build": "npx @tailwindcss/cli -i ./ui/styles/style.css -o ./dist/style.css --minify",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
