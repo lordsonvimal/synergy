@@ -1,4 +1,4 @@
-# ChessLab
+# ChessLeap
 
 #### Run tailwind in dev
 ```

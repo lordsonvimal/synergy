@@ -1,8 +1,8 @@
 {
-  "name": "chesslab",
+  "name": "chessleap",
   "private": true,
   "version": "1.0.0",
-  "description": "ChessLab — learn, play, and improve chess skills with live classes",
+  "description": "ChessLeap — learn, play, and improve chess skills with live classes",
   "keywords": [
     "chess",
     "game",

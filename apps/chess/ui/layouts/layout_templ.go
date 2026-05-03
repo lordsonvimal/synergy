@@ -44,7 +44,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link href=\"/static/style.css\" rel=\"stylesheet\"><script>\n\t\t\t\t(function() {\n\t\t\t\t\tconst t = localStorage.getItem(\"theme\");\n\t\t\t\t\tif (t) { document.documentElement.setAttribute(\"data-theme\", t); }\n\t\t\t\t\telse if (window.matchMedia(\"(prefers-color-scheme: dark)\").matches) {\n\t\t\t\t\t\tdocument.documentElement.setAttribute(\"data-theme\", \"dark\");\n\t\t\t\t\t}\n\t\t\t\t})();\n\t\t\t</script></head><body class=\"bg-canvas h-full flex flex-col\"><header class=\"flex items-center justify-between px-4 py-3 border-b border-edge bg-surface shrink-0\"><a href=\"/\" class=\"text-lg font-semibold text-ink tracking-tight\">ChessLab</a>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link href=\"/static/style.css\" rel=\"stylesheet\"><script>\n\t\t\t\t(function() {\n\t\t\t\t\tconst t = localStorage.getItem(\"theme\");\n\t\t\t\t\tif (t) { document.documentElement.setAttribute(\"data-theme\", t); }\n\t\t\t\t\telse if (window.matchMedia(\"(prefers-color-scheme: dark)\").matches) {\n\t\t\t\t\t\tdocument.documentElement.setAttribute(\"data-theme\", \"dark\");\n\t\t\t\t\t}\n\t\t\t\t})();\n\t\t\t</script></head><body class=\"bg-canvas h-full flex flex-col\"><header class=\"flex items-center justify-between px-4 py-3 border-b border-edge bg-surface shrink-0\"><a href=\"/\" class=\"text-lg font-semibold text-ink tracking-tight\">ChessLeap</a>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -60,7 +60,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</main><footer class=\"shrink-0 border-t border-edge bg-surface px-4 py-2 flex items-center justify-between\"><span class=\"text-xs text-ink-dim\">ChessLab</span> <span class=\"text-xs text-ink-dim\">v0.1.0</span></footer></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</main><footer class=\"shrink-0 border-t border-edge bg-surface px-4 py-2 flex items-center justify-between\"><span class=\"text-xs text-ink-dim\">ChessLeap</span> <span class=\"text-xs text-ink-dim\">v0.1.0</span></footer></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
