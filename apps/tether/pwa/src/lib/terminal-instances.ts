@@ -113,7 +113,7 @@ export function createInstance(
     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
     fontSize: FONT_SIZE_MAP[settings.fontSize] ?? 14,
     lineHeight: 1.4,
-    cursorBlink: false,
+    cursorBlink: true,
     scrollback: 5000,
     convertEol: true,
     allowProposedApi: true,
@@ -153,11 +153,12 @@ export function createInstance(
     return true;
   });
 
-  const textarea = container.querySelector(".xterm-helper-textarea");
-  if (textarea) {
-    textarea.addEventListener("focus", () => { terminal.options.cursorBlink = true; });
-    textarea.addEventListener("blur", () => { terminal.options.cursorBlink = false; });
-  }
+
+  terminal.onWriteParsed(() => {
+    if (!terminal.options.cursorBlink) {
+      terminal.options.cursorBlink = true;
+    }
+  });
 
   terminal.onData((data) => {
     send({ type: "key", tabId, data });

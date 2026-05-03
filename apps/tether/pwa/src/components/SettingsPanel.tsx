@@ -4,7 +4,6 @@ import { useSettings, Shortcut } from "../context/settings.js";
 import { useConnection } from "../context/connection.js";
 import {
   FONT_SIZE_OPTIONS,
-  findDragTargetId,
   reorderShortcuts,
   flipTheme,
   themeButtonLabel,
@@ -109,64 +108,146 @@ function useShortcutDrag(
   isEditing: () => boolean
 ): {
   dragId: () => string | null;
-  dragOverId: () => string | null;
+  dragY: () => number;
+  dragLabel: () => string;
+  dragCommand: () => string;
+  dropIndex: () => number;
   handleDragStart: (e: PointerEvent, id: string) => void;
-  handleDragMove: (e: PointerEvent) => void;
-  handleDragEnd: () => void;
-  shortcutDragClass: (id: string) => string;
+  itemClass: (id: string) => string;
+  itemStyle: (id: string) => Record<string, string>;
+  listRef: (el: HTMLDivElement) => void;
 } {
   const [dragId, setDragId] = createSignal<string | null>(null);
-  const [dragOverId, setDragOverId] = createSignal<string | null>(null);
-  const [dragStartY, setDragStartY] = createSignal(0);
-  const [dragElRect, setDragElRect] = createSignal<{ top: number; height: number } | null>(null);
+  const [dragY, setDragY] = createSignal(0);
+  const [dragLabel, setDragLabel] = createSignal("");
+  const [dragCommand, setDragCommand] = createSignal("");
+  const [dropIndex, setDropIndex] = createSignal(-1);
+  let listEl: HTMLDivElement | undefined;
+  let pointerId = -1;
+  let itemOffsetY = 0;
+  let itemHeight = 0;
 
-  const handleDragStart = (e: PointerEvent, id: string): void => {
-    if (isEditing()) return;
-    const target = (e.currentTarget as HTMLElement).closest("[data-shortcut-id]") as HTMLElement | null;
-    if (!target) return;
-    target.setPointerCapture(e.pointerId);
-    setDragId(id);
-    setDragStartY(e.clientY);
-    const rect = target.getBoundingClientRect();
-    setDragElRect({ top: rect.top, height: rect.height });
+  const listRef = (el: HTMLDivElement): void => { listEl = el; };
+
+  const computeDropIndex = (clientY: number): number => {
+    if (!listEl) return -1;
+    const listRect = listEl.getBoundingClientRect();
+    if (clientY < listRect.top || clientY > listRect.bottom) return -1;
+    const items = listEl.querySelectorAll<HTMLElement>("[data-shortcut-id]");
+    const currentId = dragId();
+    let idx = 0;
+    for (const item of items) {
+      const id = item.getAttribute("data-shortcut-id");
+      if (id === currentId) continue;
+      const rect = item.getBoundingClientRect();
+      if (clientY > rect.top + rect.height / 2) idx++;
+    }
+    return idx;
   };
 
-  const dragFallback = (): string | null =>
-    settings().shortcuts.length > 0 ? "__before_first__" : null;
-
-  const computeDragOver = (e: PointerEvent): string | null => {
-    const currentDragId = dragId();
-    const rect = dragElRect();
-    if (!currentDragId || !rect) return null;
-    const currentCenter = rect.top + rect.height / 2 + (e.clientY - dragStartY());
-    const listEl = (e.currentTarget as HTMLElement).closest("[data-shortcut-list]");
-    if (!listEl) return dragFallback();
-    return findDragTargetId(listEl, currentDragId, currentCenter) ?? dragFallback();
+  const handlePointerMove = (e: PointerEvent): void => {
+    setDragY(e.clientY - itemOffsetY);
+    setDropIndex(computeDropIndex(e.clientY));
   };
 
-  const handleDragMove = (e: PointerEvent): void => {
-    if (!dragId()) return;
-    setDragOverId(computeDragOver(e));
+  const cleanup = (): void => {
+    document.removeEventListener("pointermove", handlePointerMove);
+    document.removeEventListener("pointerup", handlePointerUp);
+    document.removeEventListener("pointercancel", handlePointerUp);
+    document.removeEventListener("keydown", handleKeyDown);
+    if (listEl && pointerId >= 0) {
+      try { listEl.releasePointerCapture(pointerId); } catch {}
+    }
+    pointerId = -1;
   };
 
-  const handleDragEnd = (): void => {
+  const handlePointerUp = (): void => {
     const sourceId = dragId();
-    const overId = dragOverId();
+    const idx = dropIndex();
+    cleanup();
     setDragId(null);
-    setDragOverId(null);
-    setDragElRect(null);
-    if (!sourceId) return;
-    const result = reorderShortcuts(settings().shortcuts, sourceId, overId);
+    setDragY(0);
+    setDropIndex(-1);
+    if (!sourceId || idx === -1) return;
+    const shortcuts = settings().shortcuts;
+    const sourceIdx = shortcuts.findIndex(s => s.id === sourceId);
+    if (sourceIdx === -1) return;
+    const adjustedIdx = idx > sourceIdx ? idx : idx;
+    if (adjustedIdx === sourceIdx) return;
+    const overId = adjustedIdx === 0
+      ? "__before_first__"
+      : shortcuts.filter(s => s.id !== sourceId)[adjustedIdx - 1]?.id ?? null;
+    const result = reorderShortcuts(shortcuts, sourceId, overId);
     if (result) updateSettings({ shortcuts: result });
   };
 
-  const shortcutDragClass = (id: string): string => {
-    if (dragId() === id) return "opacity-50 scale-95";
-    if (dragOverId() === id) return "border-t-2 border-t-primary";
+  const handleKeyDown = (e: KeyboardEvent): void => {
+    if (e.key === "Escape") {
+      cleanup();
+      setDragId(null);
+      setDragY(0);
+      setDropIndex(-1);
+    }
+  };
+
+  const handleDragStart = (e: PointerEvent, id: string): void => {
+    if (isEditing()) return;
+    e.preventDefault();
+    pointerId = e.pointerId;
+    if (listEl) listEl.setPointerCapture(e.pointerId);
+    const row = (e.currentTarget as HTMLElement).closest("[data-shortcut-id]") as HTMLElement | null;
+    if (row) {
+      const rect = row.getBoundingClientRect();
+      itemOffsetY = e.clientY - rect.top;
+      itemHeight = rect.height;
+      setDragY(rect.top);
+    }
+    const shortcut = settings().shortcuts.find(s => s.id === id);
+    setDragLabel(shortcut?.label ?? "");
+    setDragCommand(shortcut?.command ?? "");
+    setDragId(id);
+    setDropIndex(-1);
+    document.addEventListener("pointermove", handlePointerMove);
+    document.addEventListener("pointerup", handlePointerUp);
+    document.addEventListener("pointercancel", handlePointerUp);
+    document.addEventListener("keydown", handleKeyDown);
+  };
+
+  const sourceIndex = (): number => {
+    const id = dragId();
+    if (!id) return -1;
+    return settings().shortcuts.findIndex(s => s.id === id);
+  };
+
+  const itemClass = (id: string): string => {
+    if (!dragId()) return "";
+    if (dragId() === id) return "opacity-0 h-0 overflow-hidden m-0 p-0";
     return "";
   };
 
-  return { dragId, dragOverId, handleDragStart, handleDragMove, handleDragEnd, shortcutDragClass };
+  const itemStyle = (id: string): Record<string, string> => {
+    const currentDrag = dragId();
+    if (!currentDrag || currentDrag === id) return {};
+    const idx = dropIndex();
+    const src = sourceIndex();
+    if (idx === -1 || src === -1) return {};
+    const shortcuts = settings().shortcuts;
+    const myIdx = shortcuts.findIndex(s => s.id === id);
+    if (myIdx === -1) return {};
+    const gap = itemHeight + 4;
+    if (src < idx) {
+      if (myIdx > src && myIdx <= idx) {
+        return { transform: `translateY(-${gap}px)`, transition: "transform 150ms ease" };
+      }
+    } else {
+      if (myIdx >= idx && myIdx < src) {
+        return { transform: `translateY(${gap}px)`, transition: "transform 150ms ease" };
+      }
+    }
+    return { transition: "transform 150ms ease" };
+  };
+
+  return { dragId, dragY, dragLabel, dragCommand, dropIndex, handleDragStart, itemClass, itemStyle, listRef };
 }
 
 export const SettingsPanel: Component<SettingsPanelProps> = props => {
@@ -359,24 +440,22 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
                     </div>
                   }
                 >
-                  <div class="flex flex-col gap-1 max-h-52 overflow-y-auto" data-shortcut-list>
+                  <div class="flex flex-col gap-1 max-h-52 overflow-y-auto" data-shortcut-list ref={drag.listRef}>
                     <For each={settings().shortcuts}>
                       {(shortcut) => (
                         <Show
                           when={editor.editingShortcut() === shortcut.id}
                           fallback={
                             <div
-                              class={`flex items-center gap-1 rounded-md transition-all ${
-                                drag.shortcutDragClass(shortcut.id)
+                              class={`flex items-center gap-1 rounded-md ${
+                                drag.itemClass(shortcut.id)
                               }`}
+                              style={drag.itemStyle(shortcut.id)}
                               data-shortcut-id={shortcut.id}
                             >
                               <div
                                 class="flex items-center justify-center w-5 cursor-grab text-ink-dim hover:text-ink active:cursor-grabbing shrink-0 touch-none"
                                 onPointerDown={e => drag.handleDragStart(e, shortcut.id)}
-                                onPointerMove={drag.handleDragMove}
-                                onPointerUp={drag.handleDragEnd}
-                                onPointerCancel={drag.handleDragEnd}
                               >
                                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                                   <circle cx="9" cy="6" r="1.5" />
@@ -489,6 +568,29 @@ export const SettingsPanel: Component<SettingsPanelProps> = props => {
               </p>
             </footer>
           </aside>
+          <Show when={drag.dragId()}>
+            <div
+              class="fixed left-5 pointer-events-none w-[calc(min(100vw,20rem)-2.5rem)] opacity-80"
+              style={{ top: `${drag.dragY()}px`, transform: "rotate(1.5deg)" }}
+            >
+              <div class="flex items-center gap-1 bg-surface-raised border border-primary rounded-md shadow-xl px-2.5 py-1.5">
+                <div class="flex items-center justify-center w-5 text-ink-dim shrink-0">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="9" cy="6" r="1.5" />
+                    <circle cx="15" cy="6" r="1.5" />
+                    <circle cx="9" cy="12" r="1.5" />
+                    <circle cx="15" cy="12" r="1.5" />
+                    <circle cx="9" cy="18" r="1.5" />
+                    <circle cx="15" cy="18" r="1.5" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <span class="text-xs text-ink block font-medium truncate">{drag.dragLabel()}</span>
+                  <span class="text-[11px] text-ink-dim font-mono block truncate">{drag.dragCommand()}</span>
+                </div>
+              </div>
+            </div>
+          </Show>
         </div>
       </Portal>
     </Show>
