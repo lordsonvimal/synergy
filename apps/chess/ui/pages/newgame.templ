@@ -2,31 +2,23 @@ package pages
 
 import "github.com/lordsonvimal/synergy/apps/chess/game"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/components"
+import "github.com/lordsonvimal/synergy/apps/chess/ui/layouts"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 
 templ NewGamePage(g *game.Game) {
-	<!DOCTYPE html>
-	<html class="h-full">
-		<head>
-			<title>ChessLab</title>
-			<link href="/static/style.css" rel="stylesheet"/>
-			<link rel="preload" href="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js" as="script"/>
-			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js"></script>
-		</head>
-		<!-- Connect SSE live updates once in a page -->
-		<body
-			class="bg-canvas h-full"
+	@layouts.Layout("ChessLab") {
+		<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js"></script>
+		<div
+			class="flex gap-4 h-full"
 			data-signals={ templ.JSONString(ui_store.NewChessBoardSignals()) }
 		>
-			<div class="flex gap-4 h-full">
-				<section class="flex-1">
-					@components.RenderChessBoard(g)
-					@components.RenderPromotionOverlay(g)
-				</section>
-				<aside>
-					@components.GameInfoPanel()
-				</aside>
-			</div>
-		</body>
-	</html>
+			<section class="flex-1 relative">
+				@components.RenderChessBoard(g)
+				@components.RenderPromotionOverlay(g)
+			</section>
+			<aside>
+				@components.GameInfoPanel()
+			</aside>
+		</div>
+	}
 }

@@ -1,14 +1,37 @@
 package layouts
 
+import "github.com/lordsonvimal/synergy/apps/chess/ui/components"
+
 templ Layout(title string) {
 	<!DOCTYPE html>
-	<html>
+	<html lang="en" class="h-full">
 		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<title>{ title }</title>
-			<link href="/style.css" rel="stylesheet"/>
+			<link href="/static/style.css" rel="stylesheet"/>
+			<script>
+				(function() {
+					var t = localStorage.getItem("theme");
+					if (t) { document.documentElement.setAttribute("data-theme", t); }
+					else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+						document.documentElement.setAttribute("data-theme", "dark");
+					}
+				})();
+			</script>
 		</head>
-		<body class="bg-canvas min-h-screen">
-			{ children... }
+		<body class="bg-canvas h-full flex flex-col">
+			<header class="flex items-center justify-between px-4 py-3 border-b border-edge bg-surface shrink-0">
+				<a href="/" class="text-lg font-semibold text-ink tracking-tight">ChessLab</a>
+				@components.ThemeToggle()
+			</header>
+			<main class="flex-1 overflow-auto">
+				{ children... }
+			</main>
+			<footer class="shrink-0 border-t border-edge bg-surface px-4 py-2 flex items-center justify-between">
+				<span class="text-xs text-ink-dim">ChessLab</span>
+				<span class="text-xs text-ink-dim">v0.1.0</span>
+			</footer>
 		</body>
 	</html>
 }

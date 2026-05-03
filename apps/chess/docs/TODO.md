@@ -46,11 +46,11 @@
 
 ## 3. Dark Mode
 
-- [ ] Add `data-theme` attribute support on `<html>`
-- [ ] Add inline script in `<head>` to apply theme before first paint (prevent FOUC)
-- [ ] Respect `prefers-color-scheme: dark` as system default
-- [ ] Store user preference in `localStorage` key `theme`
-- [ ] Add theme toggle button in game UI
+- [x] Add `data-theme` attribute support on `<html>`
+- [x] Add inline script in `<head>` to apply theme before first paint (prevent FOUC)
+- [x] Respect `prefers-color-scheme: dark` as system default
+- [x] Store user preference in `localStorage` key `theme`
+- [x] Add theme toggle button in game UI
 - [ ] Test all components in both light and dark themes
 
 ## 4. Semantic HTML & Accessibility
@@ -77,10 +77,10 @@
 
 ## 6. Layout Consolidation
 
-- [ ] Use `layout.templ` as the shared wrapper for all pages (currently unused)
-- [ ] Remove duplicate `<!DOCTYPE html>` / `<head>` blocks from `gamemodes.templ` and `newgame.templ`
-- [ ] Standardize static asset path: either `/style.css` or `/static/style.css` (not both)
-- [ ] Move Datastar script and shared head elements into the layout
+- [x] Use `layout.templ` as the shared wrapper for all pages (currently unused)
+- [x] Remove duplicate `<!DOCTYPE html>` / `<head>` blocks from `gamemodes.templ` and `newgame.templ`
+- [x] Standardize static asset path: `/static/style.css` everywhere
+- [x] Move Datastar script and shared head elements into the layout
 
 ## 7. Security
 
