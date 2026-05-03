@@ -21,5 +21,6 @@ live/sync_assets:
 	air -c .air.assets.toml
 
 # start all 4 watch processes in parallel.
-live: 
+live:
+	@mkdir -p tmp/assets
 	make -j4 live/templ live/server live/tailwind live/sync_assets
