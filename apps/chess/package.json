@@ -1,8 +1,8 @@
 {
-  "name": "chess",
+  "name": "chesslab",
   "private": true,
   "version": "1.0.0",
-  "description": "multiplayer chess game",
+  "description": "ChessLab — learn, play, and improve chess skills with live classes",
   "keywords": [
     "chess",
     "game",

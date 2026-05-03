@@ -1,4 +1,4 @@
-# Chess Game
+# ChessLab
 
 #### Run tailwind in dev
 ```

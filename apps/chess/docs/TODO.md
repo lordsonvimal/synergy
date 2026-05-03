@@ -1,4 +1,4 @@
-# Chess App — TODO
+# ChessLab — TODO
 
 ## 1. Nx Integration
 

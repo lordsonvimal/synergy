@@ -1,5 +1,5 @@
 {
-  "name": "chess",
+  "name": "chesslab",
   "root": "apps/chess",
   "targets": {
     "dev": {

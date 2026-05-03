@@ -33,7 +33,7 @@ func NewGamePage(g *game.Game) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html class=\"h-full\"><head><title>Chess Game</title><link href=\"/static/style.css\" rel=\"stylesheet\"><link rel=\"preload\" href=\"https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js\" as=\"script\"><script type=\"module\" src=\"https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js\"></script></head><!-- Connect SSE live updates once in a page --><body class=\"bg-gray-100 h-full\" data-signals=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html class=\"h-full\"><head><title>ChessLab</title><link href=\"/static/style.css\" rel=\"stylesheet\"><link rel=\"preload\" href=\"https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js\" as=\"script\"><script type=\"module\" src=\"https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.7/bundles/datastar.js\"></script></head><!-- Connect SSE live updates once in a page --><body class=\"bg-gray-100 h-full\" data-signals=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
