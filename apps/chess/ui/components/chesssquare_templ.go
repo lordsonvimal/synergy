@@ -47,7 +47,7 @@ func RenderChessSquare(g *game.Game, rank int, file int) templ.Component {
 		}
 
 		onClick := templ.JSExpression("@post('/game/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
-		var templ_7745c5c3_Var2 = []any{bg, "w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 leading-none font-['DejaVu_Sans']"}
+		var templ_7745c5c3_Var2 = []any{bg, "w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 leading-none font-['DejaVu_Sans'] cursor-pointer"}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var2...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

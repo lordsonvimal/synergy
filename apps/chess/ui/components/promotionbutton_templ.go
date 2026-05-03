@@ -37,7 +37,7 @@ func PromotionButton(g *game.Game, piece engine.Piece) templ.Component {
 		ctx = templ.ClearChildren(ctx)
 		color := g.Board.SideToMove
 		onClick := templ.JSExpression(fmt.Sprintf(`$promotionPiece = %d; @post('/game/%s/select/' + $promotedSquare)`, piece, g.ID))
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<button class=\"w-12 h-12 text-3xl hover:bg-muted rounded-md\" data-on:click=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<button class=\"w-12 h-12 text-3xl hover:bg-muted rounded-md cursor-pointer\" data-on:click=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

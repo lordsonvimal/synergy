@@ -44,7 +44,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link href=\"/static/style.css\" rel=\"stylesheet\"><script>\n\t\t\t\t(function() {\n\t\t\t\t\tvar t = localStorage.getItem(\"theme\");\n\t\t\t\t\tif (t) { document.documentElement.setAttribute(\"data-theme\", t); }\n\t\t\t\t\telse if (window.matchMedia(\"(prefers-color-scheme: dark)\").matches) {\n\t\t\t\t\t\tdocument.documentElement.setAttribute(\"data-theme\", \"dark\");\n\t\t\t\t\t}\n\t\t\t\t})();\n\t\t\t</script></head><body class=\"bg-canvas h-full flex flex-col\"><header class=\"flex items-center justify-between px-4 py-3 border-b border-edge bg-surface shrink-0\"><a href=\"/\" class=\"text-lg font-semibold text-ink tracking-tight\">ChessLab</a>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link href=\"/static/style.css\" rel=\"stylesheet\"><script>\n\t\t\t\t(function() {\n\t\t\t\t\tconst t = localStorage.getItem(\"theme\");\n\t\t\t\t\tif (t) { document.documentElement.setAttribute(\"data-theme\", t); }\n\t\t\t\t\telse if (window.matchMedia(\"(prefers-color-scheme: dark)\").matches) {\n\t\t\t\t\t\tdocument.documentElement.setAttribute(\"data-theme\", \"dark\");\n\t\t\t\t\t}\n\t\t\t\t})();\n\t\t\t</script></head><body class=\"bg-canvas h-full flex flex-col\"><header class=\"flex items-center justify-between px-4 py-3 border-b border-edge bg-surface shrink-0\"><a href=\"/\" class=\"text-lg font-semibold text-ink tracking-tight\">ChessLab</a>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

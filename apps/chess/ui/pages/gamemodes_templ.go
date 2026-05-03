@@ -63,7 +63,7 @@ func GameModesPage(modes []game.GameMode) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"> <button type=\"submit\" class=\"w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left hover:bg-primary-subtle hover:shadow-md transition\"><div class=\"flex justify-between items-center\"><div><div class=\"text-lg font-semibold text-ink\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"> <button type=\"submit\" class=\"w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left hover:bg-primary-subtle hover:shadow-md transition cursor-pointer\"><div class=\"flex justify-between items-center\"><div><div class=\"text-lg font-semibold text-ink\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

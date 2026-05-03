@@ -12,7 +12,7 @@ templ PromotionButton(g *game.Game, piece engine.Piece) {
 		onClick := templ.JSExpression(fmt.Sprintf(`$promotionPiece = %d; @post('/game/%s/select/' + $promotedSquare)`, piece, g.ID))
 	}}
 	<button
-		class="w-12 h-12 text-3xl hover:bg-muted rounded-md"
+		class="w-12 h-12 text-3xl hover:bg-muted rounded-md cursor-pointer"
 		data-on:click={ onClick }
 	>
 		@RenderChessPiece(color, piece)
