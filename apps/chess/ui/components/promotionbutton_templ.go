@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/lordsonvimal/synergy/apps/chess/engine"
 	"github.com/lordsonvimal/synergy/apps/chess/game"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
 )
 
 func PromotionButton(g *game.Game, piece engine.Piece) templ.Component {
@@ -37,20 +38,34 @@ func PromotionButton(g *game.Game, piece engine.Piece) templ.Component {
 		ctx = templ.ClearChildren(ctx)
 		color := g.Board.SideToMove
 		onClick := templ.JSExpression(fmt.Sprintf(`$promotionPiece = %d; @post('/game/%s/select/' + $promotedSquare)`, piece, g.ID))
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<button class=\"w-12 h-12 text-3xl hover:bg-muted rounded-md cursor-pointer\" data-on:click=\"")
+		label := "Promote to " + helpers.PieceName(piece)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<button class=\"w-12 h-12 text-3xl hover:bg-muted rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary\" aria-label=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(onClick)
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/promotionbutton.templ`, Line: 16, Col: 25}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/promotionbutton.templ`, Line: 18, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" data-on:click=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var3 string
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(onClick)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/promotionbutton.templ`, Line: 19, Col: 25}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -58,7 +73,7 @@ func PromotionButton(g *game.Game, piece engine.Piece) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</button>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</button>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

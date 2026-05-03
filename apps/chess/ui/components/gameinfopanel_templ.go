@@ -31,7 +31,7 @@ func GameInfoPanel() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<aside class=\"w-72 bg-surface border border-edge rounded-lg shadow-md p-6 flex flex-col gap-6\"><h2 class=\"text-2xl font-bold text-ink border-b border-edge pb-2 mb-4\">Game Info</h2><!-- Turn --><div class=\"flex items-center justify-between\"><span class=\"font-semibold text-ink-secondary\">Turn:</span> <span data-text=\"$sideToMove === 0 ? 'White' : 'Black'\" data-class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<aside class=\"w-72 bg-surface border border-edge rounded-lg shadow-md p-6 flex flex-col gap-6\" aria-label=\"Game information\"><h2 class=\"text-2xl font-bold text-ink border-b border-edge pb-2 mb-4\">Game Info</h2><div aria-live=\"polite\" aria-atomic=\"true\" class=\"sr-only\"><span data-text=\"'Turn: ' + ($sideToMove === 0 ? 'White' : 'Black') + '. ' + $gameStateText + ($isCheck ? '. King in check!' : '')\"></span></div><!-- Turn --><div class=\"flex items-center justify-between\"><span class=\"font-semibold text-ink-secondary\">Turn:</span> <span data-text=\"$sideToMove === 0 ? 'White' : 'Black'\" data-class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -45,7 +45,7 @@ func GameInfoPanel() templ.Component {
           })()
 			    `)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 20, Col: 10}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 23, Col: 10}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {

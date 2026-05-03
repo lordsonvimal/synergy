@@ -55,16 +55,16 @@
 
 ## 4. Semantic HTML & Accessibility
 
-- [ ] Add `lang="en"` to `<html>` in `layout.templ` and `newgame.templ`
-- [ ] Add `<meta charset="UTF-8">` to `layout.templ` and `newgame.templ`
-- [ ] Add `<meta name="viewport" content="width=device-width, initial-scale=1">` to all pages
-- [ ] Add `aria-label` to chess squares (e.g., "e4, White Pawn")
-- [ ] Add `role="button"` and `tabindex="0"` to clickable `<td>` squares
-- [ ] Add keyboard event handling (`Enter`/`Space`) for square selection
-- [ ] Add `aria-label` to promotion buttons (e.g., "Promote to Queen")
-- [ ] Add visible focus indicators on all interactive elements
-- [ ] Use ARIA live region (`aria-live="polite"`) for game state changes (check, checkmate, turn)
-- [ ] Wrap chess piece Unicode in `<span>` with `aria-label` for screen reader context
+- [x] Add `lang="en"` to `<html>` in `layout.templ` and `newgame.templ`
+- [x] Add `<meta charset="UTF-8">` to `layout.templ` and `newgame.templ`
+- [x] Add `<meta name="viewport" content="width=device-width, initial-scale=1">` to all pages
+- [x] Add `aria-label` to chess squares (e.g., "e4, White Pawn")
+- [x] Add `role="button"` and `tabindex="0"` to clickable `<td>` squares
+- [x] Add keyboard event handling (`Enter`/`Space`) for square selection
+- [x] Add `aria-label` to promotion buttons (e.g., "Promote to Queen")
+- [x] Add visible focus indicators on all interactive elements
+- [x] Use ARIA live region (`aria-live="polite"`) for game state changes (check, checkmate, turn)
+- [x] Wrap chess piece Unicode in `<span>` with `aria-label` for screen reader context
 
 ## 5. Responsive Design
 

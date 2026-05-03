@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 	"github.com/lordsonvimal/synergy/apps/chess/game"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
 )
 
 templ RenderChessSquare(g *game.Game, rank int, file int) {
@@ -20,11 +21,16 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 		}
 
 		onClick := templ.JSExpression("@post('/game/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
+		label := helpers.SquareLabel(sq, color, piece, ok)
 	}}
 	<td
 		id={ id }
-		class={ bg, "w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 leading-none font-['DejaVu_Sans'] cursor-pointer" }
+		role="button"
+		tabindex="0"
+		aria-label={ label }
+		class={ bg, "w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 leading-none font-['DejaVu_Sans'] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset" }
 		data-on:click={ onClick }
+		data-on:keydown={ templ.JSExpression("(event.key === 'Enter' || event.key === ' ') && (event.preventDefault(), " + string(onClick) + ")") }
 	>
 		<div
 			class="w-full h-full flex items-center justify-center text-xl sm:text-2xl md:text-3xl lg:text-4xl select-none relative"

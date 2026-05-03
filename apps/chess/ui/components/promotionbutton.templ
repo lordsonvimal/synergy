@@ -4,15 +4,18 @@ import (
 	"fmt"
 	"github.com/lordsonvimal/synergy/apps/chess/engine"
 	"github.com/lordsonvimal/synergy/apps/chess/game"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
 )
 
 templ PromotionButton(g *game.Game, piece engine.Piece) {
 	{{
 		color := g.Board.SideToMove
 		onClick := templ.JSExpression(fmt.Sprintf(`$promotionPiece = %d; @post('/game/%s/select/' + $promotedSquare)`, piece, g.ID))
+		label := "Promote to " + helpers.PieceName(piece)
 	}}
 	<button
-		class="w-12 h-12 text-3xl hover:bg-muted rounded-md cursor-pointer"
+		class="w-12 h-12 text-3xl hover:bg-muted rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
+		aria-label={ label }
 		data-on:click={ onClick }
 	>
 		@RenderChessPiece(color, piece)
