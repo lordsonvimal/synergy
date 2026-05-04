@@ -52,4 +52,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(cacheFirst(event.request, FONT_CACHE));
     return;
   }
+
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match("/"))
+    );
+  }
 });
