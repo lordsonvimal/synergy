@@ -29,6 +29,19 @@
 }
 
 /* Piece rendering — fixed colors with text-shadow for board contrast */
+.chess-piece-white,
+.chess-piece-black {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.chess-piece-white svg,
+.chess-piece-black svg {
+  width: 100%;
+  height: 100%;
+}
+
 .chess-piece-white {
   color: #FFFFFF;
   text-shadow:
