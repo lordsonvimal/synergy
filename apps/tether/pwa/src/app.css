@@ -2,7 +2,9 @@
 @import "../../../../packages/theme/tokens.css";
 @import "../../../../packages/theme/dark.css";
 
-html, body, #app {
+html,
+body,
+#app {
   height: 100%;
   width: 100%;
   margin: 0;
@@ -22,28 +24,59 @@ footer[data-testid="input-bar"] {
 }
 
 @keyframes pulse-recording {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slide-in-left {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes slide-out-left {
-  from { transform: translateX(0); }
-  to { transform: translateX(-100%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
 }
 
 .animate-slide-in-left {
@@ -55,8 +88,15 @@ footer[data-testid="input-bar"] {
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-slide-up {
@@ -64,8 +104,15 @@ footer[data-testid="input-bar"] {
 }
 
 @keyframes slide-down {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(16px); }
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(16px);
+  }
 }
 
 .animate-slide-down {
@@ -81,12 +128,26 @@ footer[data-testid="input-bar"] {
   display: none;
 }
 
-.xterm-viewport {
+.xterm {
+  width: 100%;
+  height: 100%;
+}
+
+.xterm .xterm-viewport {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-.xterm-viewport::-webkit-scrollbar {
+.xterm .xterm-viewport::-webkit-scrollbar {
   display: none;
 }
 
+.xterm .xterm-cursor-bar {
+  animation: cursor-blink 1s step-end infinite;
+}
+
+@keyframes cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}

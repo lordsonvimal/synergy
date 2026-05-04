@@ -47,7 +47,10 @@ export function createSession(
     stdio: "pipe"
   });
   execFileSync("tmux", [
-    "set-option", "-t", name, "mouse", "on"
+    "set-option", "-t", name, "status", "off"
+  ], { stdio: "pipe" });
+  execFileSync("tmux", [
+    "set-option", "-t", name, "mouse", "off"
   ], { stdio: "pipe" });
   execFileSync("tmux", [
     "set-option", "-t", name, "extended-keys", "on"
@@ -108,7 +111,7 @@ export function listTetherSessions(): string[] {
   }
 }
 
-export function captureScrollback(tabId: string, lines: number = 5000): string {
+export function captureScrollback(tabId: string, lines: number = 1000): string {
   try {
     const output = execFileSync("tmux", [
       "capture-pane",

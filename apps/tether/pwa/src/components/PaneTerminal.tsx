@@ -1,11 +1,11 @@
 import {
   Component,
-  Show,
   createEffect,
   createSignal,
   on,
   onCleanup,
-  onMount
+  onMount,
+  untrack
 } from "solid-js";
 import { useConnection } from "../context/connection.js";
 import { useSettings } from "../context/settings.js";
@@ -14,7 +14,6 @@ import { playChime } from "../lib/chime.js";
 import {
   createInstance,
   getInstance,
-  getAllInstances,
   darkTheme,
   lightTheme,
   FONT_SIZE_MAP
@@ -61,8 +60,8 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
 
   const activeTabId = () => props.pane.activeTabId;
 
-  const paneTabIds = (): Set<string> =>
-    new Set(props.pane.tabs.map((t) => t.id));
+  const paneOwnsTab = (tabId: string): boolean =>
+    props.pane.tabs.some((t) => t.id === tabId);
 
   const writePtyData = (tabId: string, data: string): void => {
     getInstance(tabId)?.terminal.write(data);
@@ -89,7 +88,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   onMount(() => {
     onMessage((data) => {
       const msg = data as { type: string; tabId?: string; data?: string };
-      if (!msg.tabId || !paneTabIds().has(msg.tabId)) return;
+      if (!msg.tabId || !paneOwnsTab(msg.tabId)) return;
       if (msg.type === "command-complete") {
         handleCommandComplete(msg.tabId);
       } else {
@@ -101,9 +100,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   const hideAllTerminals = (): void => {
     if (!containerRef) return;
     for (const child of Array.from(containerRef.children)) {
-      const el = child as HTMLElement;
-      if (el.dataset.dropOverlay !== undefined) continue;
-      el.style.display = "none";
+      (child as HTMLElement).style.display = "none";
     }
   };
 
@@ -112,11 +109,38 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     containerRef.appendChild(el);
   };
 
+  let activeResizeObserver: ResizeObserver | null = null;
+  let activeResizeTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastCols = 0;
+  let lastRows = 0;
+
+  const attachResizeObserver = (tabId: string, instance: { fitAddon: { fit: () => void }; terminal: { cols: number; rows: number } }): void => {
+    if (!containerRef) return;
+    if (activeResizeObserver) {
+      activeResizeObserver.disconnect();
+    }
+    clearTimeout(activeResizeTimer);
+    lastCols = instance.terminal.cols;
+    lastRows = instance.terminal.rows;
+    activeResizeObserver = new ResizeObserver(() => {
+      clearTimeout(activeResizeTimer);
+      activeResizeTimer = setTimeout(() => {
+        instance.fitAddon.fit();
+        if (instance.terminal.cols === lastCols && instance.terminal.rows === lastRows) return;
+        lastCols = instance.terminal.cols;
+        lastRows = instance.terminal.rows;
+        send({ type: "resize", tabId, cols: lastCols, rows: lastRows });
+      }, 100);
+    });
+    activeResizeObserver.observe(containerRef);
+  };
+
   const showExistingTerminal = (tabId: string): boolean => {
     const existing = getInstance(tabId);
     if (!existing || !containerRef) return false;
     ensureAttached(existing.terminal.element);
     if (existing.terminal.element) existing.terminal.element.style.display = "";
+    attachResizeObserver(tabId, existing);
     requestAnimationFrame(() => {
       existing.fitAddon.fit();
       existing.terminal.focus();
@@ -126,24 +150,15 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
 
   const createNewTerminal = (tabId: string): void => {
     if (!containerRef) return;
-    const instance = createInstance(
+    const container = containerRef;
+    const instance = untrack(() => createInstance(
       tabId,
-      containerRef,
+      container,
       { theme: settings().theme, fontSize: settings().fontSize },
       send
-    );
-
-    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
-    const resizeObserver = new ResizeObserver(() => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        instance.fitAddon.fit();
-        send({ type: "resize", tabId, cols: instance.terminal.cols, rows: instance.terminal.rows });
-      }, 100);
-    });
-    resizeObserver.observe(containerRef);
-    instance.resizeObserver = resizeObserver;
-    instance.resizeTimer = resizeTimer;
+    ));
+    attachResizeObserver(tabId, instance);
+    requestAnimationFrame(() => instance.terminal.focus());
   };
 
   createEffect(
@@ -156,32 +171,54 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     })
   );
 
-  createEffect(() => {
-    const theme = settings().theme === "light" ? lightTheme : darkTheme;
-    for (const [, inst] of getAllInstances()) {
-      inst.terminal.options.theme = theme;
+  createEffect(
+    on(
+      () => settings().theme,
+      (themeKey) => {
+        const theme = themeKey === "light" ? lightTheme : darkTheme;
+        const tabId = activeTabId();
+        if (!tabId) return;
+        const inst = getInstance(tabId);
+        if (inst) inst.terminal.options.theme = theme;
+      }
+    )
+  );
+
+  createEffect(
+    on(
+      () => settings().fontSize,
+      (fontKey) => {
+        const size = FONT_SIZE_MAP[fontKey] ?? 14;
+        const tabId = activeTabId();
+        if (!tabId) return;
+        const inst = getInstance(tabId);
+        if (!inst) return;
+        inst.terminal.options.fontSize = size;
+        inst.fitAddon.fit();
+        send({
+          type: "resize",
+          tabId,
+          cols: inst.terminal.cols,
+          rows: inst.terminal.rows
+        });
+      }
+    )
+  );
+
+  onCleanup(() => {
+    if (activeResizeObserver) {
+      activeResizeObserver.disconnect();
+      activeResizeObserver = null;
     }
+    clearTimeout(activeResizeTimer);
   });
 
-  createEffect(() => {
-    const size = FONT_SIZE_MAP[settings().fontSize] ?? 14;
-    for (const [tabId, inst] of getAllInstances()) {
-      inst.terminal.options.fontSize = size;
-      inst.fitAddon.fit();
-      send({
-        type: "resize",
-        tabId,
-        cols: inst.terminal.cols,
-        rows: inst.terminal.rows
-      });
-    }
-  });
-
-  onCleanup(() => {});
-
-  const focusTerminal = (): void => {
+  const focusTerminal = (e: MouseEvent): void => {
     const tabId = activeTabId();
-    if (tabId) getInstance(tabId)?.terminal.focus();
+    if (!tabId) return;
+    const target = e.target as HTMLElement;
+    if (target.closest(".xterm")) return;
+    getInstance(tabId)?.terminal.focus();
   };
 
   const handleDragOver = (e: DragEvent): void => {
@@ -205,11 +242,18 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     setDropZone(null);
   };
 
+  const isSplitAllowed = (sourcePaneId: string): boolean =>
+    sourcePaneId !== props.paneId || props.pane.tabs.length > 1;
+
   const processDrop = (zone: DropZone, sourcePaneId: string, tabId: string): void => {
     const split = zoneToSplit(zone);
     if (split) {
-      splitPaneWithTab(props.paneId, split.direction, split.insertBefore, sourcePaneId, tabId);
-    } else if (zone === "center" && sourcePaneId !== props.paneId) {
+      if (isSplitAllowed(sourcePaneId)) {
+        splitPaneWithTab(props.paneId, split.direction, split.insertBefore, sourcePaneId, tabId);
+      }
+      return;
+    }
+    if (zone === "center" && sourcePaneId !== props.paneId) {
       moveTab(sourcePaneId, tabId, props.paneId);
     }
   };
@@ -236,14 +280,13 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
 
   const overlayClasses = (): string => {
     const zone = dropZone();
-    if (!zone) return "hidden";
-    const base = "absolute pointer-events-none bg-primary/20 border-2 border-primary border-dashed rounded-sm";
-    return `${base} ${ZONE_CLASSES[zone] ?? "inset-0"}`;
+    const base = "absolute pointer-events-none rounded-sm";
+    if (!zone) return `${base} inset-0 opacity-0`;
+    return `${base} ${ZONE_CLASSES[zone] ?? "inset-0"} bg-primary/20 border-2 border-primary border-dashed`;
   };
 
   return (
     <div
-      ref={containerRef}
       class="relative flex-1 min-h-0 min-w-0 overflow-hidden"
       data-testid={`pane-terminal-${props.paneId}`}
       onClick={focusTerminal}
@@ -251,9 +294,8 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <Show when={dropZone()}>
-        <div class={overlayClasses()} data-drop-overlay />
-      </Show>
+      <div ref={containerRef} class="absolute inset-0" />
+      <div class={overlayClasses()} />
     </div>
   );
 };

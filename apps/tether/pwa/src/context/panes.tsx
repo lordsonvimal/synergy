@@ -109,17 +109,6 @@ function loadPersistedState(): PanesState | null {
   }
 }
 
-function persistState(state: PanesState): void {
-  const data = JSON.parse(JSON.stringify(state));
-  try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ root: data.root, activePaneId: data.activePaneId })
-    );
-  } catch {
-    // localStorage may be unavailable
-  }
-}
 
 export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
   const persisted = loadPersistedState();
@@ -139,7 +128,22 @@ export const PanesProvider: Component<{ children: JSX.Element }> = (props) => {
 
   const [state, setState] = createStore<PanesState>(initialState);
 
-  createEffect(() => { persistState(state); });
+  let persistTimer: ReturnType<typeof setTimeout> | undefined;
+  createEffect(() => {
+    const snapshot = JSON.parse(JSON.stringify(state)) as PanesState;
+    clearTimeout(persistTimer);
+    persistTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ root: snapshot.root, activePaneId: snapshot.activePaneId })
+        );
+      } catch {
+        // localStorage may be unavailable
+      }
+    }, 300);
+  });
+  onCleanup(() => clearTimeout(persistTimer));
 
   const [isNarrow, setIsNarrow] = createSignal(false);
 

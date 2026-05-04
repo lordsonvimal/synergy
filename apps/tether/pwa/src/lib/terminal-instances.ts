@@ -88,12 +88,6 @@ function reattachExisting(
   });
 }
 
-function setupTerminalStyles(container: HTMLDivElement): void {
-  const xtermEl = container.querySelector(".xterm") as HTMLElement | null;
-  if (xtermEl) xtermEl.style.height = "100%";
-  const screenEl = container.querySelector(".xterm-screen") as HTMLElement | null;
-  if (screenEl) screenEl.style.height = "100%";
-}
 
 export function createInstance(
   tabId: string,
@@ -109,22 +103,25 @@ export function createInstance(
 
   const currentTheme = settings.theme === "light" ? lightTheme : darkTheme;
   const terminal = new XTerm({
-    theme: currentTheme,
+    allowProposedApi: true,
+    convertEol: true,
+    cursorBlink: false,
+    cursorInactiveStyle: "none",
+    cursorStyle: "bar",
+    cursorWidth: 3,
     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
     fontSize: FONT_SIZE_MAP[settings.fontSize] ?? 14,
     lineHeight: 1.4,
-    cursorBlink: true,
-    scrollback: 5000,
-    convertEol: true,
-    allowProposedApi: true,
-    scrollOnUserInput: true
+    overviewRulerWidth: 0,
+    scrollback: 1000,
+    scrollOnUserInput: true,
+    theme: currentTheme
   });
 
   const fitAddon = new FitAddon();
   terminal.loadAddon(fitAddon);
   terminal.loadAddon(new WebLinksAddon());
   terminal.open(container);
-  setupTerminalStyles(container);
 
   requestAnimationFrame(() => {
     fitAddon.fit();
@@ -153,12 +150,6 @@ export function createInstance(
     return true;
   });
 
-
-  terminal.onWriteParsed(() => {
-    if (!terminal.options.cursorBlink) {
-      terminal.options.cursorBlink = true;
-    }
-  });
 
   terminal.onData((data) => {
     send({ type: "key", tabId, data });
