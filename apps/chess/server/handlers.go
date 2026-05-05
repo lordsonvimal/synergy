@@ -16,29 +16,49 @@ import (
 
 func ShowGameModes(c *gin.Context) {
 	modes := game.ListGameModes()
-	Render(c, http.StatusOK, pages.GameModesPage(modes, CSRFToken(c)))
+	errMsg := gameErrorMessage(c.Query("error"))
+	Render(c, http.StatusOK, pages.GameModesPage(modes, CSRFToken(c), errMsg))
+}
+
+func ShowGame(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/?error=server_error")
+		return
+	}
+
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/?error=game_not_found")
+		return
+	}
+
+	Render(c, http.StatusOK, pages.NewGamePage(g))
 }
 
 func CreateGame(c *gin.Context) {
-	repo, ok := store.GetRepoFromContext(c.Request.Context())
-	logger.Info(c.Request.Context()).Bool("repo found", ok).Msg("Handler: CreateGame")
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	logger.Info(ctx).Bool("repo found", ok).Msg("Handler: CreateGame")
 	if !ok {
+		c.Redirect(http.StatusSeeOther, "/?error=server_error")
 		return
 	}
 
 	selectedMode := c.PostForm("mode")
 	gm, err := game.FindGameModeByName(selectedMode)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid game mode")
+		c.Redirect(http.StatusSeeOther, "/?error=invalid_mode")
 		return
 	}
 
 	g := game.NewGame(&gm)
 	repo.Add(g)
 
-	// For simplicity, you can store in-memory or use session/DB
-	// For now, render the chessboard page
-	Render(c, http.StatusOK, pages.NewGamePage(g))
+	// PRG: redirect so reload does not trigger resubmission
+	c.Redirect(http.StatusSeeOther, "/game/"+g.ID)
 }
 
 func SelectSquare(c *gin.Context) {
@@ -121,5 +141,19 @@ func SelectSquare(c *gin.Context) {
 	err = broadcastSignals(c, signals)
 	if err != nil {
 		logger.Error(ctx).Err(err).Msg("Failed to broadcast selection update")
+	}
+}
+
+// gameErrorMessage maps error query params to user-readable messages.
+func gameErrorMessage(code string) string {
+	switch code {
+	case "invalid_mode":
+		return "That game mode is no longer available. Please choose another."
+	case "game_not_found":
+		return "Game not found. It may have expired — please start a new game."
+	case "server_error":
+		return "Something went wrong on our end. Please try again."
+	default:
+		return ""
 	}
 }

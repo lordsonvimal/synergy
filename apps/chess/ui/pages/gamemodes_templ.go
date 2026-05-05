@@ -8,11 +8,14 @@ package pages
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/lordsonvimal/synergy/apps/chess/game"
-import "github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
-import "github.com/lordsonvimal/synergy/apps/chess/ui/layouts"
+import (
+	"fmt"
+	"github.com/lordsonvimal/synergy/apps/chess/game"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/layouts"
+)
 
-func GameModesPage(modes []game.GameMode, csrfToken string) templ.Component {
+func GameModesPage(modes []game.GameMode, csrfToken string, errMsg string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -45,95 +48,178 @@ func GameModesPage(modes []game.GameMode, csrfToken string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex items-center justify-center min-h-full\"><div class=\"w-full max-w-2xl px-4 py-6 sm:px-6\"><h1 class=\"text-2xl font-bold text-ink mb-6\">Choose a Game Mode</h1><div class=\"grid gap-4\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<script type=\"module\" src=\"/assets/datastar.js\"></script> <div data-signals=\"{loadingMode: -1}\" class=\"flex items-center justify-center min-h-full\"><div class=\"w-full max-w-2xl px-4 py-6 sm:px-6\"><h1 class=\"text-2xl font-bold text-ink mb-6\">Choose a Game Mode</h1>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			for _, mode := range modes {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<form method=\"POST\" action=\"/game\"><input type=\"hidden\" name=\"_csrf\" value=\"")
+			if errMsg != "" {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"flex items-center gap-2 px-4 py-3 rounded-lg bg-error-subtle border border-error text-error text-sm mb-6\" role=\"alert\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-4 h-4 shrink-0\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path> <line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line> <line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
-				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(csrfToken)
+				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 17, Col: 58}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 26, Col: 14}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"> <input type=\"hidden\" name=\"mode\" value=\"")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var4 string
-				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(mode.Name)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 18, Col: 57}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"> <button type=\"submit\" class=\"w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left hover:bg-primary-subtle hover:shadow-md transition cursor-pointer\"><div class=\"flex justify-between items-center gap-3\"><div class=\"min-w-0\"><div class=\"text-lg font-semibold text-ink truncate\">")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var5 string
-				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(mode.Name)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 27, Col: 22}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div><div class=\"text-sm text-ink-secondary\">")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var6 string
-				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(mode.Variant)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 30, Col: 25}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div></div><div class=\"text-sm text-ink-dim whitespace-nowrap shrink-0\">")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var7 string
-				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(helpers.FormatTime(mode.TimeNs))
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 34, Col: 43}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, " + ")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var8 string
-				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(helpers.FormatInc(mode.Increment))
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 34, Col: 83}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></div></button></form>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div></div></div>")
+			if len(modes) == 0 {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"flex flex-col items-center gap-4 py-16 text-center\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-12 h-12 text-ink-dim\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg><div><p class=\"font-semibold text-ink text-lg\">No game modes available</p><p class=\"text-ink-secondary text-sm mt-1\">Please check back later or refresh the page.</p></div><a href=\"/\" class=\"px-4 py-2 text-sm font-medium text-on-primary bg-primary rounded-md hover:bg-primary-hover transition-colors duration-150\">Refresh</a></div>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			} else {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"grid gap-4\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				for i, mode := range modes {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<form method=\"POST\" action=\"/game\"><input type=\"hidden\" name=\"_csrf\" value=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var4 string
+					templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(csrfToken)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 47, Col: 59}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\"> <input type=\"hidden\" name=\"mode\" value=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var5 string
+					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(mode.Name)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 48, Col: 58}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\"> <button type=\"submit\" data-on:click=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var6 string
+					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(fmt.Sprintf("$loadingMode = %d", i)))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 51, Col: 80}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" data-attr:disabled=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var7 string
+					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(fmt.Sprintf("$loadingMode !== -1 && $loadingMode !== %d", i)))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 52, Col: 110}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" data-class=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var8 string
+					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(fmt.Sprintf(`
+										(() => {
+											const active = $loadingMode === %d;
+											const blocked = $loadingMode !== -1 && $loadingMode !== %d;
+											return {
+												'opacity-50 cursor-not-allowed pointer-events-none': blocked,
+												'bg-primary-subtle border-primary cursor-wait': active,
+												'hover:bg-primary-subtle hover:shadow-md cursor-pointer': !active && !blocked,
+											};
+										})()
+									`, i, i)))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 63, Col: 18}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" class=\"w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left transition\"><div class=\"flex justify-between items-center gap-3\"><div class=\"min-w-0\"><div class=\"text-lg font-semibold text-ink truncate\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var9 string
+					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(mode.Name)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 68, Col: 75}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div><div class=\"text-sm text-ink-secondary\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var10 string
+					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(mode.Variant)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 69, Col: 65}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div></div><div class=\"text-sm text-ink-dim whitespace-nowrap shrink-0\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var11 string
+					templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(helpers.FormatTime(mode.TimeNs))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 72, Col: 44}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, " + ")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var12 string
+					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(helpers.FormatInc(mode.Increment))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 72, Col: 84}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div></div></button></form>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</div>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

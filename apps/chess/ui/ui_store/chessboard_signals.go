@@ -33,6 +33,15 @@ func NewChessBoardSignals() *ChessBoardSignals {
 	}
 }
 
+// ChessBoardSignalsFromGame creates signals pre-populated from the current game state.
+// Use this when rendering an existing game (e.g. on page reload) so the initial
+// DataStar signals match reality rather than defaulting to a fresh-game state.
+func ChessBoardSignalsFromGame(g *game.Game) *ChessBoardSignals {
+	s := NewChessBoardSignals()
+	s.UpdateFromGame(g)
+	return s
+}
+
 func (s *ChessBoardSignals) ClearSelection() {
 	s.SelectedSquare = 255
 	s.PossibleMoves = []int{}
