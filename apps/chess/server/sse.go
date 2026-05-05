@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -11,7 +12,8 @@ import (
 	"github.com/starfederation/datastar-go/datastar"
 )
 
-// Broadcast the updated board state to the client
+// broadcastBoard sends an updated board HTML + signals patch via DataStar SSE.
+// Used for per-request (non-streaming) move responses.
 func broadcastBoard(c *gin.Context, g *game.Game, signals *ui_store.ChessBoardSignals) error {
 	sse := datastar.NewSSE(c.Writer, c.Request)
 
@@ -23,7 +25,7 @@ func broadcastBoard(c *gin.Context, g *game.Game, signals *ui_store.ChessBoardSi
 	return broadcastSignals(c, signals)
 }
 
-// Show promotion UI for selecting a piece
+// broadcastSignals sends a DataStar signal patch via SSE.
 func broadcastSignals(c *gin.Context, signals *ui_store.ChessBoardSignals) error {
 	sse := datastar.NewSSE(c.Writer, c.Request)
 
@@ -34,4 +36,11 @@ func broadcastSignals(c *gin.Context, signals *ui_store.ChessBoardSignals) error
 
 	sse.PatchSignals(b)
 	return nil
+}
+
+// writeSSEEvent writes a single raw SSE event to a gin.ResponseWriter.
+// format: "data: <payload>\n\n"
+func writeSSEEvent(c *gin.Context, payload []byte) {
+	fmt.Fprintf(c.Writer, "data: %s\n\n", payload)
+	c.Writer.Flush()
 }

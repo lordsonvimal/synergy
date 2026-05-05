@@ -12,10 +12,6 @@ live/server:
 live/tailwind:
 	npx @tailwindcss/cli -i ./ui/styles/style.css -o ./dist/style.css --watch
 
-# run esbuild to generate the index.js bundle in watch mode.
-live/esbuild:
-	npx --yes esbuild js/index.ts --bundle --outdir=assets/ --watch
-
 # watch for any js or css change in the assets/ folder, then reload the browser via templ proxy.
 live/sync_assets:
 	air -c .air.assets.toml

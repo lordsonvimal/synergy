@@ -106,13 +106,29 @@
 
 ## 10. Performance & Dead Code
 
-- [ ] Gate `requestAnimationFrame` loop in `initClock.js` — only run when clock elements exist
-- [ ] Fix `sync.js` — `document.getElementById` at module top will fail if DOM not ready
-- [ ] Wire clock UI elements into templates (referenced in JS but never rendered)
-- [ ] Remove stale `esbuild` Makefile target (references non-existent `js/index.ts`)
-- [ ] Move WAL file output to a configurable data directory (not app root)
+- [x] Gate `requestAnimationFrame` loop in `initClock.js` — loop only starts when both `#white-clock` and `#black-clock` elements are present in the DOM
+- [x] Fix `sync.js` — `ClientClock` is now null-safe (`tick` and `render` guard on `this.el`); moved to `assets/js/` so it is served by the existing `/assets` route
+- [x] Wire clock UI elements into templates — `id="white-clock"` and `id="black-clock"` spans added to `WhitePlayerCard` and `BlackPlayerCard`; `initClock.js` loaded in `newgame.templ`; clock JS moved from `ui/js/` to `assets/js/`
+- [x] Remove stale `esbuild` Makefile target — `live/esbuild` target and its comment removed from `Makefile` (referenced non-existent `js/index.ts`)
+- [x] Move WAL file output to a configurable data directory — `NewGame` reads `DATA_DIR` env var (defaults to `.`) and writes WAL files to `filepath.Join(dataDir, "game_<id>.wal")`
 
-## 11. Testing
+## 11. Internet-Grade Chess Clock
+
+- [x] Document architecture in `docs/CLOCK_DESIGN.md`
+- [x] Add `GET /ping` endpoint for NTP-style RTT measurement (3-sample median offset)
+- [x] Add `GameHub` fan-out SSE hub per game (`game/hub.go`)
+- [x] Add server watchdog goroutine: 100ms poll, 1 Hz clock tick broadcast, authoritative flag fall (`game/watchdog.go`)
+- [x] Add `RemainingAt(color, nowNs)` helper to `GameClock` (`game/clock.go`)
+- [x] Add `ClockTickEvent` and `GameOverEvent` structs (`game/events.go`)
+- [x] Wire `Hub` and `stopCh` onto `Game` struct; start watchdog on `NewGame` (`game/game.go`)
+- [x] `UpdateGameState` calls `signalGameOver()` for checkmate/stalemate/draw — stops watchdog and broadcasts `game_over` SSE
+- [x] Add `GET /game/:id/events` persistent SSE stream handler (`server/handlers.go`)
+- [x] Register `/ping` and `/game/:id/events` routes (`server/routes.go`)
+- [x] Rewrite `assets/js/clock.js`: transit-compensated `sync()` with lerp correction (±500ms threshold, 21 frames)
+- [x] Rewrite `assets/js/sync.js`: `measureOffset()` (3× ping, median), `connectEventStream()` SSE dispatcher
+- [x] Rewrite `assets/js/initClock.js`: extract game ID from URL, open SSE stream, patch DataStar signals on `game_over`
+
+## 12. Testing
 
 - [ ] Add `data-testid` attributes to all interactive elements
 - [ ] Add `.env.example` documenting expected environment variables
@@ -131,5 +147,6 @@
 7. ~~Security~~ ✓
 8. ~~Error handling & UX~~ ✓
 9. ~~Game UI redesign~~ ✓
-10. Performance & dead code
-11. Testing
+10. ~~Performance & dead code~~ ✓
+11. ~~Internet-grade chess clock~~ ✓
+12. Testing

@@ -51,7 +51,7 @@ func BlackPlayerCard() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><!-- Fixed chess piece color — not a design token --><span class=\"w-4 h-4 rounded-full shrink-0\" style=\"background-color: #1A1A1A;\" aria-hidden=\"true\"></span> <span class=\"font-semibold text-sm text-ink flex-1\">Black</span> <span class=\"text-xs font-medium text-primary\" data-show=\"$sideToMove === 1 && $gameState === 0\" style=\"display: none\">To move</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><!-- Fixed chess piece color — not a design token --><span class=\"w-4 h-4 rounded-full shrink-0\" style=\"background-color: #1A1A1A;\" aria-hidden=\"true\"></span> <span class=\"font-semibold text-sm text-ink flex-1\">Black</span> <span id=\"black-clock\" class=\"text-xs font-mono tabular-nums text-ink-dim\" aria-label=\"Black clock\">--</span> <span class=\"text-xs font-medium text-primary\" data-show=\"$sideToMove === 1 && $gameState === 0\" style=\"display: none\">To move</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -96,13 +96,13 @@ func WhitePlayerCard() templ.Component {
 			})()
 		`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 40, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 41, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><!-- Fixed chess piece color — not a design token --><span class=\"w-4 h-4 rounded-full shrink-0 border border-edge-strong\" style=\"background-color: #F5F5F5;\" aria-hidden=\"true\"></span> <span class=\"font-semibold text-sm text-ink flex-1\">White</span> <span class=\"text-xs font-medium text-primary\" data-show=\"$sideToMove === 0 && $gameState === 0\" style=\"display: none\">To move</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><!-- Fixed chess piece color — not a design token --><span class=\"w-4 h-4 rounded-full shrink-0 border border-edge-strong\" style=\"background-color: #F5F5F5;\" aria-hidden=\"true\"></span> <span class=\"font-semibold text-sm text-ink flex-1\">White</span> <span id=\"white-clock\" class=\"text-xs font-mono tabular-nums text-ink-dim\" aria-label=\"White clock\">--</span> <span class=\"text-xs font-medium text-primary\" data-show=\"$sideToMove === 0 && $gameState === 0\" style=\"display: none\">To move</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -149,7 +149,7 @@ func GameStatusBanner() templ.Component {
 			})()
 		`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 87, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 89, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {

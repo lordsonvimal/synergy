@@ -3,6 +3,8 @@ package game
 import (
 	"context"
 	"log"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/google/uuid"
@@ -42,6 +44,7 @@ type Game struct {
 	Board     *engine.Board
 	Clock     GameClock
 	WAL       *WAL
+	Hub       *GameHub
 	Selection *SelectionState
 	Seq       uint64
 	State     GameState
@@ -49,6 +52,7 @@ type Game struct {
 
 	mu             sync.RWMutex
 	legalMoveCache map[engine.Color]bool // cache per side
+	stopCh         chan struct{}          // closed to stop the watchdog
 }
 
 func NewGame(mode *GameMode) *Game {
@@ -56,24 +60,35 @@ func NewGame(mode *GameMode) *Game {
 
 	id := uuid.New().String()
 
-	// 2. 5 minutes per side with 2-second increment
 	gc := NewClock(mode.TimeNs, mode.Increment)
+	gc.Start(engine.White) // White's clock starts immediately, as in standard chess
 
-	wal, err := NewWAL("game_" + id + ".wal")
+	dataDir := os.Getenv("DATA_DIR")
+	if dataDir == "" {
+		dataDir = "."
+	}
+	wal, err := NewWAL(filepath.Join(dataDir, "game_"+id+".wal"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// 4. Create the Game struct
-	return &Game{
+	hub := NewGameHub()
+	stopCh := make(chan struct{})
+
+	g := &Game{
 		ID:     id,
 		Board:  board,
 		Clock:  gc,
 		WAL:    wal,
+		Hub:    hub,
 		Seq:    0,
 		State:  GameOngoing,
 		Winner: engine.NoColor,
+		stopCh: stopCh,
 	}
+
+	g.startWatchdog()
+	return g
 }
 
 // --------------------------
@@ -154,6 +169,22 @@ func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
 
 	g.ClearSelection()  // After move, clear selection
 	g.UpdateGameState() // Update game state after each move
+
+	// Push an immediate clock tick so the client switches sides without
+	// waiting up to 1s for the next watchdog broadcast.
+	if g.State == GameOngoing {
+		nowNs := monoNow()
+		evt := ClockTickEvent{
+			Type:             "clock_tick",
+			WhiteRemainingNs: g.Clock.RemainingAt(0, nowNs),
+			BlackRemainingNs: g.Clock.RemainingAt(1, nowNs),
+			WhiteRunning:     g.Clock.White.Running,
+			BlackRunning:     g.Clock.Black.Running,
+			ServerTsNs:       nowNs,
+		}
+		go g.broadcastJSON(evt)
+	}
+
 	return true
 }
 
@@ -161,9 +192,6 @@ func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
 // Update game state after a move
 // --------------------------
 func (g *Game) UpdateGameState() {
-	// g.mu.Lock()
-	// defer g.mu.Unlock()
-
 	// Skip if game already over
 	if g.State != GameOngoing {
 		return
@@ -174,7 +202,8 @@ func (g *Game) UpdateGameState() {
 	// 1. Check checkmate
 	if g.IsCheckmate() {
 		g.State = GameCheckmate
-		g.Winner = color // the player who just moved wins
+		g.Winner = color
+		g.signalGameOver()
 		return
 	}
 
@@ -182,45 +211,76 @@ func (g *Game) UpdateGameState() {
 	if g.IsStalemate() {
 		g.State = GameDrawStalemate
 		g.Winner = engine.NoColor
+		g.signalGameOver()
 		return
 	}
 
-	// 3. Fifty-move rule
-	// if g.Board.HalfMoveClock >= 100 {
-	// 	g.State = GameDrawFiftyMove
-	// 	g.Winner = engine.NoColor
-	// 	return
-	// }
-
-	// 4. Threefold repetition
+	// 3. Threefold repetition
 	if g.Board.IsThreefoldRepetition() {
 		g.State = GameDrawThreefoldRepetition
 		g.Winner = engine.NoColor
+		g.signalGameOver()
 		return
 	}
 
-	// 5. Insufficient material
+	// 4. Insufficient material
 	if g.Board.IsInsufficientMaterial() {
 		g.State = GameDrawInsufficientMaterial
 		g.Winner = engine.NoColor
+		g.signalGameOver()
 		return
 	}
 
-	// 6. Clock flag (time out)
-	// if g.Clock.White.RemainingNs <= 0 {
-	// 	g.State = GameClockFlagged
-	// 	g.Winner = engine.Black
-	// 	return
-	// }
-	// if g.Clock.Black.RemainingNs <= 0 {
-	// 	g.State = GameClockFlagged
-	// 	g.Winner = engine.White
-	// 	return
-	// }
-
-	// 7. If none of the above, game ongoing
 	g.State = GameOngoing
 	g.Winner = engine.NoColor
+}
+
+// signalGameOver stops the watchdog and broadcasts a game_over SSE event.
+// Must be called after g.State and g.Winner have been set.
+// Called with the game mutex held — broadcasts are async so no deadlock.
+func (g *Game) signalGameOver() {
+	select {
+	case <-g.stopCh:
+		// already stopped
+	default:
+		close(g.stopCh)
+	}
+
+	stateText := gameStateText(g.State)
+	evt := GameOverEvent{
+		Type:      "game_over",
+		State:     g.State,
+		Winner:    int(g.Winner),
+		StateText: stateText,
+	}
+	go g.broadcastJSON(evt)
+}
+
+func gameStateText(s GameState) string {
+	switch s {
+	case GameCheckmate:
+		return "Checkmate"
+	case GameResigned:
+		return "Resigned"
+	case GameClockFlagged:
+		return "Clock flagged"
+	case GameDrawStalemate:
+		return "Stalemate"
+	case GameDrawFiftyMove:
+		return "Fifty-move rule"
+	case GameDrawAgreement:
+		return "Draw by agreement"
+	case GameDrawThreefoldRepetition:
+		return "Threefold repetition"
+	case GameDrawInsufficientMaterial:
+		return "Insufficient material"
+	case GameAbandoned:
+		return "Abandoned"
+	case GameDisconnected:
+		return "Disconnected"
+	default:
+		return "Unknown"
+	}
 }
 
 // --------------------------

@@ -51,18 +51,20 @@ func (gc *GameClock) Start(color engine.Color) {
 func (gc *GameClock) Stop(color engine.Color, lagCompNs int64) {
 	now := monoNow()
 	c := gc.clock(color)
-	elapsed := now - c.LastStartNs - lagCompNs
-	if elapsed < 0 {
-		elapsed = 0
+
+	if c.Running {
+		elapsed := now - c.LastStartNs - lagCompNs
+		if elapsed < 0 {
+			elapsed = 0
+		}
+		c.RemainingNs -= elapsed
+		if c.RemainingNs < 0 {
+			c.RemainingNs = 0
+		}
 	}
-	c.RemainingNs -= elapsed
-	if c.RemainingNs < 0 {
-		c.RemainingNs = 0
-	}
+
 	c.RemainingNs += gc.IncNs
 	c.Running = false
-
-	// Increment turn after the player stops their clock
 	gc.Turn++
 }
 
@@ -71,4 +73,22 @@ func (gc *GameClock) clock(color engine.Color) *Clock {
 		return &gc.White
 	}
 	return &gc.Black
+}
+
+// RemainingAt returns the remaining nanoseconds for the given side at the
+// given unix nanosecond timestamp, accounting for elapsed time if running.
+func (gc *GameClock) RemainingAt(color engine.Color, nowNs int64) int64 {
+	c := gc.clock(color)
+	if !c.Running {
+		return c.RemainingNs
+	}
+	elapsed := nowNs - c.LastStartNs
+	if elapsed < 0 {
+		elapsed = 0
+	}
+	rem := c.RemainingNs - elapsed
+	if rem < 0 {
+		return 0
+	}
+	return rem
 }

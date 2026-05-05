@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lordsonvimal/synergy/apps/chess/engine"
@@ -141,6 +142,50 @@ func SelectSquare(c *gin.Context) {
 	err = broadcastSignals(c, signals)
 	if err != nil {
 		logger.Error(ctx).Err(err).Msg("Failed to broadcast selection update")
+	}
+}
+
+// PingHandler returns the server's current Unix nanosecond timestamp.
+// Clients call this 3× at game start to compute a clock offset (NTP-style).
+func PingHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"server_ns": time.Now().UnixNano()})
+}
+
+// GameEventsHandler opens a persistent SSE stream for a game.
+// It delivers clock_tick events (1 Hz), board_update patches, and game_over events.
+func GameEventsHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("X-Accel-Buffering", "no") // disable nginx buffering
+
+	ch := g.Hub.Subscribe()
+	defer g.Hub.Unsubscribe(ch)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg, open := <-ch:
+			if !open {
+				return
+			}
+			writeSSEEvent(c, msg)
+		}
 	}
 }
 
