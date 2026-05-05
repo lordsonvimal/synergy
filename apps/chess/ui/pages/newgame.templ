@@ -9,16 +9,18 @@ templ NewGamePage(g *game.Game) {
 	@layouts.Layout("ChessLeap", true) {
 		<script type="module" src="/assets/datastar.js"></script>
 		<div
-			class="flex flex-col lg:flex-row lg:items-start gap-4 p-4 lg:h-full"
+			class="flex flex-col items-center justify-center min-h-full p-4"
 			data-signals={ templ.JSONString(ui_store.NewChessBoardSignals()) }
 		>
-			<section class="relative lg:flex-1 lg:min-h-0 lg:h-full">
-				@components.RenderChessBoard(g)
-				@components.RenderPromotionOverlay(g)
-			</section>
-			<aside class="w-full lg:w-72 shrink-0">
-				@components.GameInfoPanel()
-			</aside>
+			<div class="w-[min(100%,calc(100vh-14rem),560px)] flex flex-col gap-2">
+				@components.BlackPlayerCard()
+				<section class="relative w-full">
+					@components.RenderChessBoard(g)
+					@components.RenderPromotionOverlay(g)
+				</section>
+				@components.GameStatusBanner()
+				@components.WhitePlayerCard()
+			</div>
 		</div>
 	}
 }

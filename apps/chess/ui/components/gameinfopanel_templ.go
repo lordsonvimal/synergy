@@ -8,9 +8,7 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "fmt"
-
-func GameInfoPanel() templ.Component {
+func BlackPlayerCard() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -31,27 +29,133 @@ func GameInfoPanel() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<aside class=\"w-full bg-surface border border-edge rounded-lg shadow-md p-4 sm:p-6 flex flex-col gap-4 sm:gap-6\" aria-label=\"Game information\"><h2 class=\"text-2xl font-bold text-ink border-b border-edge pb-2 mb-4\">Game Info</h2><div aria-live=\"polite\" aria-atomic=\"true\" class=\"sr-only\"><span data-text=\"'Turn: ' + ($sideToMove === 0 ? 'White' : 'Black') + '. ' + $gameStateText + ($isCheck ? '. King in check!' : '')\"></span></div><!-- Turn --><div class=\"flex items-center justify-between\"><span class=\"font-semibold text-ink-secondary\">Turn:</span> <span data-text=\"$sideToMove === 0 ? 'White' : 'Black'\" data-class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex items-center gap-3 px-3 py-2 rounded-lg border border-edge bg-surface transition-colors duration-150\" data-class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(fmt.Sprintf(`
-          (() => {
-            return {
-              'chess-turn-white': $sideToMove === 0,
-              'chess-turn-black': $sideToMove === 1,
-            };
-          })()
-			    `)))
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(`
+			(() => {
+				return {
+					'border-primary': $sideToMove === 1 && $gameState === 0,
+					'bg-primary-subtle': $sideToMove === 1 && $gameState === 0,
+					'border-edge': !($sideToMove === 1 && $gameState === 0),
+					'bg-surface': !($sideToMove === 1 && $gameState === 0),
+				};
+			})()
+		`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 23, Col: 10}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 15, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"px-3 py-1 rounded-full font-medium\"></span></div><!-- Check --><div class=\"flex items-center justify-between\" data-show=\"$isCheck\" style=\"display: none\"><span class=\"font-semibold text-ink-secondary\">Check:</span> <span class=\"px-3 py-1 bg-error-subtle text-error rounded-full font-semibold\">King in check!</span></div><!-- Game State --><div class=\"flex flex-col\"><span class=\"font-semibold text-ink-secondary mb-1\">Game State:</span> <span data-text=\"$gameStateText\" class=\"px-3 py-1 bg-warning-subtle text-warning rounded-full font-medium\"></span></div><!-- Winner --><div class=\"flex items-center justify-between\" data-show=\"$winner !== 255\" style=\"display: none\"><span class=\"font-semibold text-ink-secondary\">Winner:</span> <span data-text=\"$winner === 0 ? 'White' : 'Black'\" class=\"px-3 py-1 bg-success-subtle text-success rounded-full font-bold\"></span></div></aside>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><!-- Fixed chess piece color — not a design token --><span class=\"w-4 h-4 rounded-full shrink-0\" style=\"background-color: #1A1A1A;\" aria-hidden=\"true\"></span> <span class=\"font-semibold text-sm text-ink flex-1\">Black</span> <span class=\"text-xs font-medium text-primary\" data-show=\"$sideToMove === 1 && $gameState === 0\" style=\"display: none\">To move</span></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func WhitePlayerCard() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var3 == nil {
+			templ_7745c5c3_Var3 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"flex items-center gap-3 px-3 py-2 rounded-lg border border-edge bg-surface transition-colors duration-150\" data-class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var4 string
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(`
+			(() => {
+				return {
+					'border-primary': $sideToMove === 0 && $gameState === 0,
+					'bg-primary-subtle': $sideToMove === 0 && $gameState === 0,
+					'border-edge': !($sideToMove === 0 && $gameState === 0),
+					'bg-surface': !($sideToMove === 0 && $gameState === 0),
+				};
+			})()
+		`))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 40, Col: 4}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><!-- Fixed chess piece color — not a design token --><span class=\"w-4 h-4 rounded-full shrink-0 border border-edge-strong\" style=\"background-color: #F5F5F5;\" aria-hidden=\"true\"></span> <span class=\"font-semibold text-sm text-ink flex-1\">White</span> <span class=\"text-xs font-medium text-primary\" data-show=\"$sideToMove === 0 && $gameState === 0\" style=\"display: none\">To move</span></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func GameStatusBanner() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var5 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var5 == nil {
+			templ_7745c5c3_Var5 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<!-- Accessibility live region --><div aria-live=\"polite\" aria-atomic=\"true\" class=\"sr-only\"><span data-text=\"'Turn: ' + ($sideToMove === 0 ? 'White' : 'Black') + '. ' + $gameStateText + ($isCheck ? '. King in check!' : '')\"></span></div><!-- Check banner — visible only while king is in check during an ongoing game --><div class=\"flex items-center gap-2 px-3 py-2 rounded-lg bg-error-subtle border border-error text-error text-sm font-semibold\" data-show=\"$isCheck && $gameState === 0\" style=\"display: none\" role=\"alert\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-4 h-4 shrink-0\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path> <line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line> <line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg> King in check!</div><!-- Game over banner — visible when game has ended --><div class=\"flex flex-col gap-0.5 px-3 py-3 rounded-lg border text-sm font-semibold\" data-show=\"$gameState !== 0\" data-class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var6 string
+		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(`
+			(() => {
+				return {
+					'bg-success-subtle': $winner !== 255,
+					'border-success': $winner !== 255,
+					'text-success': $winner !== 255,
+					'bg-info-subtle': $winner === 255,
+					'border-info': $winner === 255,
+					'text-info': $winner === 255,
+				};
+			})()
+		`))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 87, Col: 4}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" style=\"display: none\" role=\"status\"><span data-text=\"$gameStateText\"></span> <span class=\"text-xs font-normal opacity-75\" data-show=\"$winner !== 255\" data-text=\"($winner === 0 ? 'White' : 'Black') + ' wins'\" style=\"display: none\"></span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

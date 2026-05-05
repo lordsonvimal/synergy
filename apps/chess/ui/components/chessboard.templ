@@ -3,8 +3,8 @@ package components
 import "github.com/lordsonvimal/synergy/apps/chess/game"
 
 templ RenderChessBoard(g *game.Game) {
-	<div class="relative h-full flex items-center justify-center" id="chessboard">
-		<div class="bg-chess-frame rounded-lg p-1 sm:p-2 shadow-lg w-[min(100%,calc(100vh-10rem),560px)] aspect-square mx-auto">
+	<div id="chessboard">
+		<div class="bg-chess-frame rounded-lg p-1 sm:p-2 shadow-lg w-full aspect-square">
 			<div class="grid grid-cols-8 grid-rows-8 w-full h-full">
 				for rank := 7; rank >= 0; rank-- {
 					for file := 0; file < 8; file++ {
