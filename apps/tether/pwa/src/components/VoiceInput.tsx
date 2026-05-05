@@ -1,7 +1,6 @@
-import { Component, createSignal, onCleanup, Show } from "solid-js";
+import { Component, createSignal, onCleanup, Show, For } from "solid-js";
 import { createSTT } from "../lib/stt.js";
 import { addToast } from "../lib/toast.js";
-import { Waveform } from "./Waveform.js";
 import { MicIcon, StopIcon } from "./icons.js";
 
 interface VoiceInputProps {
@@ -9,13 +8,14 @@ interface VoiceInputProps {
   onReviewChange?: (reviewing: boolean) => void;
 }
 
+type SttState = "idle" | "listening" | "speech-detected" | "error";
+
 export const VoiceInput: Component<VoiceInputProps> = (props) => {
   const [recording, setRecording] = createSignal(false);
-  const [interim, setInterim] = createSignal("");
-  const [accumulated, setAccumulated] = createSignal("");
   const [reviewText, setReviewText] = createSignal("");
   const [reviewing, setReviewing] = createSignal(false);
   const [recordingTime, setRecordingTime] = createSignal(0);
+  const [sttState, setSttState] = createSignal<SttState>("idle");
   let timerInterval: ReturnType<typeof setInterval> | undefined;
 
   const formatTime = (seconds: number): string => {
@@ -39,36 +39,49 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
     setRecordingTime(0);
   };
 
+  const stopRecordingOnError = (): void => {
+    setSttState("error");
+    setRecording(false);
+    stopTimer();
+    stt?.stop();
+  };
+
+  type ToastLevel = "error" | "warning" | "info";
+
+  const sttErrors: Record<string, [string, ToastLevel]> = {
+    "not-allowed": ["Microphone permission denied. Check browser settings.", "error"],
+    "network": ["Internet required for speech recognition", "error"],
+    "no-speech": ["No speech detected — speak closer to the mic", "warning"],
+    "audio-capture": ["Microphone unavailable — check if another app is using it", "error"],
+    "service-not-allowed": ["Speech service blocked. Try reloading the page.", "error"],
+    "language-not-supported": ["Speech language not supported on this device", "error"],
+    "startup-timeout": ["Microphone not responding — check permissions and try again", "error"],
+    "no-transcription": ["Speech heard but not transcribed — check internet", "error"],
+    "no-speech-detected": ["Mic active but no voice detected — speak louder", "warning"],
+  };
+
   const stt = createSTT({
-    onInterim: (text) => {
-      setInterim(text);
-    },
-    onFinal: (text) => {
-      const updated = accumulated() + (accumulated() ? " " : "") + text;
-      setAccumulated(updated);
-      setInterim("");
+    onTranscript: () => {
+      setSttState("speech-detected");
     },
     onError: (err) => {
-      if (err === "not-allowed") {
-        addToast("Microphone permission denied", "error");
-        setRecording(false);
-      } else if (err === "network") {
-        addToast("Network required for speech recognition", "error");
-        setRecording(false);
-      } else if (err === "no-speech") {
-        // Ignore — auto-restart handles this
-      } else if (err === "aborted") {
-        // Ignore — user stopped
-      } else {
-        addToast(`Speech error: ${err}`, "error");
-        setRecording(false);
-      }
+      if (err === "aborted") return;
+      const entry = sttErrors[err];
+      const [message, level] = entry ?? [`Speech recognition failed: ${err}`, "error" as ToastLevel];
+      addToast(message, level);
+      stopRecordingOnError();
     },
     onEnd: () => {
-      if (!recording() && !accumulated() && !interim()) {
-        addToast("No speech detected", "warning");
-      }
-    }
+      if (!recording()) return;
+      setRecording(false);
+      stopTimer();
+      setSttState("idle");
+      addToast("Speech recognition stopped — tap mic to retry", "warning");
+    },
+    onStateChange: (state) => {
+      if (state === "listening") setSttState("listening");
+      if (state === "speech-detected") setSttState("speech-detected");
+    },
   });
 
   onCleanup(() => {
@@ -78,19 +91,16 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
     stopTimer();
   });
 
-  const buildFinalText = (): string => {
-    const sep = accumulated() && interim() ? " " : "";
-    return (accumulated() + sep + interim()).trim();
-  };
-
   const stopRecording = (): void => {
     stt?.stop();
+    const finalText = stt?.getTranscript().trim() ?? "";
     setRecording(false);
     stopTimer();
-    const finalText = buildFinalText();
-    setInterim("");
-    setAccumulated("");
-    if (!finalText) return;
+    setSttState("idle");
+    if (!finalText) {
+      addToast("No speech captured — try speaking louder or closer to the mic", "warning");
+      return;
+    }
     setReviewText(finalText);
     setReviewing(true);
     props.onReviewChange?.(true);
@@ -104,8 +114,7 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
     if (recording()) {
       stopRecording();
     } else {
-      setAccumulated("");
-      setInterim("");
+      setSttState("listening");
       setRecording(true);
       startTimer();
       stt.start();
@@ -138,16 +147,32 @@ export const VoiceInput: Component<VoiceInputProps> = (props) => {
     }
   };
 
+  const barColor = (): string => {
+    const state = sttState();
+    if (state === "speech-detected") return "bg-success";
+    if (state === "error") return "bg-error";
+    return "bg-warning";
+  };
+
   return (
     <Show
       when={reviewing()}
       fallback={
         <div class="flex items-center gap-2">
           <Show when={recording()}>
-            <Waveform />
+            <div class="flex items-center gap-0.5 h-6" aria-hidden="true">
+              <For each={[0, 1, 2, 3, 4]}>
+                {i => (
+                  <span
+                    class={`w-1 rounded-full animate-waveform-bar transition-colors ${barColor()}`}
+                    style={{ "animation-delay": `${i * 0.15}s` }}
+                  />
+                )}
+              </For>
+            </div>
           </Show>
           <Show when={recording()}>
-            <span class="text-xs text-error font-mono tabular-nums">
+            <span class="text-xs text-ink-secondary font-mono tabular-nums">
               {formatTime(recordingTime())}
             </span>
           </Show>

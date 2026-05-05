@@ -21,6 +21,17 @@ footer[data-testid="input-bar"] {
   --animate-pulse-recording: pulse-recording 1s infinite;
   --animate-blink: blink 800ms infinite;
   --animate-fade-in: fade-in 200ms ease-out;
+  --animate-waveform-bar: waveform-bar 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes waveform-bar {
+  0% {
+    height: 4px;
+  }
+
+  100% {
+    height: 20px;
+  }
 }
 
 @keyframes pulse-recording {

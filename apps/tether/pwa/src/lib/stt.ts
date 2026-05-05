@@ -1,8 +1,8 @@
 export interface STTCallbacks {
-  onInterim: (text: string) => void;
-  onFinal: (text: string) => void;
+  onTranscript: (text: string) => void;
   onError: (error: string) => void;
   onEnd?: () => void;
+  onStateChange?: (state: "listening" | "speech-detected" | "not-listening") => void;
 }
 
 interface SpeechRecognitionEvent {
@@ -25,6 +25,9 @@ interface SpeechRecognition extends EventTarget {
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;
   onaudiostart: (() => void) | null;
+  onaudioend: (() => void) | null;
+  onspeechstart: (() => void) | null;
+  onspeechend: (() => void) | null;
 }
 
 declare global {
@@ -34,9 +37,16 @@ declare global {
   }
 }
 
+const STARTUP_TIMEOUT_MS = 5000;
+const NO_RESULT_TIMEOUT_MS = 10000;
+const RESTART_DELAY_MS = 100;
+const MAX_RESTART_FAILURES = 3;
+
 export function createSTT(callbacks: STTCallbacks): {
   start: () => void;
   stop: () => void;
+  getTranscript: () => string;
+  isActive: () => boolean;
   supported: boolean;
 } | null {
   const SpeechRecognition =
@@ -46,85 +56,156 @@ export function createSTT(callbacks: STTCallbacks): {
     return null;
   }
 
-  const recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = "en-IN";
+  let recognition: SpeechRecognition | null = null;
+  let active = false;
+  let audioStarted = false;
+  let speechDetected = false;
+  let resultReceived = false;
+  let segments: string[] = [];
+  let currentInterim = "";
+  let startupTimer: ReturnType<typeof setTimeout> | undefined;
+  let noResultTimer: ReturnType<typeof setTimeout> | undefined;
+  let restartTimer: ReturnType<typeof setTimeout> | undefined;
+  let restartFailures = 0;
 
-  let hadResult = false;
-  let isRunning = false;
-  let shouldRestart = false;
-  let lastInterim = "";
+  function clearTimers(): void {
+    clearTimeout(startupTimer);
+    clearTimeout(noResultTimer);
+    clearTimeout(restartTimer);
+  }
 
-  const getTranscript = (result: SpeechRecognitionResult): string =>
-    result[0]?.transcript ?? "";
+  function getFullTranscript(): string {
+    const parts = currentInterim
+      ? [...segments, currentInterim]
+      : segments;
+    return parts.join(" ");
+  }
 
-  const processResults = (event: SpeechRecognitionEvent): { interim: string; final: string } => {
-    let interim = "";
-    let final = "";
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const result = event.results[i];
-      if (!result) continue;
-      if (result.isFinal) { final += getTranscript(result); } else { interim += getTranscript(result); }
-    }
-    return { interim, final };
-  };
+  function emitTranscript(): void {
+    callbacks.onTranscript(getFullTranscript());
+  }
 
-  const emitResults = (interim: string, final: string): void => {
-    if (final) {
-      hadResult = true;
-      lastInterim = "";
-      callbacks.onFinal(final);
-    } else if (interim) {
-      lastInterim = interim;
-      callbacks.onInterim(interim);
-    }
-  };
-
-  recognition.onresult = (event: SpeechRecognitionEvent) => {
-    const { interim, final } = processResults(event);
-    emitResults(interim, final);
-  };
-
-  recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-    callbacks.onError(event.error);
-  };
-
-  recognition.onend = () => {
-    isRunning = false;
-    if (shouldRestart) {
-      if (lastInterim) {
-        callbacks.onFinal(lastInterim);
-        lastInterim = "";
-      }
-      hadResult = false;
-      isRunning = true;
+  function startRecognition(): void {
+    recognition = createRecognition();
+    try {
       recognition.start();
-      return;
+      if (!audioStarted) {
+        startupTimer = setTimeout(() => {
+          if (!active || audioStarted) return;
+          callbacks.onError("startup-timeout");
+        }, STARTUP_TIMEOUT_MS);
+      }
+    } catch (err) {
+      active = false;
+      clearTimers();
+      const message =
+        err instanceof Error ? err.message : "Failed to start recognition";
+      callbacks.onError(message);
     }
-    if (!hadResult) {
-      callbacks.onEnd?.();
-    }
-    hadResult = false;
-    lastInterim = "";
-  };
+  }
+
+  function createRecognition(): SpeechRecognition {
+    const rec = new SpeechRecognition();
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+
+    rec.onaudiostart = () => {
+      audioStarted = true;
+      restartFailures = 0;
+      clearTimeout(startupTimer);
+      callbacks.onStateChange?.("listening");
+      noResultTimer = setTimeout(() => {
+        if (!active || resultReceived) return;
+        const reason = speechDetected ? "no-transcription" : "no-speech-detected";
+        callbacks.onError(reason);
+      }, NO_RESULT_TIMEOUT_MS);
+    };
+
+    rec.onspeechstart = () => {
+      speechDetected = true;
+      callbacks.onStateChange?.("speech-detected");
+    };
+
+    rec.onresult = (event: SpeechRecognitionEvent) => {
+      resultReceived = true;
+      clearTimeout(noResultTimer);
+      // With continuous=false, there's only ever one result
+      const result = event.results[0];
+      if (!result?.[0]) return;
+      if (result.isFinal) {
+        const text = result[0].transcript.trim();
+        if (text) {
+          segments.push(text);
+          currentInterim = "";
+        }
+      } else {
+        currentInterim = result[0].transcript;
+      }
+      emitTranscript();
+    };
+
+    rec.onerror = (event: SpeechRecognitionErrorEvent) => {
+      if (event.error === "aborted" && !active) return;
+      if (event.error === "no-speech" && active) return;
+      callbacks.onError(event.error);
+    };
+
+    rec.onend = () => {
+      if (!active) return;
+      // Flush any remaining interim
+      if (currentInterim) {
+        const text = currentInterim.trim();
+        if (text) segments.push(text);
+        currentInterim = "";
+      }
+      // Auto-restart for next utterance
+      restartTimer = setTimeout(() => {
+        if (!active) return;
+        if (restartFailures >= MAX_RESTART_FAILURES) {
+          active = false;
+          callbacks.onEnd?.();
+          return;
+        }
+        restartFailures++;
+        startRecognition();
+      }, RESTART_DELAY_MS);
+    };
+
+    return rec;
+  }
 
   return {
     start: () => {
-      if (isRunning) {
-        return;
-      }
-      hadResult = false;
-      shouldRestart = true;
-      isRunning = true;
-      recognition.start();
+      if (active) return;
+      audioStarted = false;
+      speechDetected = false;
+      resultReceived = false;
+      restartFailures = 0;
+      segments = [];
+      currentInterim = "";
+      active = true;
+      startRecognition();
     },
     stop: () => {
-      shouldRestart = false;
-      if (isRunning) {
-        recognition.stop();
+      if (!active) return;
+      active = false;
+      clearTimers();
+      // Flush interim
+      if (currentInterim) {
+        const text = currentInterim.trim();
+        if (text) segments.push(text);
+        currentInterim = "";
       }
+      try {
+        recognition?.stop();
+      } catch {
+        // Already stopped
+      }
+      recognition = null;
     },
+    getTranscript: () => getFullTranscript(),
+    isActive: () => active,
     supported: true
   };
 }
