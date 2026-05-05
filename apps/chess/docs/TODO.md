@@ -90,24 +90,29 @@
 
 ## 8. Error Handling & UX
 
-- [ ] Add loading state on game mode form submission
-- [ ] Add user-friendly error UI for failed game creation (not bare `c.String`)
+- [x] Add loading state on game mode form submission — DataStar `$loadingMode` signal disables other buttons and highlights the active one
+- [x] Add user-friendly error UI for failed game creation — errors redirect to `/?error=<code>`; `ShowGameModes` maps codes to readable messages; error banner shown in `gamemodes.templ`
 - [x] Add back navigation from game page to game modes
-- [ ] Add empty state for game modes page (when no modes available)
-- [ ] Add error recovery UI (retry buttons)
-- [ ] Surface silent failures (SSE disconnect, WebSocket drop) to user via toast/banner
+- [x] Add empty state for game modes page — shown when `len(modes) == 0` with icon, description, and Refresh link
+- [x] Add error recovery UI — Refresh link in empty state; back navigation on game-not-found errors
+- [x] Surface silent failures — offline/online connectivity banner in `layout.templ` (above footer, all pages); warns user when connection is lost
 
-## 9. Performance & Dead Code
+## 9. Game UI Redesign
+
+- [x] Redesign `GameInfoPanel` — replaced generic key-value sidebar with player cards (Black above board, White below), prominent check banner, and game-over result banner using correct semantic colours
+- [x] Move player info above/below board (Lichess/Chess.com convention) — `BlackPlayerCard`, `WhitePlayerCard`, `GameStatusBanner` components replace the right-side `aside`; board takes full column width
+- [x] Fix PRG (Post-Redirect-Get) — `POST /game` now redirects to `GET /game/:gameID`; reloading a game page no longer triggers "Confirm Form Resubmission"
+- [x] Fix stale initial signals on reload — `ChessBoardSignalsFromGame(g)` pre-populates DataStar signals from the real game state so `sideToMove`, check status, and game state are correct from the first render
+
+## 10. Performance & Dead Code
 
 - [ ] Gate `requestAnimationFrame` loop in `initClock.js` — only run when clock elements exist
 - [ ] Fix `sync.js` — `document.getElementById` at module top will fail if DOM not ready
 - [ ] Wire clock UI elements into templates (referenced in JS but never rendered)
-- [x] Remove or wire `GameWS` handler into routes — removed (server/ws.go deleted)
 - [ ] Remove stale `esbuild` Makefile target (references non-existent `js/index.ts`)
-- [x] Fix `tailwind.config.js` — removed (Tailwind v4 uses CSS-based config, file was dead)
 - [ ] Move WAL file output to a configurable data directory (not app root)
 
-## 10. Testing
+## 11. Testing
 
 - [ ] Add `data-testid` attributes to all interactive elements
 - [ ] Add `.env.example` documenting expected environment variables
@@ -117,11 +122,14 @@
 
 ## Priority
 
-1. Nx integration — app is invisible to monorepo toolchain without it
-2. Theme tokens — import shared theme, replace default Tailwind classes
-3. Viewport meta + responsive layout — currently broken on mobile
-4. Dark mode — required for all apps
-5. Accessibility — keyboard support, ARIA, focus indicators
-6. Layout consolidation — remove duplication
-7. Security — origin validation, CSRF, bundle CDN deps
-8. Remaining — dead code, error handling, testing
+1. ~~Nx integration~~ ✓
+2. ~~Theme tokens~~ ✓
+3. ~~Viewport meta + responsive layout~~ ✓
+4. ~~Dark mode~~ ✓
+5. ~~Accessibility~~ ✓
+6. ~~Layout consolidation~~ ✓
+7. ~~Security~~ ✓
+8. ~~Error handling & UX~~ ✓
+9. ~~Game UI redesign~~ ✓
+10. Performance & dead code
+11. Testing
