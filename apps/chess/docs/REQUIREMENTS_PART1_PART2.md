@@ -160,23 +160,92 @@ The coach pairs two participants to play a rules-enforced timed game while the r
 - When the game ends (checkmate, time, resign, draw offer accepted): a result banner is shown; the board automatically returns to Teaching Mode with the final position loaded — coach can continue analysis immediately
 - Game result and move sequence are saved in the session recording
 
-##### c) Position Drill Mode
+##### c) Drill Mode
 
-The coach sets a position and all students independently attempt to find the best response. Answers are hidden until the coach reveals them.
+The coach runs interactive exercises with the class. Seven drill types are supported — each has a different student input method and answer format, but all share the same session flow: coach configures and starts the drill, students respond independently on their own boards, the coach privately reviews submissions before anything is shown to the class, and answers are revealed only when the coach decides. Auto-validation (correct / incorrect / partial) is applied on reveal where the answer is unambiguous.
 
-- Coach first sets a position via FEN input or piece placement (same tools as Teaching Mode)
-- Coach optionally configures a timer (30s, 60s, 90s, or no timer) and clicks "Start Drill"
-- Each student receives a private, independent copy of the position on their board
-- Students submit a single move by clicking their best square destination; move is locked in on click
-- A student's submitted move is shown only on their own board until the coach reveals
-- If a timer is set: a countdown is displayed on each student's board; unanswered boards auto-submit "No answer" when the timer expires
-- Coach sees a live submission status list (submitted / thinking) in the participants panel without seeing the actual moves
-- **Reveal**: coach clicks "Reveal Answers" — all student submissions appear simultaneously
-  - The board panel switches to a grid view showing each student's board with their submitted move highlighted
-  - Students who did not submit are marked "No answer"
-- Coach can discuss answers and show the correct continuation on the main board
+**Drill types:**
+
+| # | Type | Student Input | Auto-validate |
+|---|------|---------------|---------------|
+| 1 | **Find the Move** | Click destination square (single best move) | ✓ |
+| 2 | **Find the Mate** | Play moves until checkmate is delivered (Mate in N) | ✓ |
+| 3 | **Arrange the Board** | Drag pieces onto a blank board to recreate the target | ✓ |
+| 4 | **Name This Piece** | Type piece name or select from a list | ✓ |
+| 5 | **Write the Notation** | Type SAN string for a highlighted move | ✓ |
+| 6 | **Spot the Illegal Move** | Click the illegal move from a displayed list | ✓ |
+| 7 | **Play the Opening** | Play the correct book moves for N moves | ✓ |
+
+**Shared session flow:**
+
+1. Coach opens the Drill Mode panel and selects a drill type
+2. Coach completes the type-specific setup (see below)
+3. Coach optionally sets a timer (30s, 60s, 90s, or none) and clicks "Start Drill"
+4. Each student receives a private, independent copy of the drill on their board
+5. Student interacts using the type-specific input; first complete answer locks in the submission
+6. Participants panel shows live status per student: Thinking… / Submitted (answer content not shown)
+7. Coach privately previews submissions (see Private Preview below)
+8. Coach reveals answers selectively or all at once (see Reveal below)
+9. Coach clicks "End Drill" — student boards reset, Teaching Mode resumes; unrevealed answers are discarded and never shown to the class
+
+**Type-specific setup and student experience:**
+
+**1. Find the Move**
+- Setup: coach sets a position (FEN or piece placement); optionally adds a prompt ("Find the best move for White")
+- Student: receives the position on their private board; clicks a destination square to submit; first click locks the move
+- Auto-validate: server compares against the engine's top move — ✓ correct / ✗ incorrect shown on reveal tile
+
+**2. Find the Mate**
+- Setup: coach sets a forced-checkmate position; specifies "Mate in N" (1–5 moves)
+- Student: plays moves on their board until checkmate is delivered or all moves are exhausted; sequence auto-submits on checkmate or on clicking "Submit"
+- Auto-validate: ✓ if checkmate achieved in N or fewer; ≈ if checkmate achieved in more moves; ✗ if no checkmate found
+
+**3. Arrange the Board**
+- Setup: coach selects a target position (FEN or piece placement); target is hidden from students
+- Student: receives a blank board and a piece palette; drags pieces to squares to recreate the target; clicks "Submit" when done; timer is recommended — completing within time earns a bonus indicator shown on reveal
+- Auto-validate: ✓ for exact position match; reveal tile shows count of misplaced pieces otherwise
+
+**4. Name This Piece**
+- Setup: coach selects a board position and highlights one or more squares; chooses free-text entry or multiple-choice (configurable)
+- Student: sees the board with the highlighted square(s); types the piece name (e.g., "Knight") or selects from the list; Enter or "Submit" locks the answer
+- Auto-validate: ✓ for case-insensitive match including abbreviations (N, R, B, Q, K, P)
+
+**5. Write the Notation (SAN)**
+- Setup: coach sets a position and makes one or more moves on the board; those moves are hidden from students; prompt text shown (e.g., "Write the SAN for White's best reply")
+- Student: types the SAN string in a text input (e.g., "Nf3", "O-O", "exd5+"); submits with Enter or "Submit" button
+- Auto-validate: ✓ for exact SAN match against the coach's recorded answer
+
+**6. Spot the Illegal Move**
+- Setup: coach provides a list of 3–5 moves (SAN) in a given position; marks which one is illegal
+- Student: sees the move list with radio buttons; selects the move they believe is illegal and submits
+- Auto-validate: ✓ / ✗ — single correct answer
+
+**7. Play the Opening**
+- Setup: coach selects an opening and specifies the depth (e.g., "Play the first 5 moves of the Ruy Lopez as White"); the book line is stored server-side
+- Student: plays moves on the board; each correct book move is confirmed with a green highlight; first deviation is flagged immediately on the student's board ("Deviated — try the book move")
+- Auto-validate: ✓ if the student completed all N book moves correctly; reveal tile shows the deviation move if they went off-book
+
+**Private preview (shared across all drill types):**
+- Coach clicks [👁 Preview] on any submitted student in the participants panel
+- The coach's board shows that student's answer privately — for multi-move types (Mate, Opening) the full played sequence is shown
+- A persistent banner reads: "Private preview — [Name]'s answer (not visible to students)"; the student is never notified
+- Coach cycles through all submitted answers using [← Prev] / [Next →] without leaving preview mode
+- [Skip] advances to the next student without revealing the current one to the class
+- Private preview does not affect student boards in any way
+
+**Reveal options (three paths, usable in any combination):**
+- **Reveal one**: while previewing, coach clicks "Show to Class" — that student's board tile appears in the class reveal grid, visible to all participants; auto-validation result (✓ / ✗ / ≈) shown on the tile
+- **Reveal selected**: coach selects multiple students from the participants panel and reveals them as a group
+- **Reveal All**: broadcasts all submitted answers simultaneously; the board panel switches to a full-width grid; students who did not submit are marked "No answer"
+
+**Post-reveal discussion:**
+- Revealed tiles remain visible; coach can click any tile to load that student's answer onto the main board for annotation and discussion; annotations broadcast to all
+- Unrevealed answers remain hidden until the coach explicitly reveals them or uses "Reveal All"
 - No ratings or points — purely pedagogical
-- Coach clicks "End Drill" to return to Teaching Mode
+
+**Ending the drill:**
+- Coach clicks "End Drill" — all student boards reset and Teaching Mode resumes
+- Any unrevealed submissions are discarded without being shown to the class
 
 ##### d) Student Sandbox Mode
 
@@ -436,7 +505,7 @@ A standalone link-based play session for two players. No login required. Intende
 | Teaching board — board coordinates | ✅ |
 | Student spotlight on board | ✅ |
 | Training Game Mode (rules-enforced game within class) | ✅ |
-| Position Drill Mode (coach sets position, students submit answers) | ✅ |
+| Drill Mode — 7 types (Find Move, Find Mate, Arrange Board, Name Piece, Write SAN, Illegal Move, Play Opening) | ✅ |
 | Student Sandbox Mode (independent boards per student) | ✅ |
 | Screen sharing (coach + students with approval) | ✅ |
 | Screen annotation overlay | ✅ |
