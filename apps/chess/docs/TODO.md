@@ -6,9 +6,9 @@
 
 ### 1. Testing (carry-over)
 
-- [ ] Add `data-testid` attributes to all interactive elements
-- [ ] Add `.env.example` documenting expected environment variables
-- [ ] Add Go unit tests for `engine/` package: legal move generation, check/checkmate detection, castling, en-passant, promotion; and for `/game` HTTP handlers: move validation, clock start/stop, game-over detection
+- [x] Add `data-testid` attributes to all interactive elements
+- [x] Add `.env.example` documenting expected environment variables
+- [x] Add Go unit tests for `engine/` package: legal move generation, check/checkmate detection, castling, en-passant, promotion; and for `/game` HTTP handlers: move validation, clock start/stop, game-over detection
 
 ---
 

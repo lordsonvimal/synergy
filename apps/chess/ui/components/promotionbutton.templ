@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"strings"
 	"github.com/lordsonvimal/synergy/apps/chess/engine"
 	"github.com/lordsonvimal/synergy/apps/chess/game"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
@@ -14,6 +15,7 @@ templ PromotionButton(g *game.Game, piece engine.Piece) {
 		label := "Promote to " + helpers.PieceName(piece)
 	}}
 	<button
+		data-testid={ "promotion-button-" + strings.ToLower(helpers.PieceName(piece)) }
 		class="w-10 h-10 sm:w-12 sm:h-12 text-2xl sm:text-3xl hover:bg-muted rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
 		aria-label={ label }
 		data-on:click={ onClick }

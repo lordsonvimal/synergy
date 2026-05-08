@@ -3,7 +3,7 @@ package components
 import "github.com/lordsonvimal/synergy/apps/chess/game"
 
 templ RenderChessBoard(g *game.Game) {
-	<div id="chessboard">
+	<div id="chessboard" data-testid="chessboard">
 		<div class="bg-chess-frame rounded-lg p-1 sm:p-2 shadow-lg w-full aspect-square">
 			<div class="grid grid-cols-8 grid-rows-8 w-full h-full">
 				for rank := 7; rank >= 0; rank-- {

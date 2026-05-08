@@ -5,6 +5,7 @@ import "github.com/lordsonvimal/synergy/apps/chess/game"
 
 templ RenderPromotionOverlay(g *game.Game) {
 	<div
+		data-testid="promotion-overlay"
 		class="absolute inset-0 bg-black/40 flex items-center justify-center z-50 hidden"
 		data-class={ templ.JSExpression(`{ 'hidden': !$promotion }`) }
 	>

@@ -2,6 +2,7 @@ package components
 
 templ BlackPlayerCard() {
 	<div
+		data-testid="player-card-black"
 		class="flex items-center gap-3 px-3 py-2 rounded-lg border border-edge bg-surface transition-colors duration-150"
 		data-class={ templ.JSExpression(`
 			(() => {
@@ -17,7 +18,7 @@ templ BlackPlayerCard() {
 		<!-- Fixed chess piece color — not a design token -->
 		<span class="w-4 h-4 rounded-full shrink-0" style="background-color: #1A1A1A;" aria-hidden="true"></span>
 		<span class="font-semibold text-sm text-ink flex-1">Black</span>
-		<span id="black-clock" class="text-xs font-mono tabular-nums text-ink-dim" aria-label="Black clock">--</span>
+		<span id="black-clock" data-testid="clock-black" class="text-xs font-mono tabular-nums text-ink-dim" aria-label="Black clock">--</span>
 		<span
 			class="text-xs font-medium text-primary"
 			data-show="$sideToMove === 1 && $gameState === 0"
@@ -28,6 +29,7 @@ templ BlackPlayerCard() {
 
 templ WhitePlayerCard() {
 	<div
+		data-testid="player-card-white"
 		class="flex items-center gap-3 px-3 py-2 rounded-lg border border-edge bg-surface transition-colors duration-150"
 		data-class={ templ.JSExpression(`
 			(() => {
@@ -43,7 +45,7 @@ templ WhitePlayerCard() {
 		<!-- Fixed chess piece color — not a design token -->
 		<span class="w-4 h-4 rounded-full shrink-0 border border-edge-strong" style="background-color: #F5F5F5;" aria-hidden="true"></span>
 		<span class="font-semibold text-sm text-ink flex-1">White</span>
-		<span id="white-clock" class="text-xs font-mono tabular-nums text-ink-dim" aria-label="White clock">--</span>
+		<span id="white-clock" data-testid="clock-white" class="text-xs font-mono tabular-nums text-ink-dim" aria-label="White clock">--</span>
 		<span
 			class="text-xs font-medium text-primary"
 			data-show="$sideToMove === 0 && $gameState === 0"
@@ -59,6 +61,7 @@ templ GameStatusBanner() {
 	</div>
 	<!-- Check banner — visible only while king is in check during an ongoing game -->
 	<div
+		data-testid="check-banner"
 		class="flex items-center gap-2 px-3 py-2 rounded-lg bg-error-subtle border border-error text-error text-sm font-semibold"
 		data-show="$isCheck && $gameState === 0"
 		style="display: none"
@@ -73,6 +76,7 @@ templ GameStatusBanner() {
 	</div>
 	<!-- Game over banner — visible when game has ended -->
 	<div
+		data-testid="game-over-banner"
 		class="flex flex-col gap-0.5 px-3 py-3 rounded-lg border text-sm font-semibold"
 		data-show="$gameState !== 0"
 		data-class={ templ.JSExpression(`

@@ -29,7 +29,7 @@ func BlackPlayerCard() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex items-center gap-3 px-3 py-2 rounded-lg border border-edge bg-surface transition-colors duration-150\" data-class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div data-testid=\"player-card-black\" class=\"flex items-center gap-3 px-3 py-2 rounded-lg border border-edge bg-surface transition-colors duration-150\" data-class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -45,13 +45,13 @@ func BlackPlayerCard() templ.Component {
 			})()
 		`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 15, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 16, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><!-- Fixed chess piece color — not a design token --><span class=\"w-4 h-4 rounded-full shrink-0\" style=\"background-color: #1A1A1A;\" aria-hidden=\"true\"></span> <span class=\"font-semibold text-sm text-ink flex-1\">Black</span> <span id=\"black-clock\" class=\"text-xs font-mono tabular-nums text-ink-dim\" aria-label=\"Black clock\">--</span> <span class=\"text-xs font-medium text-primary\" data-show=\"$sideToMove === 1 && $gameState === 0\" style=\"display: none\">To move</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><!-- Fixed chess piece color — not a design token --><span class=\"w-4 h-4 rounded-full shrink-0\" style=\"background-color: #1A1A1A;\" aria-hidden=\"true\"></span> <span class=\"font-semibold text-sm text-ink flex-1\">Black</span> <span id=\"black-clock\" data-testid=\"clock-black\" class=\"text-xs font-mono tabular-nums text-ink-dim\" aria-label=\"Black clock\">--</span> <span class=\"text-xs font-medium text-primary\" data-show=\"$sideToMove === 1 && $gameState === 0\" style=\"display: none\">To move</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -80,7 +80,7 @@ func WhitePlayerCard() templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"flex items-center gap-3 px-3 py-2 rounded-lg border border-edge bg-surface transition-colors duration-150\" data-class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div data-testid=\"player-card-white\" class=\"flex items-center gap-3 px-3 py-2 rounded-lg border border-edge bg-surface transition-colors duration-150\" data-class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -96,13 +96,13 @@ func WhitePlayerCard() templ.Component {
 			})()
 		`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 41, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 43, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><!-- Fixed chess piece color — not a design token --><span class=\"w-4 h-4 rounded-full shrink-0 border border-edge-strong\" style=\"background-color: #F5F5F5;\" aria-hidden=\"true\"></span> <span class=\"font-semibold text-sm text-ink flex-1\">White</span> <span id=\"white-clock\" class=\"text-xs font-mono tabular-nums text-ink-dim\" aria-label=\"White clock\">--</span> <span class=\"text-xs font-medium text-primary\" data-show=\"$sideToMove === 0 && $gameState === 0\" style=\"display: none\">To move</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><!-- Fixed chess piece color — not a design token --><span class=\"w-4 h-4 rounded-full shrink-0 border border-edge-strong\" style=\"background-color: #F5F5F5;\" aria-hidden=\"true\"></span> <span class=\"font-semibold text-sm text-ink flex-1\">White</span> <span id=\"white-clock\" data-testid=\"clock-white\" class=\"text-xs font-mono tabular-nums text-ink-dim\" aria-label=\"White clock\">--</span> <span class=\"text-xs font-medium text-primary\" data-show=\"$sideToMove === 0 && $gameState === 0\" style=\"display: none\">To move</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -131,7 +131,7 @@ func GameStatusBanner() templ.Component {
 			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<!-- Accessibility live region --><div aria-live=\"polite\" aria-atomic=\"true\" class=\"sr-only\"><span data-text=\"'Turn: ' + ($sideToMove === 0 ? 'White' : 'Black') + '. ' + $gameStateText + ($isCheck ? '. King in check!' : '')\"></span></div><!-- Check banner — visible only while king is in check during an ongoing game --><div class=\"flex items-center gap-2 px-3 py-2 rounded-lg bg-error-subtle border border-error text-error text-sm font-semibold\" data-show=\"$isCheck && $gameState === 0\" style=\"display: none\" role=\"alert\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-4 h-4 shrink-0\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path> <line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line> <line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg> King in check!</div><!-- Game over banner — visible when game has ended --><div class=\"flex flex-col gap-0.5 px-3 py-3 rounded-lg border text-sm font-semibold\" data-show=\"$gameState !== 0\" data-class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<!-- Accessibility live region --><div aria-live=\"polite\" aria-atomic=\"true\" class=\"sr-only\"><span data-text=\"'Turn: ' + ($sideToMove === 0 ? 'White' : 'Black') + '. ' + $gameStateText + ($isCheck ? '. King in check!' : '')\"></span></div><!-- Check banner — visible only while king is in check during an ongoing game --><div data-testid=\"check-banner\" class=\"flex items-center gap-2 px-3 py-2 rounded-lg bg-error-subtle border border-error text-error text-sm font-semibold\" data-show=\"$isCheck && $gameState === 0\" style=\"display: none\" role=\"alert\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-4 h-4 shrink-0\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path> <line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line> <line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg> King in check!</div><!-- Game over banner — visible when game has ended --><div data-testid=\"game-over-banner\" class=\"flex flex-col gap-0.5 px-3 py-3 rounded-lg border text-sm font-semibold\" data-show=\"$gameState !== 0\" data-class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -149,7 +149,7 @@ func GameStatusBanner() templ.Component {
 			})()
 		`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 89, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 93, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
