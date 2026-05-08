@@ -23,8 +23,8 @@
 
 - [x] Implement SAN encoder in the engine package (`Move` → standard algebraic notation string)
 - [x] Track move history on `Game` struct (slice of SAN strings + FEN snapshot per move for position reconstruction)
-- [ ] Build `MoveNotationPanel` component: two-column layout (White left, Black right), `1. e4 e5  2. Nf3 Nc6 …`
-- [ ] Render notation in real time as moves are played; broadcast updated panel via SSE
+- [x] Build `MoveNotationPanel` component: two-column layout (White left, Black right), `1. e4 e5  2. Nf3 Nc6 …`
+- [x] Render notation in real time as moves are played; broadcast updated panel via SSE
 - [ ] Move navigation: clicking a past move switches the board to a read-only snapshot of that position
 - [ ] Arrow key `←` `→` navigation through move history
 - [ ] "Live" button returns from history view to the current position

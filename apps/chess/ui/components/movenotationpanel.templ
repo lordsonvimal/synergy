@@ -1,0 +1,49 @@
+package components
+
+import (
+	"strconv"
+
+	"github.com/lordsonvimal/synergy/apps/chess/game"
+)
+
+// MoveNotationPanel renders the two-column (White | Black) SAN move list.
+// id="move-notation-panel" is the DataStar morph target — do not change it.
+templ MoveNotationPanel(history []game.MoveRecord) {
+	<div
+		id="move-notation-panel"
+		data-testid="move-notation-panel"
+		class="w-full rounded-lg border border-edge bg-surface overflow-hidden"
+	>
+		<div
+			id="notation-scroll"
+			class="overflow-y-auto max-h-36"
+		>
+			if len(history) == 0 {
+				<p class="text-ink-dim text-xs px-3 py-2.5 text-center select-none">No moves yet</p>
+			} else {
+				<table class="w-full text-xs" role="list" aria-label="Move history">
+					<colgroup>
+						<col class="w-8"/>
+						<col/>
+						<col/>
+					</colgroup>
+					for _, row := range groupHistory(history) {
+						<tr
+							class="hover:bg-muted transition-colors duration-100"
+							role="listitem"
+						>
+							<td
+								class="pl-2 pr-1 py-1 text-ink-dim text-right tabular-nums select-none font-mono text-[11px] w-8 shrink-0"
+								aria-hidden="true"
+							>{ strconv.Itoa(row.moveNumber) }.</td>
+							<td class="px-2 py-1 font-mono font-medium text-ink w-1/2">{ row.white }</td>
+							<td class="px-2 py-1 font-mono text-ink-secondary w-1/2">{ row.black }</td>
+						</tr>
+					}
+					<!-- Anchor row keeps the scroll position at the bottom as new moves arrive -->
+					<tr id="notation-bottom" aria-hidden="true"><td colspan="3"></td></tr>
+				</table>
+			}
+		</div>
+	</div>
+}

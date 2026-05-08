@@ -27,3 +27,11 @@ if (gameID && clocks.white.el && clocks.black.el) {
     })
   })
 }
+
+// Keep the notation panel scrolled to the latest move whenever DataStar
+// morphs new rows into #notation-scroll.
+const notationScroll = document.getElementById("notation-scroll")
+if (notationScroll) {
+  const scrollToBottom = () => { notationScroll.scrollTop = notationScroll.scrollHeight }
+  new MutationObserver(scrollToBottom).observe(notationScroll, { childList: true, subtree: true })
+}

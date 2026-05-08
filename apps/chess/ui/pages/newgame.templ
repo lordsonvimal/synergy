@@ -20,6 +20,7 @@ templ NewGamePage(g *game.Game) {
 					@components.RenderPromotionOverlay(g)
 				</section>
 				@components.GameStatusBanner()
+				@components.MoveNotationPanel(g.History)
 				@components.WhitePlayerCard()
 				<div class="flex items-center gap-2 pt-1 order-last">
 					<button

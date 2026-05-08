@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -86,10 +87,13 @@ func (g *Game) startWatchdog() {
 	}()
 }
 
+// broadcastJSON marshals v and broadcasts it as an unnamed SSE data event
+// ("data: <json>\n\n") so GameEventsHandler can write the bytes directly.
 func (g *Game) broadcastJSON(v any) {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return
 	}
-	g.Hub.Broadcast(b)
+	raw := fmt.Appendf(nil, "data: %s\n\n", b)
+	g.Hub.Broadcast(raw)
 }

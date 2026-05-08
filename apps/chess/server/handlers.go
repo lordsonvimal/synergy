@@ -184,7 +184,9 @@ func GameEventsHandler(c *gin.Context) {
 			if !open {
 				return
 			}
-			writeSSEEvent(c, msg)
+			// Hub messages are pre-formatted SSE (named or unnamed events).
+			c.Writer.Write(msg)
+			c.Writer.Flush()
 		}
 	}
 }
