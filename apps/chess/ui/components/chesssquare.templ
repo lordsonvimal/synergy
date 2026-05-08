@@ -20,6 +20,18 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 			bg = "bg-chess-dark"
 		}
 
+		// Coordinate label colour: contrast against the square background.
+		// These are chess-board colours not covered by the design-system tokens.
+		coordColor := "text-[#B58863]" // walnut on cream (light square)
+		// Shadow only on dark squares: cream text on walnut needs separation.
+		// On light squares the walnut text is legible without a shadow, and a dark
+		// shadow on a cream background creates a blurry halo effect.
+		coordShadow := ""
+		if (rank+file)%2 == 0 {
+			coordColor = "text-[#F0D9B5]" // cream on walnut (dark square)
+			coordShadow = "[text-shadow:0_1px_2px_rgba(0,0,0,0.5)]"
+		}
+
 		onClick := templ.JSExpression("@post('/game/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
 		label := helpers.SquareLabel(sq, color, piece, ok)
 	}}
@@ -29,7 +41,7 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 		role="button"
 		tabindex="0"
 		aria-label={ label }
-		class={ bg, "flex items-center justify-center leading-none font-['DejaVu_Sans'] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset text-[clamp(1.25rem,4vw,2.5rem)] select-none" }
+		class={ bg, "relative flex items-center justify-center leading-none font-['DejaVu_Sans'] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset text-[clamp(1.25rem,4vw,2.5rem)] select-none" }
 		data-on:click={ onClick }
 		data-on:keydown={ templ.JSExpression("(event.key === 'Enter' || event.key === ' ') && (event.preventDefault(), " + string(onClick) + ")") }
 		data-class={ templ.JSExpression(fmt.Sprintf(`
@@ -38,14 +50,62 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 			const isSelected = $selectedSquare === square;
 			const isTarget   = $possibleMoves.includes(square);
 			return {
-				'chess-sq-target': isTarget && !isSelected,
-				'chess-sq-selected': isSelected
+				'chess-sq-target':   isTarget && !isSelected,
+				'chess-sq-selected': isSelected,
+				'rotate-180':        $flipped,
 			};
 		})()
 		`, sq)) }
 	>
 		if ok {
 			@RenderChessPiece(color, piece)
+		}
+		// Rank label (White view): top-left corner of every a-file square.
+		// Hidden when flipped.
+		if file == 0 {
+			<span
+				class={ coordColor, coordShadow, "absolute top-0.5 left-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
+				data-show="!$flipped"
+				aria-hidden="true"
+			>
+				{ fmt.Sprintf("%d", rank+1) }
+			</span>
+		}
+		// Rank label (Black view): top-left corner of every h-file square.
+		// h-file moves to the left edge after flip, keeping labels on the correct side.
+		if file == 7 {
+			<span
+				class={ coordColor, coordShadow, "absolute top-0.5 left-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
+				data-show="$flipped"
+				style="display: none"
+				aria-hidden="true"
+			>
+				{ fmt.Sprintf("%d", rank+1) }
+			</span>
+		}
+		// File label (White view): bottom-right corner of each first-rank square.
+		// Hidden when the board is flipped.
+		if rank == 0 {
+			<span
+				class={ coordColor, coordShadow, "absolute bottom-0.5 right-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
+				data-show="!$flipped"
+				aria-hidden="true"
+			>
+				{ string(rune('a' + file)) }
+			</span>
+		}
+		// File label (Black view): bottom-right corner of each eighth-rank square.
+		// After flip, these squares sit at the visual bottom of the board and show
+		// the same letter — which lands in the correct left-to-right order. ✓
+		if rank == 7 {
+			<span
+				class={ coordColor, coordShadow, "absolute bottom-0.5 right-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
+				data-show="$flipped"
+				style="display: none"
+				aria-hidden="true"
+			>
+				{ string(rune('a' + file)) }
+			</span>
 		}
 	</div>
 }

@@ -11,6 +11,7 @@ templ BlackPlayerCard() {
 					'bg-primary-subtle': $sideToMove === 1 && $gameState === 0,
 					'border-edge': !($sideToMove === 1 && $gameState === 0),
 					'bg-surface': !($sideToMove === 1 && $gameState === 0),
+					'order-last': $flipped,
 				};
 			})()
 		`) }
@@ -38,6 +39,7 @@ templ WhitePlayerCard() {
 					'bg-primary-subtle': $sideToMove === 0 && $gameState === 0,
 					'border-edge': !($sideToMove === 0 && $gameState === 0),
 					'bg-surface': !($sideToMove === 0 && $gameState === 0),
+					'order-first': $flipped,
 				};
 			})()
 		`) }

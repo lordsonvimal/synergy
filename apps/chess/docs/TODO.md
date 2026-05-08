@@ -14,8 +14,8 @@
 
 ### 2. Board UI Enhancements
 
-- [ ] Add flip board button (toggles board orientation for analysis)
-- [ ] Board coordinates (a–h, 1–8) flip when board orientation flips
+- [x] Add flip board button (toggles board orientation for analysis)
+- [x] Board coordinates (a–h, 1–8) flip when board orientation flips
 
 ---
 

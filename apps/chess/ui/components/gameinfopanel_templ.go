@@ -41,11 +41,12 @@ func BlackPlayerCard() templ.Component {
 					'bg-primary-subtle': $sideToMove === 1 && $gameState === 0,
 					'border-edge': !($sideToMove === 1 && $gameState === 0),
 					'bg-surface': !($sideToMove === 1 && $gameState === 0),
+					'order-last': $flipped,
 				};
 			})()
 		`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 16, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 17, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -92,11 +93,12 @@ func WhitePlayerCard() templ.Component {
 					'bg-primary-subtle': $sideToMove === 0 && $gameState === 0,
 					'border-edge': !($sideToMove === 0 && $gameState === 0),
 					'bg-surface': !($sideToMove === 0 && $gameState === 0),
+					'order-first': $flipped,
 				};
 			})()
 		`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 43, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 45, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -149,7 +151,7 @@ func GameStatusBanner() templ.Component {
 			})()
 		`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 93, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 95, Col: 4}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {

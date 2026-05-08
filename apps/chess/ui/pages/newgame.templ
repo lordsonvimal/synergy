@@ -21,6 +21,30 @@ templ NewGamePage(g *game.Game) {
 				</section>
 				@components.GameStatusBanner()
 				@components.WhitePlayerCard()
+				<div class="flex items-center gap-2 pt-1 order-last">
+					<button
+						data-testid="flip-board-button"
+						aria-label="Flip board orientation"
+						data-on:click="$flipped = !$flipped"
+						class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-md border border-edge bg-surface text-ink-secondary hover:bg-muted hover:text-ink transition-colors duration-150 cursor-pointer"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="w-4 h-4"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<path d="M7 16V4m0 0L3 8m4-4l4 4"></path>
+							<path d="M17 8v12m0 0l4-4m-4 4l-4-4"></path>
+						</svg>
+						Flip
+					</button>
+				</div>
 			</div>
 		</div>
 	}

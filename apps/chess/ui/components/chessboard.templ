@@ -3,9 +3,14 @@ package components
 import "github.com/lordsonvimal/synergy/apps/chess/game"
 
 templ RenderChessBoard(g *game.Game) {
-	<div id="chessboard" data-testid="chessboard">
+	// data-signals.ifmissing ensures $flipped is only initialised once;
+	// SSE board patches that morph this element will never reset it.
+	<div id="chessboard" data-testid="chessboard" data-signals.ifmissing='{"flipped":false}'>
 		<div class="bg-chess-frame rounded-lg p-1 sm:p-2 shadow-lg w-full aspect-square">
-			<div class="grid grid-cols-8 grid-rows-8 w-full h-full">
+			<div
+				class="grid grid-cols-8 grid-rows-8 w-full h-full"
+				data-class="{'rotate-180': $flipped}"
+			>
 				for rank := 7; rank >= 0; rank-- {
 					for file := 0; file < 8; file++ {
 						@RenderChessSquare(g, rank, file)
