@@ -239,3 +239,74 @@ func TestCheckIsDetectedDuringGame(t *testing.T) {
 		t.Error("black king should be in check after Qxf7")
 	}
 }
+
+// ---- Move history --------------------------------------------------------
+
+func TestHistoryEmptyAtStart(t *testing.T) {
+	g := newTestGame(t)
+	if len(g.History) != 0 {
+		t.Fatalf("expected empty history at start, got %d entries", len(g.History))
+	}
+}
+
+func TestHistoryTracksMovesWithSAN(t *testing.T) {
+	g := newTestGame(t)
+
+	g.ApplyMove(engine.MoveFromUCI("e2e4"), 0)
+
+	if len(g.History) != 1 {
+		t.Fatalf("expected 1 history entry after first move, got %d", len(g.History))
+	}
+	rec := g.History[0]
+	if rec.SAN != "e4" {
+		t.Errorf("SAN: want 'e4', got %q", rec.SAN)
+	}
+	if rec.Color != engine.White {
+		t.Errorf("Color: want White, got %v", rec.Color)
+	}
+	if rec.MoveNumber != 1 {
+		t.Errorf("MoveNumber: want 1, got %d", rec.MoveNumber)
+	}
+	if rec.FEN == "" {
+		t.Error("FEN must not be empty")
+	}
+
+	g.ApplyMove(engine.MoveFromUCI("e7e5"), 0)
+
+	if len(g.History) != 2 {
+		t.Fatalf("expected 2 entries after second move, got %d", len(g.History))
+	}
+	rec2 := g.History[1]
+	if rec2.SAN != "e5" {
+		t.Errorf("SAN: want 'e5', got %q", rec2.SAN)
+	}
+	if rec2.Color != engine.Black {
+		t.Errorf("Color: want Black, got %v", rec2.Color)
+	}
+}
+
+func TestHistoryRejectedMoveNotRecorded(t *testing.T) {
+	g := newTestGame(t)
+
+	// Pin: Re4 pinned by Qe8, moving it to d4 is illegal.
+	for p := engine.Piece(0); p < 6; p++ {
+		g.Board.Pieces[engine.White][p] = 0
+		g.Board.Pieces[engine.Black][p] = 0
+	}
+	g.Board.Pieces[engine.White][engine.King] = 1 << 4
+	g.Board.Pieces[engine.White][engine.Rook] = 1 << 28
+	g.Board.Pieces[engine.Black][engine.King] = 1 << 63
+	g.Board.Pieces[engine.Black][engine.Queen] = 1 << 60
+	g.Board.Occupancy[engine.White] = g.Board.Pieces[engine.White][engine.King] | g.Board.Pieces[engine.White][engine.Rook]
+	g.Board.Occupancy[engine.Black] = g.Board.Pieces[engine.Black][engine.King] | g.Board.Pieces[engine.Black][engine.Queen]
+	g.Board.All = g.Board.Occupancy[engine.White] | g.Board.Occupancy[engine.Black]
+	g.Board.SideToMove = engine.White
+	g.Board.Castling = 0
+	g.Board.EnPassant = engine.NoSquare
+
+	g.ApplyMove(engine.MoveFromUCI("e4d4"), 0) // illegal
+
+	if len(g.History) != 0 {
+		t.Errorf("illegal move must not be appended to history, got %d entries", len(g.History))
+	}
+}

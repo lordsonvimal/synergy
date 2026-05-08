@@ -46,6 +46,7 @@ type Game struct {
 	WAL       *WAL
 	Hub       *GameHub
 	Selection *SelectionState
+	History   []MoveRecord
 	Seq       uint64
 	State     GameState
 	Winner    engine.Color // valid after game over
@@ -76,15 +77,16 @@ func NewGame(mode *GameMode) *Game {
 	stopCh := make(chan struct{})
 
 	g := &Game{
-		ID:     id,
-		Board:  board,
-		Clock:  gc,
-		WAL:    wal,
-		Hub:    hub,
-		Seq:    0,
-		State:  GameOngoing,
-		Winner: engine.NoColor,
-		stopCh: stopCh,
+		ID:      id,
+		Board:   board,
+		Clock:   gc,
+		WAL:     wal,
+		Hub:     hub,
+		History: make([]MoveRecord, 0),
+		Seq:     0,
+		State:   GameOngoing,
+		Winner:  engine.NoColor,
+		stopCh:  stopCh,
 	}
 
 	g.startWatchdog()
@@ -146,11 +148,23 @@ func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
 	}
 
 	color := g.Board.SideToMove
+	// Capture SAN and move metadata BEFORE the move so the board is still in the
+	// pre-move position. If MakeMove subsequently fails, history is not appended.
+	san := g.Board.SAN(m)
+	moveNumber := int(g.Board.FullMoveNumber)
+
 	g.Clock.Stop(color, lagCompNs)
 
 	if !g.Board.MakeMove(m) {
 		return false
 	}
+
+	g.History = append(g.History, MoveRecord{
+		SAN:        san,
+		FEN:        g.Board.FEN(),
+		Color:      color,
+		MoveNumber: moveNumber,
+	})
 
 	// Reset legal move cache since board changed
 	g.legalMoveCache = nil
