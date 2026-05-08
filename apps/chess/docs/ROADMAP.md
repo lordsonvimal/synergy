@@ -137,12 +137,13 @@ ChessLeap is being expanded from a single-player proof-of-concept into a **profe
 
 ## Module 5 — Live Classes
 
-**Architecture: Custom WebRTC** (peer-to-peer video/audio, signaling via backend)
+**Architecture: LiveKit** (managed SFU — handles WebRTC, STUN, TURN, ICE, simulcast)
 
 ### 5.1 Session Infrastructure
-- **Signaling server**: Go backend handles WebRTC offer/answer/ICE exchange via WebSocket
-- **STUN**: use public Google STUN for NAT traversal
-- **TURN**: deploy a Coturn server (self-hosted) as relay for restrictive NAT environments
+- **MVP**: [LiveKit Cloud](https://livekit.io) — managed SFU; no server to deploy; free tier covers ~1,600 class-hours/month
+- **Scaling path**: self-hosted LiveKit Server (Docker) on the same VPS when free tier is exceeded; swap one env var, no code changes
+- Your Go server issues signed JWT tokens per participant and calls LiveKit RoomService API for coach controls (mute, remove participant)
+- Browser connects directly to LiveKit for video/audio; Go server handles board, chat, and session state independently via SSE
 - Coach is the "host"; students join as participants
 - Max class size: configurable (default 20 students)
 
@@ -154,7 +155,7 @@ The board has four modes, switchable by the coach at any time:
 
 **Training Game Mode** — Coach selects two participants (any combination of students or coach + student) and a time control. A rules-enforced timed game runs on the shared board while the rest of the class spectates. Coach can pause/resume clocks, abort, or force a takeback. When the game ends the board automatically returns to Teaching Mode with the final position loaded for analysis.
 
-**Position Drill Mode** — Coach sets a position, then starts a drill. Each student receives a private copy and submits their best single move independently (optional countdown timer). Submissions stay hidden until the coach clicks "Reveal" — all answers appear simultaneously on a per-student board grid for class discussion.
+**Drill Mode** — Coach selects one of seven drill types (Find the Move, Find the Mate, Arrange the Board, Name This Piece, Write the Notation, Spot the Illegal Move, Play the Opening) and starts a drill. Each student responds independently on their private board. The coach privately previews submissions before deciding what to reveal — answers are shown to the class only when the coach reveals them, one at a time, in groups, or all at once.
 
 **Student Sandbox Mode** — Each student receives an independent copy of the current position to explore freely (no rules enforcement). Coach sees a live thumbnail grid of all student boards, can watch any board enlarged, and can pull any student's board position to the main teaching board to discuss with the class.
 
@@ -273,8 +274,8 @@ The board has four modes, switchable by the coach at any time:
 
 1. **Auth**: Go session cookies (server-side sessions stored in SQLite) or JWT (stateless)
 2. **Database**: **SQLite** (WAL mode) for all persistence — users, games, puzzles, courses, payments; replaces in-memory store. Use [litestream](https://litestream.io) for continuous replication/backup to S3-compatible storage (near-zero cost, crash-safe).
-3. **WebRTC signaling**: WebSocket endpoint in Go Gin (`/ws/class/:sessionID`)
-4. **TURN server**: Coturn self-hosted; configure credentials rotated per session
+3. **WebRTC**: LiveKit Cloud (MVP) → self-hosted LiveKit Server (scale); Go server issues JWT tokens and calls RoomService API only — no signaling code, no Pion, no Coturn
+4. **TURN/STUN**: managed by LiveKit — no ops required for MVP
 5. **Payments**: Stripe Checkout + Stripe Connect for coach payouts
 6. **PGN parser**: Go library for importing/exporting game notation (parse Lichess puzzle DB)
 7. **Move notation (SAN)**: Implement SAN encoder in the existing engine package
@@ -287,7 +288,9 @@ The board has four modes, switchable by the coach at any time:
 - **Target host**: Hetzner CX22 (2 vCPU, 4 GB RAM, ~$4.50/mo) or Fly.io (auto-scales, free tier available)
 - **CDN**: Cloudflare free tier for static assets and DDoS protection
 - **Vertical before horizontal**: SQLite + single process scales to ~10k concurrent users on a $20/mo VPS; shard only when needed
-- **Estimated infra cost at launch**: $5–20/month total (VPS + object storage for backups + Cloudflare free)
+- **WebRTC (MVP)**: LiveKit Cloud free tier — 100k participant-minutes/month (~1,600 class-hours); $0 until meaningful scale
+- **WebRTC (scaled)**: self-hosted LiveKit Server in Docker on the same VPS; no extra server cost
+- **Estimated infra cost at launch**: $0–10/month (Fly.io free tier or $4.50/mo Hetzner + Cloudflare free + LiveKit Cloud free)
 
 ---
 

@@ -27,22 +27,40 @@ A unified live class room that combines an interactive teaching board with WebRT
 ### 1.2 WebRTC Infrastructure
 
 #### Architecture
-- **SFU (Selective Forwarding Unit)** built with [Pion WebRTC](https://github.com/pion/webrtc) in Go
-- Each participant connects to the server once; the server forwards streams — no direct peer-to-peer mesh
-- Supports up to 20 participants per session (configurable per class)
-- **Signaling**: WebSocket endpoint at `/ws/class/:sessionID`
-- **STUN**: Google public STUN (`stun.l.google.com:19302`)
-- **TURN**: self-hosted Coturn; credentials rotated per session (HMAC-based time-limited tokens)
-- ICE candidate exchange handled by the Go signaling server
+
+**MVP: LiveKit Cloud** — managed SFU that handles all WebRTC complexity (STUN, TURN, ICE, simulcast, adaptive bitrate). No separate server to deploy or maintain for MVP.
+
+```
+Browser ──WebRTC (video/audio)──► LiveKit Cloud
+   │                                    ▲
+   │ HTTP/SSE (board, chat)             │ RoomService API
+   ▼                                    │
+Your Go/Gin Server ─────────────────────┘
+(issues JWT tokens, manages session state)
+```
+
+- Your Go server never handles WebRTC media — it only issues signed JWT access tokens per participant and calls LiveKit's RoomService API for coach controls (mute, remove)
+- The browser connects directly to LiveKit Cloud for all video and audio
+- Supports up to 20 participants per session (configurable in LiveKit room settings)
+- STUN, TURN, ICE negotiation, and stream forwarding are all managed by LiveKit — no Coturn, no signaling WebSocket, no Pion
+
+**Video subscription model (star topology):**
+- Students subscribe to: coach video + coach audio + active speaker audio only
+- Students do not subscribe to each other's video — they watch the board, not each other
+- Coach subscribes to: all student audio + spotlight student video if spotlighted
+- This reduces server outbound bandwidth ~10× compared to full-mesh forwarding
+
+**Scaling path:** When class volume exceeds LiveKit Cloud's free tier (100k participant-minutes/month ≈ 1,600 class-hours), swap the `LIVEKIT_URL` env var to point at a self-hosted LiveKit Server running in Docker on the same VPS — no code changes required.
 
 #### Reconnection
-- Graceful reconnection: if a participant's connection drops, the client attempts reconnect every 3 seconds for up to 2 minutes before showing a "Connection lost" error
-- Board state and chat history are restored from the server on rejoin
+- LiveKit JS SDK handles reconnection automatically with exponential backoff
+- If reconnection fails after 2 minutes, the client shows a "Connection lost" error
+- Board state and chat history are restored from the Go server on rejoin (not from LiveKit)
 
 #### Session Lifecycle
 - Students who join before the coach land in the **Waiting Room** (§1.9)
 - Session starts when the coach clicks "Start Class" — students in the waiting room see a countdown
-- Session ends when the coach clicks "End Class" or all participants disconnect
+- Session ends when the coach clicks "End Class" or all participants disconnect; Go server closes the LiveKit room via API
 
 ---
 

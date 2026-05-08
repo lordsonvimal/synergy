@@ -81,15 +81,29 @@
 
 ---
 
-### 7. WebRTC Infrastructure
+### 7. WebRTC Infrastructure (LiveKit)
 
-- [ ] Add [Pion WebRTC](https://github.com/pion/webrtc) dependency to `go.mod`
-- [ ] Build SFU: each participant opens one connection to the server; server forwards streams (no peer-to-peer mesh)
-- [ ] WebSocket signaling endpoint at `/ws/class/:sessionID` (offer / answer / ICE candidate exchange)
-- [ ] Configure STUN: `stun.l.google.com:19302`
-- [ ] Add Coturn TURN server config files (`turnserver.conf`) and docker-compose entry; configure HMAC-based time-limited credentials rotated per session [ops task — separate from app code]
-- [ ] Client reconnection loop: retry every 3s for up to 2 minutes; show "Connection lost" error on timeout
-- [ ] Connection quality classification per participant (green / yellow / red) based on packet loss + RTT
+**Setup:**
+- [ ] Sign up for LiveKit Cloud; add `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` to `.env` and `.env.example`
+- [ ] Add LiveKit Go SDK to `go.mod`: `github.com/livekit/server-sdk-go`
+- [ ] Add LiveKit JS client to frontend: `livekit-client` npm package
+
+**Server-side (Go/Gin):**
+- [ ] `POST /class/:sessionID/livekit/token` — generate a signed JWT access token per participant; role determines LiveKit permissions (coach: `RoomAdmin`; student: `RoomJoin`)
+- [ ] On session start, create a LiveKit room via LiveKit API (room name = sessionID; max participants = configured class size)
+- [ ] Handle LiveKit webhooks (`participant_joined`, `participant_left`, `room_finished`) → update session participant state in SQLite
+- [ ] Coach mute/remove: call LiveKit RoomService API from Go server (`MutePublishedTrack`, `RemoveParticipant`) — no direct client-to-client control
+
+**Client-side (JS):**
+- [ ] Connect to LiveKit Cloud using the JWT token from `/livekit/token`; publish local audio/video tracks
+- [ ] Subscribe to coach video + audio by default; subscribe to other participants' audio only
+- [ ] Students do not subscribe to other students' video (star topology — reduces bandwidth ~10×)
+- [ ] Surface connection quality per participant (read from LiveKit `connectionQuality` events): green / yellow / red indicator on video tile
+- [ ] Reconnection: handled automatically by LiveKit JS SDK; show "Connection lost" banner if reconnect fails after 2 minutes
+
+**Notes:**
+- STUN, TURN, ICE, and SFU are all managed by LiveKit Cloud — no Coturn, no Pion, no signaling server to build
+- Migrate to self-hosted LiveKit Server (`docker-compose`) when scaling beyond LiveKit Cloud free tier (100k participant-minutes/month)
 
 ---
 
