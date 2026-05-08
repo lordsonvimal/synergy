@@ -10,42 +10,30 @@ templ NewGamePage(g *game.Game) {
 		<script type="module" src="/assets/datastar.js"></script>
 		<script type="module" src="/assets/js/initClock.js"></script>
 		<div
-			class="flex flex-col items-center justify-center min-h-full p-4"
+			class="flex flex-col items-center justify-center min-h-full p-4 gap-3"
 			data-signals={ templ.JSONString(ui_store.ChessBoardSignalsFromGame(g)) }
 		>
-			<div class="w-[min(100%,calc(100vh-14rem),560px)] flex flex-col gap-2">
-				@components.BlackPlayerCard()
-				<section class="relative w-full">
-					@components.RenderChessBoard(g)
-					@components.RenderPromotionOverlay(g)
-				</section>
-				@components.GameStatusBanner()
-				@components.MoveNotationPanel(g.History)
-				@components.WhitePlayerCard()
-				<div class="flex items-center gap-2 pt-1 order-last">
-					<button
-						data-testid="flip-board-button"
-						aria-label="Flip board orientation"
-						data-on:click="$flipped = !$flipped"
-						class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-md border border-edge bg-surface text-ink-secondary hover:bg-muted hover:text-ink transition-colors duration-150 cursor-pointer"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="w-4 h-4"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							aria-hidden="true"
-						>
-							<path d="M7 16V4m0 0L3 8m4-4l4 4"></path>
-							<path d="M17 8v12m0 0l4-4m-4 4l-4-4"></path>
-						</svg>
-						Flip
-					</button>
+			@components.GameStatusBanner()
+
+			<div class="w-[min(100%,calc(100vh-16rem),540px)] flex flex-col rounded-sm overflow-hidden shadow-2xl">
+				<!-- Player cards + board: order-first/order-last from flip only affects this group -->
+				<div class="flex flex-col">
+					@components.BlackPlayerCard()
+					<section class="relative w-full">
+						@components.RenderChessBoard(g)
+						@components.RenderPromotionOverlay(g)
+					</section>
+					@components.WhitePlayerCard()
 				</div>
+				<!-- Static nav bar: rendered once, never re-morphed by DataStar -->
+				@components.NotationNavBar()
+				<!-- Hidden data store: DataStar morphs this after each move -->
+				@components.MoveNotationPanel(g.History)
+			</div>
+
+			<!-- Tools panel: detached card below the board zone -->
+			<div class="w-[min(100%,calc(100vh-16rem),540px)] rounded-sm overflow-hidden shadow-sm">
+				@components.GameToolsPanel()
 			</div>
 		</div>
 	}

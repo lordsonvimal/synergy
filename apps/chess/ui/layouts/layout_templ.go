@@ -44,7 +44,7 @@ func Layout(title string, showBack bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\"><link href=\"/static/style.css\" rel=\"stylesheet\"><script>\n\t\t\t\t(function() {\n\t\t\t\t\tconst t = localStorage.getItem(\"theme\");\n\t\t\t\t\tif (t) { document.documentElement.setAttribute(\"data-theme\", t); }\n\t\t\t\t\telse if (window.matchMedia(\"(prefers-color-scheme: dark)\").matches) {\n\t\t\t\t\t\tdocument.documentElement.setAttribute(\"data-theme\", \"dark\");\n\t\t\t\t\t}\n\t\t\t\t})();\n\t\t\t</script></head><body class=\"bg-canvas text-ink h-full flex flex-col\"><header class=\"flex items-center justify-between px-4 py-3 border-b border-edge bg-surface shrink-0\"><div class=\"flex items-center gap-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\"><link href=\"/static/style.css\" rel=\"stylesheet\"><script>\n\t\t\t\t(function() {\n\t\t\t\t\tconst t = localStorage.getItem(\"theme\");\n\t\t\t\t\tif (t) { document.documentElement.setAttribute(\"data-theme\", t); }\n\t\t\t\t\telse if (window.matchMedia(\"(prefers-color-scheme: dark)\").matches) {\n\t\t\t\t\t\tdocument.documentElement.setAttribute(\"data-theme\", \"dark\");\n\t\t\t\t\t}\n\t\t\t\t})();\n\t\t\t</script></head><body class=\"bg-neutral-50 text-ink h-full flex flex-col\"><header class=\"flex items-center justify-between px-4 py-3 border-b border-edge bg-surface shrink-0\"><div class=\"flex items-center gap-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
