@@ -24,3 +24,5 @@ vitest.config.*.timestamp*
 logs
 
 *.wal
+*.db-shm
+*.db-wal
