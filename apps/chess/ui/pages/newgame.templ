@@ -22,13 +22,20 @@ templ NewGamePage(g *game.Game) {
 					<section class="relative w-full">
 						@components.RenderChessBoard(g)
 						@components.RenderPromotionOverlay(g)
+						<!-- History overlay: shown by DataStar when $viewingHistory is true -->
+						<div
+							class="absolute inset-0 z-10"
+							data-show="$viewingHistory"
+							data-signals.ifmissing='{"historyIdx": -1, "viewingHistory": false}'
+							style="display:none"
+						>
+							<div id="history-board-content" class="w-full h-full"></div>
+						</div>
 					</section>
 					@components.WhitePlayerCard()
 				</div>
-				<!-- Static nav bar: rendered once, never re-morphed by DataStar -->
-				@components.NotationNavBar()
-				<!-- Hidden data store: DataStar morphs this after each move -->
-				@components.MoveNotationPanel(g.History)
+				<!-- Notation panel: DataStar morphs this after each move -->
+				@components.MoveNotationPanel(g.ID, g.History)
 			</div>
 
 			<!-- Tools panel: detached card below the board zone -->

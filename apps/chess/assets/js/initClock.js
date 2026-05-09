@@ -24,69 +24,42 @@ if (gameID && clocks.white.el && clocks.black.el) {
   })
 }
 
-// ── Move notation navigation ──────────────────────────────────────────────────
-// Architecture: DataStar morphs the hidden #move-notation-panel data store after
-// each move. This code watches that store and renders the current pair into the
-// static #notation-* elements (which DataStar never touches).
+// ── Keyboard navigation ───────────────────────────────────────────────────────
+//
+// ArrowLeft/ArrowRight click the prev/next notation buttons, which trigger
+// DataStar @post requests handled server-side.
 
-const store    = document.getElementById("move-notation-panel")
-const emptyEl  = document.getElementById("notation-empty")
-const moveEl   = document.getElementById("notation-move")
-const numEl    = document.getElementById("notation-num")
-const whiteEl  = document.getElementById("notation-white")
-const blackEl  = document.getElementById("notation-black")
-const prevBtn  = document.getElementById("notation-prev")
-const nextBtn  = document.getElementById("notation-next")
-
-if (store && moveEl && prevBtn && nextBtn) {
-  let idx = 0
-
-  const render = (targetIdx) => {
-    const rows = store.querySelectorAll("[data-move-row]")
-    const total = rows.length
-
-    if (total === 0) {
-      emptyEl.style.display = ""
-      moveEl.style.display  = "none"
-      prevBtn.classList.add("opacity-40", "pointer-events-none")
-      nextBtn.classList.add("opacity-40", "pointer-events-none")
-      idx = 0
-      return
-    }
-
-    idx = Math.max(0, Math.min(total - 1, targetIdx))
-    const row = rows[idx]
-
-    emptyEl.style.display = "none"
-    moveEl.style.display  = "flex"
-    numEl.textContent     = row.dataset.num + "."
-    whiteEl.textContent   = row.dataset.white
-    blackEl.textContent   = row.dataset.black || ""
-    blackEl.style.display = row.dataset.black ? "" : "none"
-
-    prevBtn.classList.toggle("opacity-40",        idx <= 0)
-    prevBtn.classList.toggle("pointer-events-none", idx <= 0)
-    nextBtn.classList.toggle("opacity-40",        idx >= total - 1)
-    nextBtn.classList.toggle("pointer-events-none", idx >= total - 1)
+document.addEventListener("keydown", (e) => {
+  const tag = (document.activeElement?.tagName ?? "").toUpperCase()
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
+  if (e.key === "ArrowLeft") {
+    e.preventDefault()
+    document.getElementById("notation-prev")?.click()
+  } else if (e.key === "ArrowRight") {
+    e.preventDefault()
+    document.getElementById("notation-next")?.click()
   }
+})
 
-  prevBtn.addEventListener("click", () => render(idx - 1))
-  nextBtn.addEventListener("click", () => render(idx + 1))
+// ── Auto-scroll move list to the end when new moves arrive ───────────────────
+//
+// When a new move is appended (DataStar morphs #move-notation-panel), scroll
+// the move list to the bottom so the latest move is always visible — but only
+// when the user is watching live (not browsing history).
 
-  // Advance to latest after each SSE morph.
-  // childList catches new pairs; attributeFilter catches the black move being
-  // added to an existing pair (idiomorph updates data-black on the existing row).
+const observeList = () => {
+  const panel = document.getElementById("move-notation-panel")
+  if (!panel) return
+
   new MutationObserver(() => {
-    const total = store.querySelectorAll("[data-move-row]").length
-    render(total - 1)
-  }).observe(store, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["data-black"],
-  })
-
-  // Initial render (handles page reload mid-game).
-  const initialTotal = store.querySelectorAll("[data-move-row]").length
-  render(initialTotal > 0 ? initialTotal - 1 : 0)
+    // Only auto-scroll when not viewing history (historyIdx === -1).
+    // We check the DOM directly rather than importing getPath to avoid
+    // pulling in the full datastar bundle just for this one signal read.
+    const list = document.getElementById("move-list")
+    if (list && !document.querySelector("[data-show='$viewingHistory'][style='']")) {
+      list.scrollTop = list.scrollHeight
+    }
+  }).observe(panel, { childList: true, subtree: true })
 }
+
+observeList()

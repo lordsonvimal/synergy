@@ -1,8 +1,10 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,6 +12,7 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/game"
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
 	"github.com/lordsonvimal/synergy/apps/chess/store"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/components"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/pages"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 	"github.com/starfederation/datastar-go/datastar"
@@ -189,6 +192,180 @@ func GameEventsHandler(c *gin.Context) {
 			c.Writer.Flush()
 		}
 	}
+}
+
+// historyNavSignals is the signal payload patched by history navigation handlers.
+type historyNavSignals struct {
+	HistoryIdx     int  `json:"historyIdx"`
+	ViewingHistory bool `json:"viewingHistory"`
+}
+
+// BoardAtHistoryHandler handles GET /game/:gameID/board-at/:halfMoveIdx.
+// It renders the board position after the given 0-based half-move index and
+// patches both the history board content and the navigation signals.
+// The special value "live" returns to the live board.
+func BoardAtHistoryHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	idxParam := c.Param("halfMoveIdx")
+
+	sse := datastar.NewSSE(c.Writer, c.Request)
+
+	// "live" is the sentinel value for returning to the live board.
+	if idxParam == "live" {
+		b, _ := json.Marshal(historyNavSignals{HistoryIdx: -1, ViewingHistory: false})
+		sse.PatchSignals(b)
+		return
+	}
+
+	idx64, err := strconv.ParseInt(idxParam, 10, 64)
+	if err != nil || idx64 < 0 {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+	idx := int(idx64)
+
+	fen, found := g.HistoryFENAt(idx)
+	if !found {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	board, err := engine.BoardFromFENDisplay(fen)
+	if err != nil {
+		logger.Error(ctx).Err(err).Str("fen", fen).Msg("BoardAtHistoryHandler: FEN parse error")
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	buf := new(strings.Builder)
+	components.RenderHistoryBoard(board).Render(ctx, buf)
+	sse.PatchElements(buf.String())
+
+	b, _ := json.Marshal(historyNavSignals{HistoryIdx: idx, ViewingHistory: true})
+	sse.PatchSignals(b)
+}
+
+// NavigateHistoryHandler handles POST /game/:gameID/history/navigate.
+// It reads the current $historyIdx from the DataStar signal payload and the
+// ?direction query param (+1 or -1) to compute the next position, then
+// delegates to BoardAtHistoryHandler logic.
+func NavigateHistoryHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	dir, err := strconv.Atoi(c.Query("direction"))
+	if err != nil || (dir != 1 && dir != -1) {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+
+	// Read current signal state from the request body.
+	type navInput struct {
+		HistoryIdx     int  `json:"historyIdx"`
+		ViewingHistory bool `json:"viewingHistory"`
+	}
+	sig := &navInput{HistoryIdx: -1}
+	datastar.ReadSignals(c.Request, sig)
+
+	total := g.HistoryLen()
+	sse := datastar.NewSSE(c.Writer, c.Request)
+
+	// Determine target index based on current state.
+	// historyIdx=-1 + viewingHistory=false → live
+	// historyIdx=-1 + viewingHistory=true  → initial board position (before any moves)
+	// historyIdx=N                         → position after half-move N
+	var targetIdx int
+	switch {
+	case !sig.ViewingHistory:
+		// At live the current position IS after half-move total-1, so going to
+		// total-1 would show the same board. Jump to total-2 so the board changes.
+		// When total==1 this yields -1, which the block below turns into the
+		// initial board position.
+		if dir == -1 && total > 0 {
+			targetIdx = total - 2
+		} else {
+			return
+		}
+	case sig.HistoryIdx == -1:
+		// At initial position: next goes to first half-move, prev is a no-op.
+		if dir == 1 {
+			if total == 1 {
+				targetIdx = total
+			} else {
+				targetIdx = 0
+			}
+		} else {
+			return
+		}
+	default:
+		if dir == 1 && sig.HistoryIdx == total-2 {
+			targetIdx = total
+		} else {
+			targetIdx = sig.HistoryIdx + dir
+		}
+	}
+
+	// Past the end → return to live.
+	if targetIdx >= total {
+		b, _ := json.Marshal(historyNavSignals{HistoryIdx: -1, ViewingHistory: false})
+		sse.PatchSignals(b)
+		return
+	}
+
+	// Before the start → show initial board position.
+	if targetIdx < 0 {
+		initBoard := engine.NewBoard()
+		buf := new(strings.Builder)
+		components.RenderHistoryBoard(initBoard).Render(ctx, buf)
+		sse.PatchElements(buf.String())
+		b, _ := json.Marshal(historyNavSignals{HistoryIdx: -1, ViewingHistory: true})
+		sse.PatchSignals(b)
+		return
+	}
+
+	fen, found := g.HistoryFENAt(targetIdx)
+	if !found {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	board, err := engine.BoardFromFENDisplay(fen)
+	if err != nil {
+		logger.Error(ctx).Err(err).Str("fen", fen).Msg("NavigateHistoryHandler: FEN parse error")
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	buf := new(strings.Builder)
+	components.RenderHistoryBoard(board).Render(ctx, buf)
+	sse.PatchElements(buf.String())
+
+	b, _ := json.Marshal(historyNavSignals{HistoryIdx: targetIdx, ViewingHistory: true})
+	sse.PatchSignals(b)
 }
 
 // gameErrorMessage maps error query params to user-readable messages.

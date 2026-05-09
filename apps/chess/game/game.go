@@ -391,6 +391,25 @@ func (g *Game) ClearSelection() {
 	g.Selection = nil
 }
 
+// HistoryFENAt returns the FEN string for the position after the given
+// zero-based half-move index. The second return value is false if idx is
+// out of range.
+func (g *Game) HistoryFENAt(idx int) (string, bool) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	if idx < 0 || idx >= len(g.History) {
+		return "", false
+	}
+	return g.History[idx].FEN, true
+}
+
+// HistoryLen returns the number of half-moves recorded so far.
+func (g *Game) HistoryLen() int {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return len(g.History)
+}
+
 func (g *Game) SelectSquare(ctx context.Context, square uint8) {
 	g.mu.Lock()
 

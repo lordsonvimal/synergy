@@ -2,9 +2,49 @@ package components
 
 import (
 	"fmt"
+	"github.com/lordsonvimal/synergy/apps/chess/engine"
 	"github.com/lordsonvimal/synergy/apps/chess/game"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
 )
+
+// coordLabels renders the rank/file coordinate labels for a square.
+// Both the live board and the read-only history board use this.
+templ coordLabels(rank, file int, coordColor, coordShadow string) {
+	// Rank label (White view): top-left corner of every a-file square.
+	if file == 0 {
+		<span
+			class={ coordColor, coordShadow, "absolute top-0.5 left-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
+			data-show="!$flipped"
+			aria-hidden="true"
+		>{ fmt.Sprintf("%d", rank+1) }</span>
+	}
+	// Rank label (Black view): top-left corner of every h-file square after flip.
+	if file == 7 {
+		<span
+			class={ coordColor, coordShadow, "absolute top-0.5 left-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
+			data-show="$flipped"
+			style="display: none"
+			aria-hidden="true"
+		>{ fmt.Sprintf("%d", rank+1) }</span>
+	}
+	// File label (White view): bottom-right corner of each first-rank square.
+	if rank == 0 {
+		<span
+			class={ coordColor, coordShadow, "absolute bottom-0.5 right-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
+			data-show="!$flipped"
+			aria-hidden="true"
+		>{ string(rune('a' + file)) }</span>
+	}
+	// File label (Black view): bottom-right corner of each eighth-rank square after flip.
+	if rank == 7 {
+		<span
+			class={ coordColor, coordShadow, "absolute bottom-0.5 right-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
+			data-show="$flipped"
+			style="display: none"
+			aria-hidden="true"
+		>{ string(rune('a' + file)) }</span>
+	}
+}
 
 templ RenderChessSquare(g *game.Game, rank int, file int) {
 	{{
@@ -24,8 +64,6 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 		// These are chess-board colours not covered by the design-system tokens.
 		coordColor := "text-[#B58863]" // walnut on cream (light square)
 		// Shadow only on dark squares: cream text on walnut needs separation.
-		// On light squares the walnut text is legible without a shadow, and a dark
-		// shadow on a cream background creates a blurry halo effect.
 		coordShadow := ""
 		if (rank+file)%2 == 0 {
 			coordColor = "text-[#F0D9B5]" // cream on walnut (dark square)
@@ -60,52 +98,36 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 		if ok {
 			@RenderChessPiece(color, piece)
 		}
-		// Rank label (White view): top-left corner of every a-file square.
-		// Hidden when flipped.
-		if file == 0 {
-			<span
-				class={ coordColor, coordShadow, "absolute top-0.5 left-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
-				data-show="!$flipped"
-				aria-hidden="true"
-			>
-				{ fmt.Sprintf("%d", rank+1) }
-			</span>
+		@coordLabels(rank, file, coordColor, coordShadow)
+	</div>
+}
+
+// RenderReadOnlyChessSquare renders a non-interactive history board square
+// with the piece from the given display board. Coord labels are included.
+templ RenderReadOnlyChessSquare(board *engine.Board, rank int, file int) {
+	{{
+		sq := uint8(rank*8 + file)
+		color, piece, ok := board.PieceAt(sq)
+
+		bg := "bg-chess-light"
+		if (rank+file)%2 == 0 {
+			bg = "bg-chess-dark"
 		}
-		// Rank label (Black view): top-left corner of every h-file square.
-		// h-file moves to the left edge after flip, keeping labels on the correct side.
-		if file == 7 {
-			<span
-				class={ coordColor, coordShadow, "absolute top-0.5 left-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
-				data-show="$flipped"
-				style="display: none"
-				aria-hidden="true"
-			>
-				{ fmt.Sprintf("%d", rank+1) }
-			</span>
+
+		coordColor := "text-[#B58863]"
+		coordShadow := ""
+		if (rank+file)%2 == 0 {
+			coordColor = "text-[#F0D9B5]"
+			coordShadow = "[text-shadow:0_1px_2px_rgba(0,0,0,0.5)]"
 		}
-		// File label (White view): bottom-right corner of each first-rank square.
-		// Hidden when the board is flipped.
-		if rank == 0 {
-			<span
-				class={ coordColor, coordShadow, "absolute bottom-0.5 right-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
-				data-show="!$flipped"
-				aria-hidden="true"
-			>
-				{ string(rune('a' + file)) }
-			</span>
+	}}
+	<div
+		class={ bg, "relative flex items-center justify-center leading-none font-['DejaVu_Sans'] text-[clamp(1.25rem,4vw,2.5rem)] select-none" }
+		data-class="{'rotate-180': $flipped}"
+	>
+		if ok {
+			@RenderChessPiece(color, piece)
 		}
-		// File label (Black view): bottom-right corner of each eighth-rank square.
-		// After flip, these squares sit at the visual bottom of the board and show
-		// the same letter — which lands in the correct left-to-right order. ✓
-		if rank == 7 {
-			<span
-				class={ coordColor, coordShadow, "absolute bottom-0.5 right-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
-				data-show="$flipped"
-				style="display: none"
-				aria-hidden="true"
-			>
-				{ string(rune('a' + file)) }
-			</span>
-		}
+		@coordLabels(rank, file, coordColor, coordShadow)
 	</div>
 }

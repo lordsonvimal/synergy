@@ -1,6 +1,9 @@
 package components
 
-import "github.com/lordsonvimal/synergy/apps/chess/game"
+import (
+	"github.com/lordsonvimal/synergy/apps/chess/engine"
+	"github.com/lordsonvimal/synergy/apps/chess/game"
+)
 
 templ RenderChessBoard(g *game.Game) {
 	// data-signals.ifmissing ensures $flipped is only initialised once;
@@ -17,6 +20,23 @@ templ RenderChessBoard(g *game.Game) {
 					}
 				}
 			</div>
+		</div>
+	</div>
+}
+
+// RenderHistoryBoard renders a read-only snapshot of the board at a historical position.
+// It is the SSE response target — DataStar morphs #history-board-content with this.
+templ RenderHistoryBoard(board *engine.Board) {
+	<div id="history-board-content" class="w-full h-full">
+		<div
+			class="grid grid-cols-8 grid-rows-8 w-full h-full"
+			data-class="{'rotate-180': $flipped}"
+		>
+			for rank := 7; rank >= 0; rank-- {
+				for file := 0; file < 8; file++ {
+					@RenderReadOnlyChessSquare(board, rank, file)
+				}
+			}
 		</div>
 	</div>
 }

@@ -1,59 +1,136 @@
 package components
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/lordsonvimal/synergy/apps/chess/game"
 )
 
-// NotationNavBar is the visible navigation strip.
-// It is rendered ONCE on page load and managed entirely by initClock.js.
-// DataStar never re-renders this — only MoveNotationPanel (the data store) is morphed.
-templ NotationNavBar() {
-	<div class="flex items-center gap-1 px-2 py-1.5 bg-surface min-h-10">
-		<button
-			id="notation-prev"
-			aria-label="Previous move"
-			class="shrink-0 p-1 rounded-sm text-ink-dim hover:text-ink hover:bg-surface transition-colors duration-150 cursor-pointer opacity-40 pointer-events-none"
-		>
-			<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-				<path d="M15 18l-6-6 6-6"></path>
-			</svg>
-		</button>
+// MoveNotationPanel shows one move pair at a time with prev/next nav controls.
+// DataStar morphs this entire element after each move via SSE.
+templ MoveNotationPanel(gameID string, history []game.MoveRecord) {
+	{{
+		rows := groupHistory(history)
+		noMoves := len(history) == 0
+	}}
+	<div id="move-notation-panel" data-testid="move-notation-panel">
+		<div class="flex items-center justify-between gap-2 px-3 py-2.5 bg-surface border-t border-edge min-h-13">
+			<!-- Previous move button -->
+			<button
+				id="notation-prev"
+				aria-label="Previous move"
+				class="shrink-0 p-1.5 rounded-sm text-ink-dim hover:text-ink hover:bg-muted transition-colors duration-150 cursor-pointer"
+				data-class={ fmt.Sprintf(`{'opacity-40 pointer-events-none': ($viewingHistory && $historyIdx <= -1) || (!$viewingHistory && %v)}`, noMoves) }
+				data-on:click={ templ.JSExpression("@post('/game/" + gameID + "/history/navigate?direction=-1')") }
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<path d="M15 18l-6-6 6-6"></path>
+				</svg>
+			</button>
 
-		<div id="notation-display" class="flex-1 flex items-center justify-center min-h-7">
-			<p id="notation-empty" class="text-ink-dim text-xs select-none">No moves yet</p>
-			<div id="notation-move" style="display:none" class="flex items-center gap-1.5">
-				<span id="notation-num" class="text-ink-dim text-xs font-mono tabular-nums select-none shrink-0"></span>
-				<span id="notation-white" class="text-ink text-xs font-mono select-none w-14"></span>
-				<span id="notation-black" class="text-ink text-xs font-mono select-none"></span>
+			<!-- Center display: one pair at a time -->
+			<div class="flex-1 flex items-center justify-center min-w-0 gap-1">
+				if noMoves {
+					<span class="text-ink-dim text-sm select-none">No moves yet</span>
+				} else {
+					<!-- Initial position indicator: shown only at historyIdx=-1 in history mode -->
+					<div
+						class="flex items-center gap-2"
+						data-show="$viewingHistory && $historyIdx === -1"
+						style="display:none"
+					>
+						<span class="text-ink-secondary text-sm select-none italic font-medium">Start</span>
+					</div>
+					<!-- One row per full move; DataStar shows exactly the relevant one -->
+					for i, row := range rows {
+						{{
+							isLast := i == len(rows)-1
+							whiteIsLatest := isLast && row.blackHalfMoveIdx < 0
+							blackIsLatest := isLast && row.blackHalfMoveIdx >= 0
+
+							maxIdx := row.whiteHalfMoveIdx
+							if row.blackHalfMoveIdx >= 0 {
+								maxIdx = row.blackHalfMoveIdx
+							}
+							showExpr := fmt.Sprintf(
+								"($viewingHistory && $historyIdx >= %d && $historyIdx <= %d) || (!$viewingHistory && %v)",
+								row.whiteHalfMoveIdx, maxIdx, isLast,
+							)
+
+							whiteActive := fmt.Sprintf(
+								"$historyIdx === %d || (!$viewingHistory && %v)",
+								row.whiteHalfMoveIdx, whiteIsLatest,
+							)
+							whiteDataClass := fmt.Sprintf(
+								"{'bg-primary-subtle text-primary font-semibold': %s, 'text-ink': !(%s)}",
+								whiteActive, whiteActive,
+							)
+							whiteClick := fmt.Sprintf("@get('/game/%s/board-at/%d')", gameID, row.whiteHalfMoveIdx)
+							if whiteIsLatest {
+								whiteClick = fmt.Sprintf("@get('/game/%s/board-at/live')", gameID)
+							}
+						}}
+						<div
+							class="flex items-center gap-1.5"
+							data-show={ showExpr }
+							style="display:none"
+						>
+							<span class="text-ink-dim text-sm font-mono tabular-nums select-none shrink-0">{ strconv.Itoa(row.moveNumber) }.</span>
+							<button
+								class="text-sm font-mono px-2.5 py-1 rounded-sm hover:bg-muted transition-colors duration-100 cursor-pointer leading-none shrink-0"
+								data-class={ whiteDataClass }
+								data-on:click={ templ.JSExpression(whiteClick) }
+							>{ row.white }</button>
+							if row.black != "" {
+								{{
+									blackActive := fmt.Sprintf(
+										"$historyIdx === %d || (!$viewingHistory && %v)",
+										row.blackHalfMoveIdx, blackIsLatest,
+									)
+									blackDataClass := fmt.Sprintf(
+										"{'bg-primary-subtle text-primary font-semibold': %s, 'text-ink': !(%s)}",
+										blackActive, blackActive,
+									)
+									blackClick := fmt.Sprintf("@get('/game/%s/board-at/%d')", gameID, row.blackHalfMoveIdx)
+									if blackIsLatest {
+										blackClick = fmt.Sprintf("@get('/game/%s/board-at/live')", gameID)
+									}
+								}}
+								<button
+									class="text-sm font-mono px-2.5 py-1 rounded-sm hover:bg-muted transition-colors duration-100 cursor-pointer leading-none shrink-0"
+									data-class={ blackDataClass }
+									data-on:click={ templ.JSExpression(blackClick) }
+								>{ row.black }</button>
+							} else {
+								<span class="text-ink-dim text-sm font-mono px-1 select-none opacity-50">···</span>
+							}
+						</div>
+					}
+				}
 			</div>
+
+			<!-- Go Live badge: visible only when browsing history -->
+			<button
+				aria-label="Return to live game"
+				class="shrink-0 px-2 py-0.5 text-xs font-medium rounded-xs bg-accent-subtle text-accent border border-accent-200 hover:bg-accent hover:text-on-accent transition-colors duration-150 cursor-pointer whitespace-nowrap"
+				data-show="$viewingHistory"
+				style="display:none"
+				data-on:click={ templ.JSExpression("@get('/game/" + gameID + "/board-at/live')") }
+			>Go Live</button>
+
+			<!-- Next move button -->
+			<button
+				id="notation-next"
+				aria-label="Next move"
+				class="shrink-0 p-1.5 rounded-sm text-ink-dim hover:text-ink hover:bg-muted transition-colors duration-150 cursor-pointer"
+				data-class="{'opacity-40 pointer-events-none': !$viewingHistory}"
+				data-on:click={ templ.JSExpression("@post('/game/" + gameID + "/history/navigate?direction=1')") }
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<path d="M9 18l6-6-6-6"></path>
+				</svg>
+			</button>
 		</div>
-
-		<button
-			id="notation-next"
-			aria-label="Next move"
-			class="shrink-0 p-1 rounded-sm text-ink-dim hover:text-ink hover:bg-surface transition-colors duration-150 cursor-pointer opacity-40 pointer-events-none"
-		>
-			<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-				<path d="M9 18l6-6-6-6"></path>
-			</svg>
-		</button>
-	</div>
-}
-
-// MoveNotationPanel is the hidden data store for move history.
-// id="move-notation-panel" is the DataStar morph target — do not change it.
-// initClock.js watches this element and updates NotationNavBar's DOM on each change.
-templ MoveNotationPanel(history []game.MoveRecord) {
-	<div id="move-notation-panel" data-testid="move-notation-panel" style="display:none" aria-hidden="true">
-		for _, row := range groupHistory(history) {
-			<div
-				data-move-row=""
-				data-num={ strconv.Itoa(row.moveNumber) }
-				data-white={ row.white }
-				data-black={ row.black }
-			></div>
-		}
 	</div>
 }

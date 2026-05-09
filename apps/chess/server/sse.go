@@ -25,7 +25,7 @@ func broadcastBoard(c *gin.Context, g *game.Game, signals *ui_store.ChessBoardSi
 
 	// Patch move notation panel — DataStar morphs #move-notation-panel in place.
 	buf.Reset()
-	components.MoveNotationPanel(g.History).Render(ctx, buf)
+	components.MoveNotationPanel(g.ID, g.History).Render(ctx, buf)
 	sse.PatchElements(buf.String())
 
 	return broadcastSignals(c, signals)
