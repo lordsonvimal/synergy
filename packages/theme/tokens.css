@@ -149,18 +149,18 @@
   --color-teal-900: #134E4A;
   --color-teal-950: #042F2E;
 
-  /* Surfaces */
+  /* Surfaces — page bg: canvas, cards/panels/modals: surface, dropdowns/popovers: surface-raised, disabled/zebra: muted */
   --color-canvas: #FAFBFD;
   --color-surface: #FFFFFF;
   --color-surface-raised: #FFFFFF;
   --color-surface-sunken: #F8FAFC;
   --color-muted: #F1F5F9;
 
-  /* Borders → "edge" to avoid border-border */
+  /* Borders — edge: dividers/card borders, edge-strong: input borders (default state) */
   --color-edge: #E2E8F0;
   --color-edge-strong: #CBD5E1;
 
-  /* Text → "ink" to avoid text-text */
+  /* Text — ink: body/headings, ink-secondary: labels/descriptions, ink-dim: placeholders/disabled/timestamps */
   --color-ink: #0F172A;
   --color-ink-secondary: #475569;
   --color-ink-dim: #94A3B8;
