@@ -75,6 +75,29 @@ func NewGame(mode *GameMode) *Game {
 	return g
 }
 
+// NewRestoredGame builds a Game from fields loaded out of the DB.
+// Unexported fields are initialised safely; no watchdog is started.
+func NewRestoredGame(
+	id string, board *engine.Board, clock GameClock,
+	history []MoveRecord, seq uint64, state GameState, winner engine.Color,
+) *Game {
+	stopCh := make(chan struct{})
+	if state != GameOngoing {
+		close(stopCh)
+	}
+	return &Game{
+		ID:      id,
+		Board:   board,
+		Clock:   clock,
+		Hub:     NewGameHub(),
+		History: history,
+		Seq:     seq,
+		State:   state,
+		Winner:  winner,
+		stopCh:  stopCh,
+	}
+}
+
 // InitBatch wires up DB persistence for this game. Call once after NewGame,
 // before the first move is applied.
 func (g *Game) InitBatch(sessionID string, flushFn FlushFunc, gameEndFn GameEndFunc) {

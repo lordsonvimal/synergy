@@ -38,6 +38,15 @@ func ShowGame(c *gin.Context) {
 	gameID := c.Param("gameID")
 	g, ok := repo.Get(gameID)
 	if !ok {
+		if dbRepo, dbOk := store.GetDBRepoFromContext(ctx); dbOk {
+			if restored, err := loadGameFromDB(ctx, dbRepo, gameID); err == nil {
+				repo.Add(restored)
+				g = restored
+				ok = true
+			}
+		}
+	}
+	if !ok {
 		c.Redirect(http.StatusSeeOther, "/?error=game_not_found")
 		return
 	}
@@ -463,6 +472,96 @@ func NavigateHistoryHandler(c *gin.Context) {
 
 	b, _ := json.Marshal(historyNavSignals{HistoryIdx: targetIdx, ViewingHistory: true})
 	sse.PatchSignals(b)
+}
+
+func loadGameFromDB(ctx context.Context, dbRepo db.Repository, id string) (*game.Game, error) {
+	dbGame, err := dbRepo.Games().Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	dbMoves, err := dbRepo.Moves().ListByGame(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var board *engine.Board
+	if len(dbMoves) > 0 {
+		board, err = engine.BoardFromFEN(dbMoves[len(dbMoves)-1].FEN)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		board = engine.NewBoard()
+	}
+
+	history := make([]game.MoveRecord, len(dbMoves))
+	for i, m := range dbMoves {
+		color := engine.White
+		if m.Color == "black" {
+			color = engine.Black
+		}
+		history[i] = game.MoveRecord{SAN: m.SAN, FEN: m.FEN, Color: color, MoveNumber: m.MoveNumber}
+	}
+
+	var wRem, bRem, incNs int64
+	if dbGame.TimeControlNs != nil {
+		wRem, bRem = *dbGame.TimeControlNs, *dbGame.TimeControlNs
+	}
+	if dbGame.IncrementNs != nil {
+		incNs = *dbGame.IncrementNs
+	}
+	if len(dbMoves) > 0 {
+		last := dbMoves[len(dbMoves)-1]
+		wRem, bRem = last.WRemNs, last.BRemNs
+	}
+
+	state := dbStatusToState(dbGame.Status)
+	winner := engine.NoColor
+	if dbGame.Winner != nil {
+		switch *dbGame.Winner {
+		case "white":
+			winner = engine.White
+		case "black":
+			winner = engine.Black
+		}
+	}
+
+	var seq uint64
+	if len(dbMoves) > 0 {
+		seq = dbMoves[len(dbMoves)-1].Seq
+	}
+
+	clock := game.GameClock{
+		White: game.Clock{RemainingNs: wRem},
+		Black: game.Clock{RemainingNs: bRem},
+		IncNs: incNs,
+	}
+	return game.NewRestoredGame(id, board, clock, history, seq, state, winner), nil
+}
+
+func dbStatusToState(s string) game.GameState {
+	switch s {
+	case "ongoing":
+		return game.GameOngoing
+	case "checkmate":
+		return game.GameCheckmate
+	case "resigned":
+		return game.GameResigned
+	case "clock_flagged":
+		return game.GameClockFlagged
+	case "draw_stalemate":
+		return game.GameDrawStalemate
+	case "draw_fifty_move":
+		return game.GameDrawFiftyMove
+	case "draw_agreement":
+		return game.GameDrawAgreement
+	case "draw_threefold":
+		return game.GameDrawThreefoldRepetition
+	case "draw_insufficient":
+		return game.GameDrawInsufficientMaterial
+	default:
+		return game.GameAbandoned
+	}
 }
 
 // gameErrorMessage maps error query params to user-readable messages.

@@ -34,12 +34,12 @@
 
 ### 4. SQLite Persistence
 
-- [ ] Add SQLite driver dependency (`modernc.org/sqlite` — pure Go, no CGo)
-- [ ] Design and document schema: `sessions` (class + play), `participants`, `moves` (game + teaching), `annotations` (arrow/circle per move), `chat_messages`; write SQL migration files
-- [ ] Implement schema migrations with version tracking (run on startup)
-- [ ] Migrate `GameStore` from in-memory map to SQLite-backed store
-- [ ] Replace filesystem game event log files (`.gamewal`) with SQLite rows in the `moves` table
-- [ ] Enable WAL mode (`PRAGMA journal_mode=WAL`) for concurrent reads alongside writes
+- [x] Add SQLite driver dependency (`modernc.org/sqlite` — pure Go, no CGo)
+- [x] Design and document schema: `sessions` (class + play), `participants`, `moves` (game + teaching), `annotations` (arrow/circle per move), `chat_messages`; write SQL migration files
+- [x] Implement schema migrations with version tracking (run on startup)
+- [x] Migrate `GameStore` from in-memory map to SQLite-backed store
+- [x] Replace filesystem game event log files (`.gamewal`) with SQLite rows in the `moves` table
+- [x] Enable WAL mode (`PRAGMA journal_mode=WAL`) for concurrent reads alongside writes
 - [ ] Add Litestream config for continuous replication to S3-compatible storage
 
 ---
@@ -84,17 +84,20 @@
 ### 7. WebRTC Infrastructure (LiveKit)
 
 **Setup:**
+
 - [ ] Sign up for LiveKit Cloud; add `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` to `.env` and `.env.example`
 - [ ] Add LiveKit Go SDK to `go.mod`: `github.com/livekit/server-sdk-go`
 - [ ] Add LiveKit JS client to frontend: `livekit-client` npm package
 
 **Server-side (Go/Gin):**
+
 - [ ] `POST /class/:sessionID/livekit/token` — generate a signed JWT access token per participant; role determines LiveKit permissions (coach: `RoomAdmin`; student: `RoomJoin`)
 - [ ] On session start, create a LiveKit room via LiveKit API (room name = sessionID; max participants = configured class size)
 - [ ] Handle LiveKit webhooks (`participant_joined`, `participant_left`, `room_finished`) → update session participant state in SQLite
 - [ ] Coach mute/remove: call LiveKit RoomService API from Go server (`MutePublishedTrack`, `RemoveParticipant`) — no direct client-to-client control
 
 **Client-side (JS):**
+
 - [ ] Connect to LiveKit Cloud using the JWT token from `/livekit/token`; publish local audio/video tracks
 - [ ] Subscribe to coach video + audio by default; subscribe to other participants' audio only
 - [ ] Students do not subscribe to other students' video (star topology — reduces bandwidth ~10×)
@@ -102,6 +105,7 @@
 - [ ] Reconnection: handled automatically by LiveKit JS SDK; show "Connection lost" banner if reconnect fails after 2 minutes
 
 **Notes:**
+
 - STUN, TURN, ICE, and SFU are all managed by LiveKit Cloud — no Coturn, no Pion, no signaling server to build
 - Migrate to self-hosted LiveKit Server (`docker-compose`) when scaling beyond LiveKit Cloud free tier (100k participant-minutes/month)
 
@@ -170,6 +174,7 @@
 ### 12. Drill Mode (Drill Framework)
 
 **Shared infrastructure:**
+
 - [ ] Add drill routes: `POST /class/:sessionID/drill/start`, `POST /class/:sessionID/drill/submit`, `POST /class/:sessionID/drill/reveal`, `DELETE /class/:sessionID/drill`
 - [ ] Drill type selector UI in the coach's board area (radio list of 7 types + timer picker)
 - [ ] Coach setup flow: type selection → type-specific config → Start Drill
@@ -178,42 +183,50 @@
 - [ ] Optional timer (30s, 60s, 90s, none): countdown on each student board; auto-submit "No answer" on expiry
 
 **Drill type 1 — Find the Move:**
+
 - [ ] Coach sets position (FEN or piece placement) + optional prompt text
 - [ ] Student: click a destination square to submit; first click locks the move
 - [ ] Auto-validate: server compares submitted move to engine's top move (✓ / ✗)
 
 **Drill type 2 — Find the Mate:**
+
 - [ ] Coach sets position + specifies Mate in N (1–5)
 - [ ] Student: plays moves on their board; board auto-submits on checkmate; "Submit" button available
 - [ ] Auto-validate: ✓ if checkmate in ≤ N; ≈ if checkmate in > N; ✗ if no checkmate
 
 **Drill type 3 — Arrange the Board:**
+
 - [ ] Coach selects a target position (FEN or piece placement); target hidden from students
 - [ ] Student: receives blank board + piece palette; drag pieces to squares; "Submit" locks the arrangement
 - [ ] Timer bonus indicator shown on reveal tile if completed within time
 - [ ] Auto-validate: ✓ exact match; tile shows misplaced piece count otherwise
 
 **Drill type 4 — Name This Piece:**
+
 - [ ] Coach selects a position + highlights one or more squares; configures free-text or multiple-choice mode
 - [ ] Student: types piece name or selects from list; Enter or "Submit" locks the answer
 - [ ] Auto-validate: ✓ case-insensitive match including abbreviations (N, R, B, Q, K, P)
 
 **Drill type 5 — Write the Notation (SAN):**
+
 - [ ] Coach sets a position + records one or more moves (hidden from students); writes prompt text
 - [ ] Student: types SAN string in a text input; Enter or "Submit" locks the answer
 - [ ] Auto-validate: ✓ exact SAN match against the coach's recorded answer
 
 **Drill type 6 — Spot the Illegal Move:**
+
 - [ ] Coach provides a list of 3–5 SAN moves for a given position; marks which one is illegal
 - [ ] Student: radio button list of moves; clicks the illegal one and submits
 - [ ] Auto-validate: ✓ / ✗ — single correct answer
 
 **Drill type 7 — Play the Opening:**
+
 - [ ] Coach pastes a PGN or selects from a built-in ECO opening list; specifies depth N (moves to play); the book line is stored server-side for the drill session
 - [ ] Student: plays moves on their board; each correct book move confirmed with green highlight; first deviation flagged inline ("Off-book — expected Bb5")
 - [ ] Auto-validate: ✓ completed all N book moves correctly; reveal tile shows the deviation move otherwise
 
 **Private preview (shared, all types):**
+
 - [ ] [👁 Preview] button on each Submitted student in the participants panel
 - [ ] Clicking Preview loads that student's answer onto the coach's board privately (full sequence for multi-move types)
 - [ ] Persistent "Private preview — [Name]'s answer (not visible to students)" banner on coach's board
@@ -222,6 +235,7 @@
 - [ ] [Skip] advances to the next student without revealing the current answer
 
 **Staged reveal (shared, all types):**
+
 - [ ] [Show to Class]: reveals currently previewed student's answer to all participants; adds tile to reveal grid with auto-validation result (✓ / ✗ / ≈)
 - [ ] Reveal selected: coach selects multiple students from participants panel and reveals as a group
 - [ ] Reveal All: broadcasts all submitted answers simultaneously; board panel switches to full-width reveal grid
@@ -230,6 +244,7 @@
 - [ ] No-answer students marked "No answer" in reveal grid
 
 **Post-drill discussion (shared, all types):**
+
 - [ ] Coach can click any revealed tile to load that student's answer onto the main board for discussion
 - [ ] Coach annotations on main board after reveal broadcast to all participants
 - [ ] "End Drill" discards all unrevealed submissions (never shown to class) and returns to Teaching Mode
