@@ -54,15 +54,8 @@ func (g *Game) startWatchdog() {
 						g.Winner = 0 // White wins
 					}
 					activeClock.Running = false
+					g.signalGameOver()
 					g.mu.Unlock()
-
-					evt := GameOverEvent{
-						Type:      "game_over",
-						State:     g.State,
-						Winner:    int(g.Winner),
-						StateText: "Clock flagged",
-					}
-					g.broadcastJSON(evt)
 					return
 				}
 

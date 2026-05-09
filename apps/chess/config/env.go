@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"os"
+	"path/filepath"
 
 	"github.com/joho/godotenv"
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
@@ -27,11 +28,15 @@ func LoadEnv(ctx context.Context) {
 	}
 }
 
-// Example Helper: GetEnv provides a safe way to retrieve an environment variable
-// with a fallback value.
+// GetEnv retrieves an environment variable with a fallback value.
 func GetEnv(key, fallback string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
 	return fallback
+}
+
+// DBPath returns the SQLite database file path derived from DATA_DIR.
+func DBPath() string {
+	return filepath.Join(GetEnv("DATA_DIR", "."), "chess.db")
 }

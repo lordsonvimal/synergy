@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -8,6 +9,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/lordsonvimal/synergy/apps/chess/db"
 	"github.com/lordsonvimal/synergy/apps/chess/engine"
 	"github.com/lordsonvimal/synergy/apps/chess/game"
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
@@ -61,8 +64,102 @@ func CreateGame(c *gin.Context) {
 	g := game.NewGame(&gm)
 	repo.Add(g)
 
+	// Wire up DB persistence if available.
+	if dbRepo, ok := store.GetDBRepoFromContext(ctx); ok {
+		persistGame(ctx, dbRepo, g, &gm)
+	}
+
 	// PRG: redirect so reload does not trigger resubmission
 	c.Redirect(http.StatusSeeOther, "/game/"+g.ID)
+}
+
+// persistGame creates the session + game rows and initialises the move batch.
+func persistGame(ctx context.Context, dbRepo db.Repository, g *game.Game, mode *game.GameMode) {
+	now := time.Now().UnixNano()
+	sessionID := uuid.New().String()
+
+	timeCtrlNs := mode.TimeNs
+	incNs := mode.Increment
+
+	if err := dbRepo.Sessions().Create(ctx, &db.Session{
+		ID:          sessionID,
+		SessionType: "play",
+		Status:      "active",
+		CreatedAt:   now,
+		StartedAt:   &now,
+	}); err != nil {
+		logger.Error(ctx).Err(err).Msg("persistGame: create session")
+		return
+	}
+
+	if err := dbRepo.Games().Create(ctx, &db.Game{
+		ID:            g.ID,
+		SessionID:     sessionID,
+		TimeControlNs: &timeCtrlNs,
+		IncrementNs:   &incNs,
+		Variant:       mode.Variant,
+		Status:        "ongoing",
+		CreatedAt:     now,
+	}); err != nil {
+		logger.Error(ctx).Err(err).Msg("persistGame: create game")
+		return
+	}
+
+	startEvent := &db.GameEvent{
+		GameID:     g.ID,
+		SessionID:  sessionID,
+		EventType:  "game_started",
+		OccurredAt: now,
+	}
+	if err := dbRepo.GameEvents().InsertBatch(ctx, []*db.GameEvent{startEvent}); err != nil {
+		logger.Error(ctx).Err(err).Msg("persistGame: game_started event")
+	}
+
+	g.InitBatch(
+		sessionID,
+		func(batchCtx context.Context, moves []game.PendingMove, events []game.PendingEvent) error {
+			dbMoves := make([]*db.Move, len(moves))
+			for i, m := range moves {
+				dbMoves[i] = &db.Move{
+					GameID:      m.GameID,
+					SessionID:   m.SessionID,
+					Seq:         m.Seq,
+					UCI:         m.UCI,
+					SAN:         m.SAN,
+					FEN:         m.FEN,
+					MoveNumber:  m.MoveNumber,
+					Color:       m.Color,
+					WRemNs:      m.WRemNs,
+					BRemNs:      m.BRemNs,
+					LagCompNs:   m.LagCompNs,
+					ThinkTimeNs: m.ThinkTimeNs,
+					PlayedAt:    m.PlayedAt,
+				}
+			}
+			dbEvents := make([]*db.GameEvent, len(events))
+			for i, e := range events {
+				dbEvents[i] = &db.GameEvent{
+					GameID:     e.GameID,
+					SessionID:  e.SessionID,
+					EventType:  e.EventType,
+					Payload:    e.Payload,
+					OccurredAt: e.OccurredAt,
+				}
+			}
+			if err := dbRepo.Moves().InsertBatch(batchCtx, dbMoves); err != nil {
+				return err
+			}
+			return dbRepo.GameEvents().InsertBatch(batchCtx, dbEvents)
+		},
+		func(batchCtx context.Context, status, winner string) error {
+			endedAt := time.Now().UnixNano()
+			var winnerPtr *string
+			if winner != "" {
+				winnerPtr = &winner
+			}
+			return dbRepo.Games().UpdateStatus(batchCtx, g.ID, status, winnerPtr, &endedAt)
+		},
+	)
 }
 
 func SelectSquare(c *gin.Context) {

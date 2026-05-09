@@ -2,9 +2,6 @@ package game
 
 import (
 	"context"
-	"log"
-	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/google/uuid"
@@ -43,7 +40,7 @@ type Game struct {
 	ID        string
 	Board     *engine.Board
 	Clock     GameClock
-	WAL       *WAL
+	Batch     *MoveBatch
 	Hub       *GameHub
 	Selection *SelectionState
 	History   []MoveRecord
@@ -58,39 +55,30 @@ type Game struct {
 
 func NewGame(mode *GameMode) *Game {
 	board := engine.NewBoard()
-
 	id := uuid.New().String()
-
 	gc := NewClock(mode.TimeNs, mode.Increment)
-	gc.Start(engine.White) // White's clock starts immediately, as in standard chess
-
-	dataDir := os.Getenv("DATA_DIR")
-	if dataDir == "" {
-		dataDir = "."
-	}
-	wal, err := NewWAL(filepath.Join(dataDir, "game_"+id+".wal"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	hub := NewGameHub()
-	stopCh := make(chan struct{})
+	gc.Start(engine.White)
 
 	g := &Game{
 		ID:      id,
 		Board:   board,
 		Clock:   gc,
-		WAL:     wal,
-		Hub:     hub,
+		Hub:     NewGameHub(),
 		History: make([]MoveRecord, 0),
 		Seq:     0,
 		State:   GameOngoing,
 		Winner:  engine.NoColor,
-		stopCh:  stopCh,
+		stopCh:  make(chan struct{}),
 	}
 
 	g.startWatchdog()
 	return g
+}
+
+// InitBatch wires up DB persistence for this game. Call once after NewGame,
+// before the first move is applied.
+func (g *Game) InitBatch(sessionID string, flushFn FlushFunc, gameEndFn GameEndFunc) {
+	g.Batch = NewMoveBatch(sessionID, flushFn, gameEndFn)
 }
 
 // --------------------------
@@ -153,6 +141,10 @@ func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
 	san := g.Board.SAN(m)
 	moveNumber := int(g.Board.FullMoveNumber)
 
+	// Capture remaining times before Stop() so we can compute think_time_ns.
+	prevWRem := g.Clock.White.RemainingNs
+	prevBRem := g.Clock.Black.RemainingNs
+
 	g.Clock.Stop(color, lagCompNs)
 
 	if !g.Board.MakeMove(m) {
@@ -172,14 +164,44 @@ func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
 	g.Clock.Start(color ^ 1)
 
 	g.Seq++
-	g.WAL.Append(WALEvent{
-		Seq:       g.Seq,
-		MoveUCI:   m.ToUCI(),
-		ServerNs:  monoNow(),
-		LagCompNs: lagCompNs,
-		WRem:      g.Clock.White.RemainingNs,
-		BRem:      g.Clock.Black.RemainingNs,
-	})
+	if g.Batch != nil {
+		now := monoNow()
+		colorStr := "white"
+		if color == engine.Black {
+			colorStr = "black"
+		}
+		var thinkTimeNs int64
+		if color == engine.White {
+			thinkTimeNs = prevWRem - g.Clock.White.RemainingNs + g.Clock.IncNs
+		} else {
+			thinkTimeNs = prevBRem - g.Clock.Black.RemainingNs + g.Clock.IncNs
+		}
+		uci := m.ToUCI()
+		g.Batch.Append(
+			PendingMove{
+				GameID:      g.ID,
+				SessionID:   g.Batch.sessionID(),
+				Seq:         g.Seq,
+				UCI:         uci,
+				SAN:         san,
+				FEN:         g.Board.FEN(),
+				MoveNumber:  moveNumber,
+				Color:       colorStr,
+				WRemNs:      g.Clock.White.RemainingNs,
+				BRemNs:      g.Clock.Black.RemainingNs,
+				LagCompNs:   lagCompNs,
+				ThinkTimeNs: thinkTimeNs,
+				PlayedAt:    now,
+			},
+			PendingEvent{
+				GameID:     g.ID,
+				SessionID:  g.Batch.sessionID(),
+				EventType:  "move_played",
+				Payload:    `{"uci":"` + uci + `","san":"` + san + `"}`,
+				OccurredAt: now,
+			},
+		)
+	}
 
 	g.ClearSelection()  // After move, clear selection
 	g.UpdateGameState() // Update game state after each move
@@ -260,6 +282,17 @@ func (g *Game) signalGameOver() {
 		close(g.stopCh)
 	}
 
+	if g.Batch != nil {
+		status := gameStateDBStatus(g.State)
+		winner := ""
+		if g.Winner == engine.White {
+			winner = "white"
+		} else if g.Winner == engine.Black {
+			winner = "black"
+		}
+		go g.Batch.FlushAndStop(context.Background(), status, winner)
+	}
+
 	stateText := gameStateText(g.State)
 	evt := GameOverEvent{
 		Type:      "game_over",
@@ -268,6 +301,33 @@ func (g *Game) signalGameOver() {
 		StateText: stateText,
 	}
 	go g.broadcastJSON(evt)
+}
+
+func gameStateDBStatus(s GameState) string {
+	switch s {
+	case GameCheckmate:
+		return "checkmate"
+	case GameResigned:
+		return "resigned"
+	case GameClockFlagged:
+		return "clock_flagged"
+	case GameDrawStalemate:
+		return "draw_stalemate"
+	case GameDrawFiftyMove:
+		return "draw_fifty_move"
+	case GameDrawAgreement:
+		return "draw_agreement"
+	case GameDrawThreefoldRepetition:
+		return "draw_threefold"
+	case GameDrawInsufficientMaterial:
+		return "draw_insufficient"
+	case GameAbandoned:
+		return "abandoned"
+	case GameDisconnected:
+		return "disconnected"
+	default:
+		return "abandoned"
+	}
 }
 
 func gameStateText(s GameState) string {

@@ -11,6 +11,8 @@ import (
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/lordsonvimal/synergy/apps/chess/config"
+	"github.com/lordsonvimal/synergy/apps/chess/db"
+	"github.com/lordsonvimal/synergy/apps/chess/db/sqlite"
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
 	"github.com/lordsonvimal/synergy/apps/chess/server"
 	"github.com/lordsonvimal/synergy/apps/chess/store"
@@ -34,6 +36,18 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	// Ensure DATA_DIR exists.
+	dataDir := config.GetEnv("DATA_DIR", ".")
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		logger.Fatal(ctx).Err(err).Str("DATA_DIR", dataDir).Msg("Cannot create DATA_DIR")
+	}
+
+	dbRepo, err := db.Open(config.DBPath(), sqlite.New)
+	if err != nil {
+		logger.Fatal(ctx).Err(err).Msg("Cannot open SQLite database")
+	}
+	defer dbRepo.Close()
+
 	router := gin.New()
 
 	gameStore := store.NewGameStore()
@@ -42,6 +56,7 @@ func main() {
 	router.Use(logger.RedactedStructuredLogger(logger.GlobalLogger())) // Structured logging with token redaction (access_token, auth_token, etc.)
 	router.Use(gin.Recovery())                                         // Use default recovery for panic logging/handling
 	router.Use(store.StoreContext(gameStore))                          // Add gameStore to context
+	router.Use(store.DBRepoContext(dbRepo))                            // Add db repository to context
 	router.Use(server.CSRFMiddleware())
 
 	router.Static("/static", "./dist")
