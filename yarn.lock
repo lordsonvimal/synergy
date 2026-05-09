@@ -4178,9 +4178,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chess@workspace:apps/chess":
+"chessleap@workspace:apps/chess":
   version: 0.0.0-use.local
-  resolution: "chess@workspace:apps/chess"
+  resolution: "chessleap@workspace:apps/chess"
   dependencies:
     "@tailwindcss/cli": "npm:^4.1.18"
     tailwindcss: "npm:^4.1.18"
