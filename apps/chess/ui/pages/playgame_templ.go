@@ -100,7 +100,15 @@ func PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) tem
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<!-- Rematch prompt — visible when opponent proposes a rematch --><div class=\"w-[min(100%,calc(100vh-16rem),540px)]\" data-show=\"$rematchProposed\" style=\"display:none\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<!-- Rematch pending: shown to the player who proposed a rematch --><div class=\"w-[min(100%,calc(100vh-16rem),540px)]\" data-show=\"$rematchPending\" style=\"display:none\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.RematchPending(g.ID, csrfToken).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div><!-- Rematch prompt — visible to the player who received a rematch proposal --><div class=\"w-[min(100%,calc(100vh-16rem),540px)]\" data-show=\"$rematchProposed\" style=\"display:none\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -108,7 +116,7 @@ func PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) tem
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div><div class=\"w-[min(100%,calc(100vh-16rem),540px)] flex flex-col rounded-sm overflow-hidden shadow-2xl\"><div class=\"flex flex-col\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div><div class=\"w-[min(100%,calc(100vh-16rem),540px)] flex flex-col rounded-sm overflow-hidden shadow-2xl\"><div class=\"flex flex-col\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -116,7 +124,7 @@ func PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) tem
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<section class=\"relative w-full\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<section class=\"relative w-full\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -128,7 +136,7 @@ func PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) tem
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div class=\"absolute inset-0 z-10\" data-show=\"$viewingHistory\" data-signals.ifmissing='{\"historyIdx\": -1, \"viewingHistory\": false}' style=\"display:none\"><div id=\"history-board-content\" class=\"w-full h-full\"></div></div></section>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"absolute inset-0 z-10\" data-show=\"$viewingHistory\" data-signals.ifmissing='{\"historyIdx\": -1, \"viewingHistory\": false}' style=\"display:none\"><div id=\"history-board-content\" class=\"w-full h-full\"></div></div></section>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -136,7 +144,7 @@ func PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) tem
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -144,7 +152,7 @@ func PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) tem
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div><div class=\"w-[min(100%,calc(100vh-16rem),540px)] rounded-sm overflow-hidden shadow-sm\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div><div class=\"w-[min(100%,calc(100vh-16rem),540px)] rounded-sm overflow-hidden shadow-sm\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -152,7 +160,7 @@ func PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) tem
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -167,45 +175,49 @@ func PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) tem
 }
 
 type playSignals struct {
-	SelectedSquare  int    `json:"selectedSquare"`
-	SideToMove      int    `json:"sideToMove"`
-	PossibleMoves   []int  `json:"possibleMoves"`
-	Promotion       bool   `json:"promotion"`
-	PromotedSquare  int    `json:"promotedSquare"`
-	PromotionPiece  int    `json:"promotionPiece"`
-	GameState       int    `json:"gameState"`
-	GameStateText   string `json:"gameStateText"`
-	IsCheck         bool   `json:"isCheck"`
-	Winner          int    `json:"winner"`
-	Flipped         bool   `json:"flipped"`
-	Role            string `json:"role"`
-	WhiteOnline     bool   `json:"whiteOnline"`
-	BlackOnline     bool   `json:"blackOnline"`
-	ClockUnlocked   bool   `json:"clockUnlocked"`
-	ClaimVictory    bool   `json:"claimVictory"`
-	RematchProposed bool   `json:"rematchProposed"`
+	SelectedSquare     int    `json:"selectedSquare"`
+	SideToMove         int    `json:"sideToMove"`
+	PossibleMoves      []int  `json:"possibleMoves"`
+	Promotion          bool   `json:"promotion"`
+	PromotedSquare     int    `json:"promotedSquare"`
+	PromotionPiece     int    `json:"promotionPiece"`
+	GameState          int    `json:"gameState"`
+	GameStateText      string `json:"gameStateText"`
+	IsCheck            bool   `json:"isCheck"`
+	Winner             int    `json:"winner"`
+	Flipped            bool   `json:"flipped"`
+	Role               string `json:"role"`
+	WhiteOnline        bool   `json:"whiteOnline"`
+	BlackOnline        bool   `json:"blackOnline"`
+	ClockUnlocked      bool   `json:"clockUnlocked"`
+	ClaimVictory       bool   `json:"claimVictory"`
+	RematchProposed    bool   `json:"rematchProposed"`
+	RematchPending     bool   `json:"rematchPending"`
+	RematchSecondsLeft int    `json:"rematchSecondsLeft"`
 }
 
 func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 	base := ui_store.ChessBoardSignalsFromGame(g)
 	return &playSignals{
-		SelectedSquare:  int(base.SelectedSquare),
-		SideToMove:      int(base.SideToMove),
-		PossibleMoves:   base.PossibleMoves,
-		Promotion:       base.Promotion,
-		PromotedSquare:  int(base.PromotedSquare),
-		PromotionPiece:  int(base.PromotionPiece),
-		GameState:       int(base.GameState),
-		GameStateText:   base.GameStateText,
-		IsCheck:         base.IsCheck,
-		Winner:          int(base.Winner),
-		Flipped:         flipped,
-		Role:            role,
-		WhiteOnline:     false,
-		BlackOnline:     false,
-		ClockUnlocked:   g.PlayMeta != nil && g.PlayMeta.IsStarted(),
-		ClaimVictory:    false,
-		RematchProposed: false,
+		SelectedSquare:     int(base.SelectedSquare),
+		SideToMove:         int(base.SideToMove),
+		PossibleMoves:      base.PossibleMoves,
+		Promotion:          base.Promotion,
+		PromotedSquare:     int(base.PromotedSquare),
+		PromotionPiece:     int(base.PromotionPiece),
+		GameState:          int(base.GameState),
+		GameStateText:      base.GameStateText,
+		IsCheck:            base.IsCheck,
+		Winner:             int(base.Winner),
+		Flipped:            flipped,
+		Role:               role,
+		WhiteOnline:        false,
+		BlackOnline:        false,
+		ClockUnlocked:      g.PlayMeta != nil && g.PlayMeta.IsStarted(),
+		ClaimVictory:       false,
+		RematchProposed:    false,
+		RematchPending:     false,
+		RematchSecondsLeft: 0,
 	}
 }
 

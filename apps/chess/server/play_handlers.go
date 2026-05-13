@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -9,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +20,7 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/game"
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
 	"github.com/lordsonvimal/synergy/apps/chess/store"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/components"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/pages"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 	"github.com/starfederation/datastar-go/datastar"
@@ -282,6 +285,16 @@ func claimParticipant(c *gin.Context, g *game.Game, participantID, role string) 
 }
 
 // PlayEventsHandler handles GET /play/:gameID/events.
+//
+// Two concurrent SSE connections share this endpoint per browser tab:
+//   - Datastar @get (data-init in playgame.templ): sends ?datastar=… query param,
+//     only expects Datastar-format events (event: datastar-patch-*).
+//   - Native EventSource (initClock.js): no query param, only expects plain JSON
+//     events (data: {"type":"clock_tick",…}).
+//
+// Mixing both event formats on the same connection causes Datastar's SSE parser
+// to throw "Error in input stream", drop the connection, and miss board updates.
+// We detect which client type each connection is and filter accordingly.
 func PlayEventsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	repo, ok := store.GetRepoFromContext(ctx)
@@ -301,6 +314,10 @@ func PlayEventsHandler(c *gin.Context) {
 	if claims, err := GetPlaySession(c.Request); err == nil && claims.GameID == gameID {
 		role = claims.Role
 	}
+
+	// Datastar @get requests always include ?datastar=… (even if empty store sends "{}").
+	// Native EventSource from initClock.js does not include this param.
+	isDatastar := c.Query("datastar") != ""
 
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
@@ -326,13 +343,21 @@ func PlayEventsHandler(c *gin.Context) {
 		g.Hub.BroadcastEvent(game.ClockUnlockedEvent{Type: "clock_unlocked"})
 	}
 
-	// Send current online status to this subscriber only.
-	whiteOnline, blackOnline := g.PlayMeta.OnlineStatus()
-	if raw := sseBytes(game.OnlineStatusEvent{
-		Type: "online_status", WhiteOnline: whiteOnline, BlackOnline: blackOnline,
-	}); raw != nil {
-		c.Writer.Write(raw)
-		c.Writer.Flush()
+	// Send current online status only to the EventSource connection (plain JSON).
+	// Datastar connections don't handle this event type and would error on it.
+	if !isDatastar {
+		whiteOnline, blackOnline := g.PlayMeta.OnlineStatus()
+		if raw := sseBytes(game.OnlineStatusEvent{
+			Type: "online_status", WhiteOnline: whiteOnline, BlackOnline: blackOnline,
+		}); raw != nil {
+			c.Writer.Write(raw)
+			c.Writer.Flush()
+		}
+	} else {
+		// Sync current board state to the Datastar connection on every connect/reconnect.
+		// On initial load this is a no-op (board is already in the page HTML); on reconnect
+		// it recovers any move that was broadcast while the connection was down.
+		syncDatastarBoard(ctx, c, g)
 	}
 
 	for {
@@ -342,6 +367,12 @@ func PlayEventsHandler(c *gin.Context) {
 		case msg, open := <-ch:
 			if !open {
 				return
+			}
+			// Datastar events start with "event: datastar-…"; plain JSON starts with "data: ".
+			// Route each message to the appropriate connection type only.
+			isDsMsg := bytes.HasPrefix(msg, []byte("event:"))
+			if isDatastar != isDsMsg {
+				continue
 			}
 			c.Writer.Write(msg)
 			c.Writer.Flush()
@@ -474,6 +505,15 @@ func ProposeRematch(c *gin.Context) {
 	g.Hub.BroadcastEvent(game.RematchProposedEvent{
 		Type: "rematch_proposed", ProposedBy: claims.Role,
 	})
+
+	// The watchdog exits when the game ends, so expire the rematch from a dedicated goroutine.
+	go func() {
+		time.Sleep(30 * time.Second)
+		if g.PlayMeta.ClearRematchIfPendingBy(proposerColor) {
+			g.Hub.BroadcastEvent(game.RematchExpiredEvent{Type: "rematch_expired"})
+		}
+	}()
+
 	_ = ctx
 	c.Status(http.StatusNoContent)
 }
@@ -829,4 +869,26 @@ func applySquareSelection(c *gin.Context, g *game.Game, square uint8) {
 	if err := broadcastSignals(c, signals); err != nil {
 		logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast selection")
 	}
+}
+
+// syncDatastarBoard pushes the current board state to a Datastar SSE connection.
+// Called on every new Datastar connection so reconnects recover any missed move.
+func syncDatastarBoard(ctx context.Context, c *gin.Context, g *game.Game) {
+	var all []byte
+
+	buf := new(strings.Builder)
+	components.RenderChessBoard(g, "/play").Render(ctx, buf)
+	all = append(all, datastarPatchElementsFrame(buf.String())...)
+
+	buf.Reset()
+	components.MoveNotationPanel(g.ID, g.History).Render(ctx, buf)
+	all = append(all, datastarPatchElementsFrame(buf.String())...)
+
+	signals := ui_store.ChessBoardSignalsFromGame(g)
+	if b, err := json.Marshal(signals); err == nil {
+		all = append(all, datastarPatchSignalsFrame(b)...)
+	}
+
+	c.Writer.Write(all)
+	c.Writer.Flush()
 }

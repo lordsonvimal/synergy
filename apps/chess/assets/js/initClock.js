@@ -1,6 +1,35 @@
 import { clocks, initClockSync, getClockOffset } from "./sync.js"
 import { mergePatch } from "/assets/datastar.js"
 
+const REMATCH_TIMEOUT_S = 30
+let rematchSecondsLeft = 0
+let rematchTimerInterval = null
+
+// Read the player's role from the initial data-signals JSON (set once at page load).
+const playerRole = (() => {
+  try {
+    return JSON.parse(document.querySelector('[data-signals]').getAttribute('data-signals')).role ?? ''
+  } catch { return '' }
+})()
+
+function clearRematchTimer() {
+  if (rematchTimerInterval !== null) {
+    clearInterval(rematchTimerInterval)
+    rematchTimerInterval = null
+  }
+}
+
+function startRematchTimer() {
+  clearRematchTimer()
+  rematchSecondsLeft = REMATCH_TIMEOUT_S
+  mergePatch({ rematchSecondsLeft })
+  rematchTimerInterval = setInterval(() => {
+    rematchSecondsLeft = Math.max(0, rematchSecondsLeft - 1)
+    mergePatch({ rematchSecondsLeft })
+    if (rematchSecondsLeft <= 0) clearRematchTimer()
+  }, 1000)
+}
+
 // Works for both /game/<id> and /play/<id> routes.
 const parts = location.pathname.split("/")
 const routePrefix = parts[1]  // "game" | "play"
@@ -72,10 +101,17 @@ if (gameID) {
         break
 
       case "rematch_proposed":
-        mergePatch({ rematchProposed: true })
+        startRematchTimer()
+        // Only the recipient sees the accept/decline prompt; proposer sees waiting state.
+        if (msg.proposed_by === playerRole) {
+          mergePatch({ rematchPending: true })
+        } else {
+          mergePatch({ rematchProposed: true })
+        }
         break
 
       case "rematch_accepted":
+        clearRematchTimer()
         es.close()
         // Proposer navigates to their token URL — server can only set the
         // accepter's cookie via HTTP response, not over SSE.
@@ -86,7 +122,8 @@ if (gameID) {
 
       case "rematch_declined":
       case "rematch_expired":
-        mergePatch({ rematchProposed: false })
+        clearRematchTimer()
+        mergePatch({ rematchProposed: false, rematchPending: false, rematchSecondsLeft: 0 })
         break
     }
   })

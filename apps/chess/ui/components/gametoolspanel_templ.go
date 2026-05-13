@@ -63,7 +63,7 @@ func GameToolsPanel(gameID, role, csrfToken string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" data-show=\"$gameState !== 0 && !$rematchProposed\" style=\"display:none\" class=\"px-3 py-1.5 text-xs font-medium border border-edge text-ink rounded-md hover:bg-muted transition cursor-pointer\">Rematch</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" data-show=\"$gameState !== 0 && !$rematchProposed && !$rematchPending\" style=\"display:none\" class=\"px-3 py-1.5 text-xs font-medium border border-edge text-ink rounded-md hover:bg-muted transition cursor-pointer\">Rematch</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

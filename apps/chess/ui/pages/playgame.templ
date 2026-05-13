@@ -33,7 +33,16 @@ templ PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) {
 				</div>
 			}
 
-			<!-- Rematch prompt — visible when opponent proposes a rematch -->
+			<!-- Rematch pending: shown to the player who proposed a rematch -->
+			<div
+				class="w-[min(100%,calc(100vh-16rem),540px)]"
+				data-show="$rematchPending"
+				style="display:none"
+			>
+				@components.RematchPending(g.ID, csrfToken)
+			</div>
+
+			<!-- Rematch prompt — visible to the player who received a rematch proposal -->
 			<div
 				class="w-[min(100%,calc(100vh-16rem),540px)]"
 				data-show="$rematchProposed"
@@ -85,8 +94,10 @@ type playSignals struct {
 	WhiteOnline    bool   `json:"whiteOnline"`
 	BlackOnline    bool   `json:"blackOnline"`
 	ClockUnlocked  bool   `json:"clockUnlocked"`
-	ClaimVictory   bool   `json:"claimVictory"`
-	RematchProposed bool  `json:"rematchProposed"`
+	ClaimVictory       bool   `json:"claimVictory"`
+	RematchProposed    bool   `json:"rematchProposed"`
+	RematchPending     bool   `json:"rematchPending"`
+	RematchSecondsLeft int    `json:"rematchSecondsLeft"`
 }
 
 func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
@@ -107,7 +118,9 @@ func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 		WhiteOnline:     false,
 		BlackOnline:     false,
 		ClockUnlocked:   g.PlayMeta != nil && g.PlayMeta.IsStarted(),
-		ClaimVictory:    false,
-		RematchProposed: false,
+		ClaimVictory:       false,
+		RematchProposed:    false,
+		RematchPending:     false,
+		RematchSecondsLeft: 0,
 	}
 }

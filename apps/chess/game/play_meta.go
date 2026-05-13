@@ -194,3 +194,16 @@ func (m *PlayMeta) ClearRematch() {
 	m.RematchProposedAt = nil
 	m.mu.Unlock()
 }
+
+// ClearRematchIfPendingBy clears the proposal only if the current proposer matches color.
+// Returns true if cleared; false if no proposal or proposer differs (already accepted/declined).
+func (m *PlayMeta) ClearRematchIfPendingBy(color engine.Color) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.RematchProposedBy != color {
+		return false
+	}
+	m.RematchProposedBy = engine.NoColor
+	m.RematchProposedAt = nil
+	return true
+}
