@@ -22,7 +22,6 @@ import (
 
 func ShowGameModes(c *gin.Context) {
 	ctx := c.Request.Context()
-	modes := game.ListGameModes()
 	errMsg := gameErrorMessage(c.Query("error"))
 
 	var existingGameID, existingGameRole string
@@ -35,7 +34,14 @@ func ShowGameModes(c *gin.Context) {
 		}
 	}
 
-	Render(c, http.StatusOK, pages.GameModesPage(modes, CSRFToken(c), errMsg, existingGameID, existingGameRole))
+	Render(c, http.StatusOK, pages.GameModesPage(
+		game.ListOnlineModeGroups(),
+		game.UnlimitedMode(),
+		CSRFToken(c),
+		errMsg,
+		existingGameID,
+		existingGameRole,
+	))
 }
 
 func ShowSolo(c *gin.Context) {

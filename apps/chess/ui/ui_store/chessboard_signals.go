@@ -13,9 +13,10 @@ type ChessBoardSignals struct {
 	PromotedSquare uint8          `json:"promotedSquare"`
 	PromotionPiece engine.Piece   `json:"promotionPiece"`
 	GameState      game.GameState `json:"gameState"`
-	GameStateText  string         `json:"gameStateText"` // <- new
+	GameStateText  string         `json:"gameStateText"`
 	IsCheck        bool           `json:"isCheck"`
-	Winner         engine.Color   `json:"winner"` // nil if game ongoing / draw
+	Winner         engine.Color   `json:"winner"`
+	Timed          bool           `json:"timed"`
 }
 
 func NewChessBoardSignals() *ChessBoardSignals {
@@ -30,6 +31,7 @@ func NewChessBoardSignals() *ChessBoardSignals {
 		GameStateText:  "Ongoing",
 		IsCheck:        false,
 		Winner:         engine.NoColor,
+		Timed:          true,
 	}
 }
 
@@ -64,6 +66,7 @@ func (s *ChessBoardSignals) ClearPromotion() {
 }
 
 func (s *ChessBoardSignals) UpdateFromGame(g *game.Game) {
+	s.Timed = g.Timed
 	s.SideToMove = g.Board.SideToMove
 
 	// Update game state

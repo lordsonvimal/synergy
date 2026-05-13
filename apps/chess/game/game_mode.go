@@ -10,6 +10,14 @@ type GameMode struct {
 	TimeNs    int64
 	Increment int64
 	Variant   string
+	Category  string // "blitz", "rapid", "classical", "unlimited"
+	Timed     bool
+}
+
+type GameModeGroup struct {
+	Category string
+	Label    string
+	Modes    []GameMode
 }
 
 var (
@@ -21,30 +29,52 @@ func init() {
 	gameModeMap = make(map[string]GameMode)
 
 	gameModes = []GameMode{
-		{
-			Name:      "Standard 5+2",
-			TimeNs:    5 * 60 * 1_000_000_000,
-			Increment: 2 * 1_000_000_000,
-			Variant:   "Standard",
-		},
-		{
-			Name:      "Blitz 3+0",
-			TimeNs:    3 * 60 * 1_000_000_000,
-			Increment: 0,
-			Variant:   "Standard",
-		},
-		{
-			Name:      "Rapid 10+5",
-			TimeNs:    10 * 60 * 1_000_000_000,
-			Increment: 5 * 1_000_000_000,
-			Variant:   "Standard",
-		},
+		// Blitz
+		{Name: "Blitz 3+0", TimeNs: 3 * 60 * ns, Increment: 0, Variant: "Standard", Category: "blitz", Timed: true},
+		{Name: "Blitz 3+1", TimeNs: 3 * 60 * ns, Increment: 1 * ns, Variant: "Standard", Category: "blitz", Timed: true},
+		{Name: "Blitz 5+0", TimeNs: 5 * 60 * ns, Increment: 0, Variant: "Standard", Category: "blitz", Timed: true},
+		{Name: "Blitz 5+2", TimeNs: 5 * 60 * ns, Increment: 2 * ns, Variant: "Standard", Category: "blitz", Timed: true},
+		// Rapid
+		{Name: "Rapid 10+0", TimeNs: 10 * 60 * ns, Increment: 0, Variant: "Standard", Category: "rapid", Timed: true},
+		{Name: "Rapid 10+5", TimeNs: 10 * 60 * ns, Increment: 5 * ns, Variant: "Standard", Category: "rapid", Timed: true},
+		// Classical
+		{Name: "Classical 30+0", TimeNs: 30 * 60 * ns, Increment: 0, Variant: "Standard", Category: "classical", Timed: true},
+		{Name: "Classical 30+5", TimeNs: 30 * 60 * ns, Increment: 5 * ns, Variant: "Standard", Category: "classical", Timed: true},
+		{Name: "Classical 60+0", TimeNs: 60 * 60 * ns, Increment: 0, Variant: "Standard", Category: "classical", Timed: true},
+		{Name: "Classical 60+10", TimeNs: 60 * 60 * ns, Increment: 10 * ns, Variant: "Standard", Category: "classical", Timed: true},
 	}
 
 	for _, gm := range gameModes {
-		key := normalizeModeKey(gm.Name)
-		gameModeMap[key] = gm
+		gameModeMap[normalizeModeKey(gm.Name)] = gm
 	}
+
+	u := UnlimitedMode()
+	gameModeMap[normalizeModeKey(u.Name)] = u
+}
+
+const ns = int64(1_000_000_000)
+
+// UnlimitedMode returns the no-clock mode used for solo and computer play.
+func UnlimitedMode() GameMode {
+	return GameMode{Name: "Unlimited", TimeNs: 0, Increment: 0, Variant: "Standard", Category: "unlimited", Timed: false}
+}
+
+// ListOnlineModeGroups returns the online modes grouped by category in display order.
+func ListOnlineModeGroups() []GameModeGroup {
+	groups := []GameModeGroup{
+		{Category: "blitz", Label: "Blitz"},
+		{Category: "rapid", Label: "Rapid"},
+		{Category: "classical", Label: "Classical"},
+	}
+	for _, gm := range gameModes {
+		for i := range groups {
+			if groups[i].Category == gm.Category {
+				groups[i].Modes = append(groups[i].Modes, gm)
+				break
+			}
+		}
+	}
+	return groups
 }
 
 // --------------------------
@@ -62,7 +92,6 @@ func FindGameModeByName(selection string) (GameMode, error) {
 
 // ListGameModes returns all available modes (for UI)
 func ListGameModes() []GameMode {
-	// return a copy to prevent mutation
 	out := make([]GameMode, len(gameModes))
 	copy(out, gameModes)
 	return out

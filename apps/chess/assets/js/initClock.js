@@ -35,22 +35,38 @@ const parts = location.pathname.split("/")
 const routePrefix = parts[1]  // "solo" | "play"
 const gameID = parts[2]
 
-if (gameID && clocks.white.el && clocks.black.el) {
-  clocks.white.el.textContent = "--"
-  clocks.black.el.textContent = "--"
+const isTimed = (() => {
+  try {
+    const sig = JSON.parse(document.querySelector('[data-signals]').getAttribute('data-signals'))
+    return sig.timed !== false
+  } catch { return true }
+})()
 
-  const raf = () => {
-    clocks.white.tick()
-    clocks.black.tick()
-    requestAnimationFrame(raf)
+if (gameID && clocks.white.el && clocks.black.el) {
+  if (!isTimed) {
+    for (const el of [clocks.white.el, clocks.black.el]) {
+      el.textContent = "∞"
+      el.style.fontSize = "1.25rem"
+      el.style.fontFamily = "inherit"
+    }
+  } else {
+    clocks.white.el.textContent = "--"
+    clocks.black.el.textContent = "--"
+
+    const raf = () => {
+      clocks.white.tick()
+      clocks.black.tick()
+      requestAnimationFrame(raf)
+    }
+    raf()
   }
-  raf()
 }
 
 if (gameID) {
   initClockSync(`/${routePrefix}/${gameID}/events`, (msg, es) => {
     switch (msg.type) {
       case "clock_tick": {
+        if (!isTimed) break
         const offset = getClockOffset()
         clocks.white.sync(
           { remaining_ns: msg.white_remaining_ns, server_ts_ns: msg.server_ts_ns, running: msg.white_running },

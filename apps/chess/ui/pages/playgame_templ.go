@@ -190,6 +190,7 @@ type playSignals struct {
 	WhiteOnline        bool   `json:"whiteOnline"`
 	BlackOnline        bool   `json:"blackOnline"`
 	ClockUnlocked      bool   `json:"clockUnlocked"`
+	Timed              bool   `json:"timed"`
 	ClaimVictory       bool   `json:"claimVictory"`
 	RematchProposed    bool   `json:"rematchProposed"`
 	RematchPending     bool   `json:"rematchPending"`
@@ -214,6 +215,7 @@ func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 		WhiteOnline:        false,
 		BlackOnline:        false,
 		ClockUnlocked:      g.PlayMeta != nil && g.PlayMeta.IsStarted(),
+		Timed:              base.Timed,
 		ClaimVictory:       false,
 		RematchProposed:    false,
 		RematchPending:     false,

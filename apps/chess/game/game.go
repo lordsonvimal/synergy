@@ -49,6 +49,7 @@ type Game struct {
 	State     GameState
 	Winner    engine.Color // valid after game over
 	PlayMeta  *PlayMeta    // nil for /game/* solo flow
+	Timed     bool         // false = no clock, watchdog skips flag checks
 
 	mu             sync.RWMutex
 	legalMoveCache map[engine.Color]bool // cache per side
@@ -70,10 +71,13 @@ func NewGame(mode *GameMode) *Game {
 		Seq:     0,
 		State:   GameOngoing,
 		Winner:  engine.NoColor,
+		Timed:   mode.Timed,
 		stopCh:  make(chan struct{}),
 	}
 
-	g.startWatchdog()
+	if mode.Timed {
+		g.startWatchdog()
+	}
 	return g
 }
 
@@ -94,6 +98,7 @@ func NewPlayGame(mode *GameMode, meta *PlayMeta) *Game {
 		State:    GameOngoing,
 		Winner:   engine.NoColor,
 		PlayMeta: meta,
+		Timed:    mode.Timed,
 		stopCh:   make(chan struct{}),
 	}
 	g.startWatchdog()
@@ -325,7 +330,7 @@ func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
 
 	// Push an immediate clock tick so the client switches sides without
 	// waiting up to 1s for the next watchdog broadcast.
-	if g.State == GameOngoing {
+	if g.Timed && g.State == GameOngoing {
 		nowNs := monoNow()
 		evt := ClockTickEvent{
 			Type:             "clock_tick",

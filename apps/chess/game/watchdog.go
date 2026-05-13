@@ -118,7 +118,7 @@ func (g *Game) startWatchdog() {
 				blackRem := g.Clock.RemainingAt(1, nowNs)
 
 				// Flag fall check — authoritative.
-				if activeClock.Running && (whiteRem <= 0 || blackRem <= 0) {
+				if g.Timed && activeClock.Running && (whiteRem <= 0 || blackRem <= 0) {
 					g.State = GameClockFlagged
 					if whiteRem <= 0 {
 						whiteRem = 0

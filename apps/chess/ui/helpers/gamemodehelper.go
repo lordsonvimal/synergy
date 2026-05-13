@@ -16,6 +16,13 @@ func FormatInc(ns int64) string {
 	return fmt.Sprintf("%ds", secs)
 }
 
+// FormatTimeControl returns the compact "3+0" display label for a time control.
+func FormatTimeControl(timeNs, incNs int64) string {
+	mins := timeNs / 1_000_000_000 / 60
+	secs := incNs / 1_000_000_000
+	return fmt.Sprintf("%d+%d", mins, secs)
+}
+
 func SquareName(sq uint8) string {
 	return fmt.Sprintf("%c%d", 'a'+sq%8, sq/8+1)
 }
