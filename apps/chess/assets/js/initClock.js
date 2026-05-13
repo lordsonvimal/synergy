@@ -32,7 +32,7 @@ function startRematchTimer() {
 
 // Works for both /game/<id> and /play/<id> routes.
 const parts = location.pathname.split("/")
-const routePrefix = parts[1]  // "game" | "play"
+const routePrefix = parts[1]  // "solo" | "play"
 const gameID = parts[2]
 
 if (gameID && clocks.white.el && clocks.black.el) {

@@ -84,7 +84,7 @@ func TestShowGameModesErrorQuery(t *testing.T) {
 
 func TestCreateGameRedirectsToGame(t *testing.T) {
 	r := newTestRouter(t)
-	req := postWithCSRF("/game", url.Values{"mode": {"Standard 5+2"}})
+	req := postWithCSRF("/solo", url.Values{"mode": {"Standard 5+2"}})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -92,14 +92,14 @@ func TestCreateGameRedirectsToGame(t *testing.T) {
 		t.Errorf("POST /game status: got %d, want %d (redirect)", w.Code, http.StatusSeeOther)
 	}
 	loc := w.Header().Get("Location")
-	if !strings.HasPrefix(loc, "/game/") {
-		t.Errorf("Location header should start with /game/, got %q", loc)
+	if !strings.HasPrefix(loc, "/solo/") {
+		t.Errorf("Location header should start with /solo/, got %q", loc)
 	}
 }
 
 func TestCreateGameInvalidModeRedirectsWithError(t *testing.T) {
 	r := newTestRouter(t)
-	req := postWithCSRF("/game", url.Values{"mode": {"not-a-real-mode"}})
+	req := postWithCSRF("/solo", url.Values{"mode": {"not-a-real-mode"}})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -116,7 +116,7 @@ func TestCreateGameInvalidModeRedirectsWithError(t *testing.T) {
 // createGameViaHTTP creates a game through the handler and returns its ID.
 func createGameViaHTTP(t *testing.T, r *gin.Engine) string {
 	t.Helper()
-	req := postWithCSRF("/game", url.Values{"mode": {"Standard 5+2"}})
+	req := postWithCSRF("/solo", url.Values{"mode": {"Standard 5+2"}})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -124,7 +124,7 @@ func createGameViaHTTP(t *testing.T, r *gin.Engine) string {
 		t.Fatalf("game creation failed: status %d", w.Code)
 	}
 	loc := w.Header().Get("Location")
-	// loc is /game/<uuid>
+	// loc is /solo/<uuid>
 	parts := strings.Split(loc, "/")
 	if len(parts) < 3 {
 		t.Fatalf("unexpected Location: %q", loc)
@@ -136,12 +136,12 @@ func TestShowGameReturns200(t *testing.T) {
 	r := newTestRouter(t)
 	gameID := createGameViaHTTP(t, r)
 
-	req := httptest.NewRequest(http.MethodGet, "/game/"+gameID, nil)
+	req := httptest.NewRequest(http.MethodGet, "/solo/"+gameID, nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Errorf("GET /game/:id status: got %d, want %d", w.Code, http.StatusOK)
+		t.Errorf("GET /solo/:id status: got %d, want %d", w.Code, http.StatusOK)
 	}
 }
 
@@ -149,7 +149,7 @@ func TestShowGameContainsChessboard(t *testing.T) {
 	r := newTestRouter(t)
 	gameID := createGameViaHTTP(t, r)
 
-	req := httptest.NewRequest(http.MethodGet, "/game/"+gameID, nil)
+	req := httptest.NewRequest(http.MethodGet, "/solo/"+gameID, nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -160,12 +160,12 @@ func TestShowGameContainsChessboard(t *testing.T) {
 
 func TestShowGameNotFoundRedirects(t *testing.T) {
 	r := newTestRouter(t)
-	req := httptest.NewRequest(http.MethodGet, "/game/does-not-exist", nil)
+	req := httptest.NewRequest(http.MethodGet, "/solo/does-not-exist", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusSeeOther {
-		t.Errorf("GET /game/nonexistent status: got %d, want redirect", w.Code)
+		t.Errorf("GET /solo/nonexistent status: got %d, want redirect", w.Code)
 	}
 	if !strings.Contains(w.Header().Get("Location"), "game_not_found") {
 		t.Errorf("redirect should include game_not_found, got %q", w.Header().Get("Location"))
@@ -181,26 +181,24 @@ func TestSelectSquareReturns200(t *testing.T) {
 	// Select square 12 (e2) — White's e-pawn starting square.
 	// Must include the _csrf token in the form body; the CSRF middleware rejects
 	// POST requests that have neither a matching form field nor a same-origin header.
-	req := postWithCSRF("/game/"+gameID+"/select/12", url.Values{})
+	req := postWithCSRF("/solo/"+gameID+"/select/12", url.Values{})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	// The handler either writes SSE signals (200) or returns immediately.
 	// We only check that it does not 5xx/4xx.
 	if w.Code >= http.StatusBadRequest {
-		t.Errorf("POST /game/:id/select/:sq status: got %d, want < 400", w.Code)
+		t.Errorf("POST /solo/:id/select/:sq status: got %d, want < 400", w.Code)
 	}
 }
 
-func TestSelectSquareInvalidGameReturns200(t *testing.T) {
+func TestSelectSquareInvalidGameReturns404(t *testing.T) {
 	r := newTestRouter(t)
-	// Selecting a square on a non-existent game must not panic.
-	req := postWithCSRF("/game/bad-id/select/12", url.Values{})
+	req := postWithCSRF("/solo/bad-id/select/12", url.Values{})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Handler returns silently (no game found), so status is 200.
-	if w.Code != http.StatusOK {
-		t.Errorf("SELECT on missing game: got %d, want %d", w.Code, http.StatusOK)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("SELECT on missing game: got %d, want %d", w.Code, http.StatusNotFound)
 	}
 }

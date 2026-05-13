@@ -5,7 +5,7 @@ import "github.com/lordsonvimal/synergy/apps/chess/ui/components"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/layouts"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 
-templ NewGamePage(g *game.Game) {
+templ SoloGamePage(g *game.Game) {
 	@layouts.Layout("ChessLeap", true) {
 		<script type="module" src="/assets/datastar.js"></script>
 		<script type="module" src="/assets/js/initClock.js"></script>
@@ -16,13 +16,11 @@ templ NewGamePage(g *game.Game) {
 			@components.GameStatusBanner()
 
 			<div class="w-[min(100%,calc(100vh-16rem),540px)] flex flex-col rounded-sm overflow-hidden shadow-2xl">
-				<!-- Player cards + board: order-first/order-last from flip only affects this group -->
 				<div class="flex flex-col">
 					@components.BlackPlayerCard()
 					<section class="relative w-full">
-						@components.RenderChessBoard(g, "/game")
-						@components.RenderPromotionOverlay(g, "/game")
-						<!-- History overlay: shown by DataStar when $viewingHistory is true -->
+						@components.RenderChessBoard(g, "/solo")
+						@components.RenderPromotionOverlay(g, "/solo")
 						<div
 							class="absolute inset-0 z-10"
 							data-show="$viewingHistory"
@@ -34,11 +32,9 @@ templ NewGamePage(g *game.Game) {
 					</section>
 					@components.WhitePlayerCard()
 				</div>
-				<!-- Notation panel: DataStar morphs this after each move -->
-				@components.MoveNotationPanel(g.ID, g.History)
+				@components.MoveNotationPanel("/solo", g.ID, g.History)
 			</div>
 
-			<!-- Tools panel: detached card below the board zone -->
 			<div class="w-[min(100%,calc(100vh-16rem),540px)] rounded-sm overflow-hidden shadow-sm">
 				@components.GameToolsPanel("", "", "")
 			</div>

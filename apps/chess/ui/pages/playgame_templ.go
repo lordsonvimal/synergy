@@ -148,7 +148,7 @@ func PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) tem
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.MoveNotationPanel(g.ID, g.History).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.MoveNotationPanel("/play", g.ID, g.History).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

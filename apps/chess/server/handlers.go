@@ -17,7 +17,6 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/store"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/components"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/pages"
-	"github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 	"github.com/starfederation/datastar-go/datastar"
 )
 
@@ -39,7 +38,7 @@ func ShowGameModes(c *gin.Context) {
 	Render(c, http.StatusOK, pages.GameModesPage(modes, CSRFToken(c), errMsg, existingGameID, existingGameRole))
 }
 
-func ShowGame(c *gin.Context) {
+func ShowSolo(c *gin.Context) {
 	ctx := c.Request.Context()
 	repo, ok := store.GetRepoFromContext(ctx)
 	if !ok {
@@ -51,7 +50,7 @@ func ShowGame(c *gin.Context) {
 	g, ok := repo.Get(gameID)
 	if !ok {
 		if dbRepo, dbOk := store.GetDBRepoFromContext(ctx); dbOk {
-			if restored, err := loadGameFromDB(ctx, dbRepo, gameID); err == nil {
+			if restored, err := loadSoloGameFromDB(ctx, dbRepo, gameID); err == nil {
 				repo.Add(restored)
 				g = restored
 				ok = true
@@ -63,13 +62,12 @@ func ShowGame(c *gin.Context) {
 		return
 	}
 
-	Render(c, http.StatusOK, pages.NewGamePage(g))
+	Render(c, http.StatusOK, pages.SoloGamePage(g))
 }
 
-func CreateGame(c *gin.Context) {
+func CreateSolo(c *gin.Context) {
 	ctx := c.Request.Context()
 	repo, ok := store.GetRepoFromContext(ctx)
-	logger.Info(ctx).Bool("repo found", ok).Msg("Handler: CreateGame")
 	if !ok {
 		c.Redirect(http.StatusSeeOther, "/?error=server_error")
 		return
@@ -85,31 +83,27 @@ func CreateGame(c *gin.Context) {
 	g := game.NewGame(&gm)
 	repo.Add(g)
 
-	// Wire up DB persistence if available.
 	if dbRepo, ok := store.GetDBRepoFromContext(ctx); ok {
-		persistGame(ctx, dbRepo, g, &gm)
+		persistSoloGame(ctx, dbRepo, g, &gm)
 	}
 
-	// PRG: redirect so reload does not trigger resubmission
-	c.Redirect(http.StatusSeeOther, "/game/"+g.ID)
+	c.Redirect(http.StatusSeeOther, "/solo/"+g.ID)
 }
 
-// persistGame creates the session + game rows and initialises the move batch.
-func persistGame(ctx context.Context, dbRepo db.Repository, g *game.Game, mode *game.GameMode) {
+func persistSoloGame(ctx context.Context, dbRepo db.Repository, g *game.Game, mode *game.GameMode) {
 	now := time.Now().UnixNano()
 	sessionID := uuid.New().String()
-
 	timeCtrlNs := mode.TimeNs
 	incNs := mode.Increment
 
 	if err := dbRepo.Sessions().Create(ctx, &db.Session{
 		ID:          sessionID,
-		SessionType: "play",
+		SessionType: "solo",
 		Status:      "active",
 		CreatedAt:   now,
 		StartedAt:   &now,
 	}); err != nil {
-		logger.Error(ctx).Err(err).Msg("persistGame: create session")
+		logger.Error(ctx).Err(err).Msg("persistSoloGame: create session")
 		return
 	}
 
@@ -122,148 +116,41 @@ func persistGame(ctx context.Context, dbRepo db.Repository, g *game.Game, mode *
 		Status:        "ongoing",
 		CreatedAt:     now,
 	}); err != nil {
-		logger.Error(ctx).Err(err).Msg("persistGame: create game")
+		logger.Error(ctx).Err(err).Msg("persistSoloGame: create game")
 		return
 	}
 
-	startEvent := &db.GameEvent{
+	if err := dbRepo.GameEvents().InsertBatch(ctx, []*db.GameEvent{{
 		GameID:     g.ID,
 		SessionID:  sessionID,
 		EventType:  "game_started",
 		OccurredAt: now,
-	}
-	if err := dbRepo.GameEvents().InsertBatch(ctx, []*db.GameEvent{startEvent}); err != nil {
-		logger.Error(ctx).Err(err).Msg("persistGame: game_started event")
+	}}); err != nil {
+		logger.Error(ctx).Err(err).Msg("persistSoloGame: game_started event")
 	}
 
-	g.InitBatch(
-		sessionID,
-		func(batchCtx context.Context, moves []game.PendingMove, events []game.PendingEvent) error {
-			dbMoves := make([]*db.Move, len(moves))
-			for i, m := range moves {
-				dbMoves[i] = &db.Move{
-					GameID:      m.GameID,
-					SessionID:   m.SessionID,
-					Seq:         m.Seq,
-					UCI:         m.UCI,
-					SAN:         m.SAN,
-					FEN:         m.FEN,
-					MoveNumber:  m.MoveNumber,
-					Color:       m.Color,
-					WRemNs:      m.WRemNs,
-					BRemNs:      m.BRemNs,
-					LagCompNs:   m.LagCompNs,
-					ThinkTimeNs: m.ThinkTimeNs,
-					PlayedAt:    m.PlayedAt,
-				}
-			}
-			dbEvents := make([]*db.GameEvent, len(events))
-			for i, e := range events {
-				dbEvents[i] = &db.GameEvent{
-					GameID:     e.GameID,
-					SessionID:  e.SessionID,
-					EventType:  e.EventType,
-					Payload:    e.Payload,
-					OccurredAt: e.OccurredAt,
-				}
-			}
-			if err := dbRepo.Moves().InsertBatch(batchCtx, dbMoves); err != nil {
-				return err
-			}
-			return dbRepo.GameEvents().InsertBatch(batchCtx, dbEvents)
-		},
-		func(batchCtx context.Context, status, winner string) error {
-			endedAt := time.Now().UnixNano()
-			var winnerPtr *string
-			if winner != "" {
-				winnerPtr = &winner
-			}
-			return dbRepo.Games().UpdateStatus(batchCtx, g.ID, status, winnerPtr, &endedAt)
-		},
-	)
+	initGameBatch(g, sessionID, dbRepo)
 }
 
-func SelectSquare(c *gin.Context) {
-	ctx := c.Request.Context()
-	repo, ok := store.GetRepoFromContext(ctx)
-	logger.Info(ctx).Bool("repo found", ok).Msg("Handler: SelectSquare")
+func SoloSelectSquare(c *gin.Context) {
+	repo, ok := store.GetRepoFromContext(c.Request.Context())
 	if !ok {
 		return
 	}
 
-	gameID, ok := c.Params.Get("gameID")
-	if !ok {
-		logger.Error(ctx).Str("gameID found", gameID).Msg("GameID")
-		return
-	}
-
-	squareParam, ok := c.Params.Get("square")
-	if !ok {
-		logger.Info(ctx).Str("square", squareParam).Msg("Invalid Square")
-		return
-	}
-
-	squareUInt64, err := strconv.ParseUint(squareParam, 10, 8)
+	squareUInt64, err := strconv.ParseUint(c.Param("square"), 10, 8)
 	if err != nil {
-		logger.Info(ctx).Err(err).Str("square", squareParam).Msg("Parsing Square")
+		c.Status(http.StatusBadRequest)
 		return
 	}
 
-	square := uint8(squareUInt64)
-
-	g, ok := repo.Get(gameID)
-	logger.Info(ctx).Bool("game found", ok).Uint8("square", square).Msg("Handler: SelectSquare - Get Game Square")
+	g, ok := repo.Get(c.Param("gameID"))
 	if !ok {
+		c.Status(http.StatusNotFound)
 		return
 	}
 
-	signals := ui_store.NewChessBoardSignals()
-	datastar.ReadSignals(c.Request, signals)
-
-	logger.Info(ctx).Bool("has selection", g.HasSelection()).Uint8("isTarget", square).Msg("Handler: Moving Piece")
-	if g.HasSelection() && g.IsTarget(square) {
-		move := engine.Move{From: g.GetSelectionFrom(), To: square, Promotion: engine.NoPiece}
-		promoteWithPiece := signals.Promotion && signals.PromotionPiece != engine.NoPiece
-
-		// Is the selected move a promotion?
-		if g.IsPromotionMove(move) && !promoteWithPiece {
-			signals.EnablePromotion(square)
-
-			err := broadcastSignals(c, signals)
-			if err != nil {
-				logger.Error(ctx).Err(err).Msg("Failed to broadcast promotion signal")
-			}
-			return
-		}
-
-		// Update move with promotion piece if already selected
-		if promoteWithPiece {
-			move.Promotion = signals.PromotionPiece
-		}
-		if g.ApplyMove(move, 0) {
-			signals.UpdateFromGame(g)
-			if promoteWithPiece {
-				signals.ClearPromotion()
-			}
-
-			err := broadcastBoard(c, g, signals)
-			if err != nil {
-				logger.Error(ctx).Err(err).Msg("Failed to broadcast board update")
-			}
-			return
-
-		} else {
-			logger.Info(ctx).Msg("Invalid move attempted")
-		}
-	}
-
-	logger.Info(ctx).Uint8("selecting square", square).Msg("Selecting Square")
-	g.SelectSquare(ctx, square)
-	signals.UpdateFromGame(g)
-	err = broadcastSignals(c, signals)
-	if err != nil {
-		logger.Error(ctx).Err(err).Msg("Failed to broadcast selection update")
-	}
+	applySquareSelection(c, g, uint8(squareUInt64))
 }
 
 // PingHandler returns the server's current Unix nanosecond timestamp.
@@ -272,9 +159,9 @@ func PingHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"server_ns": time.Now().UnixNano()})
 }
 
-// GameEventsHandler opens a persistent SSE stream for a game.
-// It delivers clock_tick events (1 Hz), board_update patches, and game_over events.
-func GameEventsHandler(c *gin.Context) {
+// SoloEventsHandler opens a persistent SSE stream for a solo game.
+// It delivers clock_tick, board_update, and game_over events via the hub.
+func SoloEventsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	repo, ok := store.GetRepoFromContext(ctx)
 	if !ok {
@@ -282,8 +169,7 @@ func GameEventsHandler(c *gin.Context) {
 		return
 	}
 
-	gameID := c.Param("gameID")
-	g, ok := repo.Get(gameID)
+	g, ok := repo.Get(c.Param("gameID"))
 	if !ok {
 		c.Status(http.StatusNotFound)
 		return
@@ -292,7 +178,7 @@ func GameEventsHandler(c *gin.Context) {
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
-	c.Header("X-Accel-Buffering", "no") // disable nginx buffering
+	c.Header("X-Accel-Buffering", "no")
 
 	ch := g.Hub.Subscribe()
 	defer g.Hub.Unsubscribe(ch)
@@ -305,7 +191,6 @@ func GameEventsHandler(c *gin.Context) {
 			if !open {
 				return
 			}
-			// Hub messages are pre-formatted SSE (named or unnamed events).
 			c.Writer.Write(msg)
 			c.Writer.Flush()
 		}
@@ -318,10 +203,8 @@ type historyNavSignals struct {
 	ViewingHistory bool `json:"viewingHistory"`
 }
 
-// BoardAtHistoryHandler handles GET /game/:gameID/board-at/:halfMoveIdx.
-// It renders the board position after the given 0-based half-move index and
-// patches both the history board content and the navigation signals.
-// The special value "live" returns to the live board.
+// BoardAtHistoryHandler handles GET /{solo|play}/:gameID/board-at/:halfMoveIdx.
+// Shared between solo and play routes — gameID lookup works for both.
 func BoardAtHistoryHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	repo, ok := store.GetRepoFromContext(ctx)
@@ -330,18 +213,15 @@ func BoardAtHistoryHandler(c *gin.Context) {
 		return
 	}
 
-	gameID := c.Param("gameID")
-	g, ok := repo.Get(gameID)
+	g, ok := repo.Get(c.Param("gameID"))
 	if !ok {
 		c.Status(http.StatusNotFound)
 		return
 	}
 
 	idxParam := c.Param("halfMoveIdx")
-
 	sse := datastar.NewSSE(c.Writer, c.Request)
 
-	// "live" is the sentinel value for returning to the live board.
 	if idxParam == "live" {
 		b, _ := json.Marshal(historyNavSignals{HistoryIdx: -1, ViewingHistory: false})
 		sse.PatchSignals(b)
@@ -353,9 +233,8 @@ func BoardAtHistoryHandler(c *gin.Context) {
 		c.Status(http.StatusBadRequest)
 		return
 	}
-	idx := int(idx64)
 
-	fen, found := g.HistoryFENAt(idx)
+	fen, found := g.HistoryFENAt(int(idx64))
 	if !found {
 		c.Status(http.StatusNotFound)
 		return
@@ -363,7 +242,7 @@ func BoardAtHistoryHandler(c *gin.Context) {
 
 	board, err := engine.BoardFromFENDisplay(fen)
 	if err != nil {
-		logger.Error(ctx).Err(err).Str("fen", fen).Msg("BoardAtHistoryHandler: FEN parse error")
+		logger.Error(ctx).Err(err).Str("fen", fen).Msg("BoardAtHistoryHandler: FEN parse")
 		c.Status(http.StatusInternalServerError)
 		return
 	}
@@ -372,14 +251,12 @@ func BoardAtHistoryHandler(c *gin.Context) {
 	components.RenderHistoryBoard(board).Render(ctx, buf)
 	sse.PatchElements(buf.String())
 
-	b, _ := json.Marshal(historyNavSignals{HistoryIdx: idx, ViewingHistory: true})
+	b, _ := json.Marshal(historyNavSignals{HistoryIdx: int(idx64), ViewingHistory: true})
 	sse.PatchSignals(b)
 }
 
-// NavigateHistoryHandler handles POST /game/:gameID/history/navigate.
-// It reads the current $historyIdx from the DataStar signal payload and the
-// ?direction query param (+1 or -1) to compute the next position, then
-// delegates to BoardAtHistoryHandler logic.
+// NavigateHistoryHandler handles POST /{solo|play}/:gameID/history/navigate.
+// Shared between solo and play routes.
 func NavigateHistoryHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	repo, ok := store.GetRepoFromContext(ctx)
@@ -388,8 +265,7 @@ func NavigateHistoryHandler(c *gin.Context) {
 		return
 	}
 
-	gameID := c.Param("gameID")
-	g, ok := repo.Get(gameID)
+	g, ok := repo.Get(c.Param("gameID"))
 	if !ok {
 		c.Status(http.StatusNotFound)
 		return
@@ -401,7 +277,6 @@ func NavigateHistoryHandler(c *gin.Context) {
 		return
 	}
 
-	// Read current signal state from the request body.
 	type navInput struct {
 		HistoryIdx     int  `json:"historyIdx"`
 		ViewingHistory bool `json:"viewingHistory"`
@@ -412,24 +287,15 @@ func NavigateHistoryHandler(c *gin.Context) {
 	total := g.HistoryLen()
 	sse := datastar.NewSSE(c.Writer, c.Request)
 
-	// Determine target index based on current state.
-	// historyIdx=-1 + viewingHistory=false → live
-	// historyIdx=-1 + viewingHistory=true  → initial board position (before any moves)
-	// historyIdx=N                         → position after half-move N
 	var targetIdx int
 	switch {
 	case !sig.ViewingHistory:
-		// At live the current position IS after half-move total-1, so going to
-		// total-1 would show the same board. Jump to total-2 so the board changes.
-		// When total==1 this yields -1, which the block below turns into the
-		// initial board position.
 		if dir == -1 && total > 0 {
 			targetIdx = total - 2
 		} else {
 			return
 		}
 	case sig.HistoryIdx == -1:
-		// At initial position: next goes to first half-move, prev is a no-op.
 		if dir == 1 {
 			if total == 1 {
 				targetIdx = total
@@ -447,18 +313,15 @@ func NavigateHistoryHandler(c *gin.Context) {
 		}
 	}
 
-	// Past the end → return to live.
 	if targetIdx >= total {
 		b, _ := json.Marshal(historyNavSignals{HistoryIdx: -1, ViewingHistory: false})
 		sse.PatchSignals(b)
 		return
 	}
 
-	// Before the start → show initial board position.
 	if targetIdx < 0 {
-		initBoard := engine.NewBoard()
 		buf := new(strings.Builder)
-		components.RenderHistoryBoard(initBoard).Render(ctx, buf)
+		components.RenderHistoryBoard(engine.NewBoard()).Render(ctx, buf)
 		sse.PatchElements(buf.String())
 		b, _ := json.Marshal(historyNavSignals{HistoryIdx: -1, ViewingHistory: true})
 		sse.PatchSignals(b)
@@ -473,7 +336,7 @@ func NavigateHistoryHandler(c *gin.Context) {
 
 	board, err := engine.BoardFromFENDisplay(fen)
 	if err != nil {
-		logger.Error(ctx).Err(err).Str("fen", fen).Msg("NavigateHistoryHandler: FEN parse error")
+		logger.Error(ctx).Err(err).Str("fen", fen).Msg("NavigateHistoryHandler: FEN parse")
 		c.Status(http.StatusInternalServerError)
 		return
 	}
@@ -486,12 +349,27 @@ func NavigateHistoryHandler(c *gin.Context) {
 	sse.PatchSignals(b)
 }
 
-func loadGameFromDB(ctx context.Context, dbRepo db.Repository, id string) (*game.Game, error) {
-	dbGame, err := dbRepo.Games().Get(ctx, id)
+// ── Shared DB helpers ────────────────────────────────────────────────────────
+
+// gameCore holds the fields common to both solo and play game restoration.
+type gameCore struct {
+	dbGame  *db.Game
+	board   *engine.Board
+	history []game.MoveRecord
+	clock   game.GameClock
+	state   game.GameState
+	winner  engine.Color
+	seq     uint64
+}
+
+// loadGameCore fetches a game and its moves from the DB and reconstructs the
+// shared fields used by both loadSoloGameFromDB and loadPlayGameFromDB.
+func loadGameCore(ctx context.Context, dbRepo db.Repository, gameID string) (*gameCore, error) {
+	dbGame, err := dbRepo.Games().Get(ctx, gameID)
 	if err != nil {
 		return nil, err
 	}
-	dbMoves, err := dbRepo.Moves().ListByGame(ctx, id)
+	dbMoves, err := dbRepo.Moves().ListByGame(ctx, gameID)
 	if err != nil {
 		return nil, err
 	}
@@ -543,12 +421,60 @@ func loadGameFromDB(ctx context.Context, dbRepo db.Repository, id string) (*game
 		seq = dbMoves[len(dbMoves)-1].Seq
 	}
 
-	clock := game.GameClock{
-		White: game.Clock{RemainingNs: wRem},
-		Black: game.Clock{RemainingNs: bRem},
-		IncNs: incNs,
+	return &gameCore{
+		dbGame:  dbGame,
+		board:   board,
+		history: history,
+		clock:   game.GameClock{White: game.Clock{RemainingNs: wRem}, Black: game.Clock{RemainingNs: bRem}, IncNs: incNs},
+		state:   state,
+		winner:  winner,
+		seq:     seq,
+	}, nil
+}
+
+func loadSoloGameFromDB(ctx context.Context, dbRepo db.Repository, id string) (*game.Game, error) {
+	core, err := loadGameCore(ctx, dbRepo, id)
+	if err != nil {
+		return nil, err
 	}
-	return game.NewRestoredGame(id, board, clock, history, seq, state, winner), nil
+	return game.NewRestoredGame(id, core.board, core.clock, core.history, core.seq, core.state, core.winner), nil
+}
+
+// initGameBatch wires up the DB flush callbacks shared by solo and play games.
+func initGameBatch(g *game.Game, sessionID string, dbRepo db.Repository) {
+	g.InitBatch(
+		sessionID,
+		func(batchCtx context.Context, moves []game.PendingMove, events []game.PendingEvent) error {
+			dbMoves := make([]*db.Move, len(moves))
+			for i, m := range moves {
+				dbMoves[i] = &db.Move{
+					GameID: m.GameID, SessionID: m.SessionID, Seq: m.Seq,
+					UCI: m.UCI, SAN: m.SAN, FEN: m.FEN, MoveNumber: m.MoveNumber,
+					Color: m.Color, WRemNs: m.WRemNs, BRemNs: m.BRemNs,
+					LagCompNs: m.LagCompNs, ThinkTimeNs: m.ThinkTimeNs, PlayedAt: m.PlayedAt,
+				}
+			}
+			dbEvents := make([]*db.GameEvent, len(events))
+			for i, e := range events {
+				dbEvents[i] = &db.GameEvent{
+					GameID: e.GameID, SessionID: e.SessionID,
+					EventType: e.EventType, Payload: e.Payload, OccurredAt: e.OccurredAt,
+				}
+			}
+			if err := dbRepo.Moves().InsertBatch(batchCtx, dbMoves); err != nil {
+				return err
+			}
+			return dbRepo.GameEvents().InsertBatch(batchCtx, dbEvents)
+		},
+		func(batchCtx context.Context, status, winner string) error {
+			endedAt := time.Now().UnixNano()
+			var winnerPtr *string
+			if winner != "" {
+				winnerPtr = &winner
+			}
+			return dbRepo.Games().UpdateStatus(batchCtx, g.ID, status, winnerPtr, &endedAt)
+		},
+	)
 }
 
 func dbStatusToState(s string) game.GameState {
@@ -576,7 +502,6 @@ func dbStatusToState(s string) game.GameState {
 	}
 }
 
-// gameErrorMessage maps error query params to user-readable messages.
 func gameErrorMessage(code string) string {
 	switch code {
 	case "invalid_mode":

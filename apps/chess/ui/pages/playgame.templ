@@ -68,7 +68,7 @@ templ PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) {
 					</section>
 					@components.WhitePlayerCard()
 				</div>
-				@components.MoveNotationPanel(g.ID, g.History)
+				@components.MoveNotationPanel("/play", g.ID, g.History)
 			</div>
 
 			<div class="w-[min(100%,calc(100vh-16rem),540px)] rounded-sm overflow-hidden shadow-sm">

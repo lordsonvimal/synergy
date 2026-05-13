@@ -131,7 +131,7 @@ templ GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exis
 					} else {
 						<div class="grid gap-4">
 							for i, mode := range modes {
-								<form method="POST" action="/game">
+								<form method="POST" action="/solo">
 									<input type="hidden" name="_csrf" value={ csrfToken }/>
 									<input type="hidden" name="mode" value={ mode.Name }/>
 									<button

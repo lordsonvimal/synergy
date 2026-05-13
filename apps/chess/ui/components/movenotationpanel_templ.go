@@ -17,7 +17,8 @@ import (
 
 // MoveNotationPanel shows one move pair at a time with prev/next nav controls.
 // DataStar morphs this entire element after each move via SSE.
-func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component {
+// routePrefix is "/solo" or "/play".
+func MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -47,7 +48,7 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf(`{'opacity-40 pointer-events-none': ($viewingHistory && $historyIdx <= -1) || (!$viewingHistory && %v)}`, noMoves))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 24, Col: 143}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 25, Col: 143}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -58,9 +59,9 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression("@post('/game/" + gameID + "/history/navigate?direction=-1')"))
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression("@post('" + routePrefix + "/" + gameID + "/history/navigate?direction=-1')"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 25, Col: 101}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 26, Col: 115}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -102,9 +103,9 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 					"{'bg-primary-subtle text-primary font-semibold': %s, 'text-ink': !(%s)}",
 					whiteActive, whiteActive,
 				)
-				whiteClick := fmt.Sprintf("@get('/game/%s/board-at/%d')", gameID, row.whiteHalfMoveIdx)
+				whiteClick := fmt.Sprintf("@get('"+routePrefix+"/%s/board-at/%d')", gameID, row.whiteHalfMoveIdx)
 				if whiteIsLatest {
-					whiteClick = fmt.Sprintf("@get('/game/%s/board-at/live')", gameID)
+					whiteClick = fmt.Sprintf("@get('"+routePrefix+"/%s/board-at/live')", gameID)
 				}
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"flex items-center gap-1.5\" data-show=\"")
 				if templ_7745c5c3_Err != nil {
@@ -113,7 +114,7 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(showExpr)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 76, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 77, Col: 27}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -126,7 +127,7 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(row.moveNumber))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 79, Col: 116}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 80, Col: 116}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -139,7 +140,7 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(whiteDataClass)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 82, Col: 35}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 83, Col: 35}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -152,7 +153,7 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(whiteClick))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 83, Col: 54}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 84, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -165,7 +166,7 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(row.white)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 84, Col: 19}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 85, Col: 19}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -184,9 +185,9 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 						"{'bg-primary-subtle text-primary font-semibold': %s, 'text-ink': !(%s)}",
 						blackActive, blackActive,
 					)
-					blackClick := fmt.Sprintf("@get('/game/%s/board-at/%d')", gameID, row.blackHalfMoveIdx)
+					blackClick := fmt.Sprintf("@get('"+routePrefix+"/%s/board-at/%d')", gameID, row.blackHalfMoveIdx)
 					if blackIsLatest {
-						blackClick = fmt.Sprintf("@get('/game/%s/board-at/live')", gameID)
+						blackClick = fmt.Sprintf("@get('"+routePrefix+"/%s/board-at/live')", gameID)
 					}
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<button class=\"text-sm font-mono px-2.5 py-1 rounded-sm hover:bg-muted transition-colors duration-100 cursor-pointer leading-none shrink-0\" data-class=\"")
 					if templ_7745c5c3_Err != nil {
@@ -195,7 +196,7 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(blackDataClass)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 102, Col: 36}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 103, Col: 36}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -208,7 +209,7 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 					var templ_7745c5c3_Var10 string
 					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(blackClick))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 103, Col: 55}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 104, Col: 55}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 					if templ_7745c5c3_Err != nil {
@@ -221,7 +222,7 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 					var templ_7745c5c3_Var11 string
 					templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(row.black)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 104, Col: 20}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 105, Col: 20}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 					if templ_7745c5c3_Err != nil {
@@ -248,9 +249,9 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var12 string
-		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression("@get('/game/" + gameID + "/board-at/live')"))
+		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression("@get('" + routePrefix + "/" + gameID + "/board-at/live')"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 119, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 120, Col: 98}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 		if templ_7745c5c3_Err != nil {
@@ -261,9 +262,9 @@ func MoveNotationPanel(gameID string, history []game.MoveRecord) templ.Component
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var13 string
-		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression("@post('/game/" + gameID + "/history/navigate?direction=1')"))
+		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression("@post('" + routePrefix + "/" + gameID + "/history/navigate?direction=1')"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 128, Col: 100}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 129, Col: 114}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {

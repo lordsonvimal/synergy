@@ -9,7 +9,8 @@ import (
 
 // MoveNotationPanel shows one move pair at a time with prev/next nav controls.
 // DataStar morphs this entire element after each move via SSE.
-templ MoveNotationPanel(gameID string, history []game.MoveRecord) {
+// routePrefix is "/solo" or "/play".
+templ MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) {
 	{{
 		rows := groupHistory(history)
 		noMoves := len(history) == 0
@@ -22,7 +23,7 @@ templ MoveNotationPanel(gameID string, history []game.MoveRecord) {
 				aria-label="Previous move"
 				class="shrink-0 p-1.5 rounded-sm text-ink-dim hover:text-ink hover:bg-muted transition-colors duration-150 cursor-pointer"
 				data-class={ fmt.Sprintf(`{'opacity-40 pointer-events-none': ($viewingHistory && $historyIdx <= -1) || (!$viewingHistory && %v)}`, noMoves) }
-				data-on:click={ templ.JSExpression("@post('/game/" + gameID + "/history/navigate?direction=-1')") }
+				data-on:click={ templ.JSExpression("@post('" + routePrefix + "/" + gameID + "/history/navigate?direction=-1')") }
 			>
 				<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<path d="M15 18l-6-6 6-6"></path>
@@ -66,9 +67,9 @@ templ MoveNotationPanel(gameID string, history []game.MoveRecord) {
 								"{'bg-primary-subtle text-primary font-semibold': %s, 'text-ink': !(%s)}",
 								whiteActive, whiteActive,
 							)
-							whiteClick := fmt.Sprintf("@get('/game/%s/board-at/%d')", gameID, row.whiteHalfMoveIdx)
+							whiteClick := fmt.Sprintf("@get('" + routePrefix + "/%s/board-at/%d')", gameID, row.whiteHalfMoveIdx)
 							if whiteIsLatest {
-								whiteClick = fmt.Sprintf("@get('/game/%s/board-at/live')", gameID)
+								whiteClick = fmt.Sprintf("@get('" + routePrefix + "/%s/board-at/live')", gameID)
 							}
 						}}
 						<div
@@ -92,9 +93,9 @@ templ MoveNotationPanel(gameID string, history []game.MoveRecord) {
 										"{'bg-primary-subtle text-primary font-semibold': %s, 'text-ink': !(%s)}",
 										blackActive, blackActive,
 									)
-									blackClick := fmt.Sprintf("@get('/game/%s/board-at/%d')", gameID, row.blackHalfMoveIdx)
+									blackClick := fmt.Sprintf("@get('" + routePrefix + "/%s/board-at/%d')", gameID, row.blackHalfMoveIdx)
 									if blackIsLatest {
-										blackClick = fmt.Sprintf("@get('/game/%s/board-at/live')", gameID)
+										blackClick = fmt.Sprintf("@get('" + routePrefix + "/%s/board-at/live')", gameID)
 									}
 								}}
 								<button
@@ -116,7 +117,7 @@ templ MoveNotationPanel(gameID string, history []game.MoveRecord) {
 				class="shrink-0 px-2 py-0.5 text-xs font-medium rounded-xs bg-accent-subtle text-accent border border-accent-200 hover:bg-accent hover:text-on-accent transition-colors duration-150 cursor-pointer whitespace-nowrap"
 				data-show="$viewingHistory"
 				style="display:none"
-				data-on:click={ templ.JSExpression("@get('/game/" + gameID + "/board-at/live')") }
+				data-on:click={ templ.JSExpression("@get('" + routePrefix + "/" + gameID + "/board-at/live')") }
 			>Go Live</button>
 
 			<!-- Next move button -->
@@ -125,7 +126,7 @@ templ MoveNotationPanel(gameID string, history []game.MoveRecord) {
 				aria-label="Next move"
 				class="shrink-0 p-1.5 rounded-sm text-ink-dim hover:text-ink hover:bg-muted transition-colors duration-150 cursor-pointer"
 				data-class="{'opacity-40 pointer-events-none': !$viewingHistory}"
-				data-on:click={ templ.JSExpression("@post('/game/" + gameID + "/history/navigate?direction=1')") }
+				data-on:click={ templ.JSExpression("@post('" + routePrefix + "/" + gameID + "/history/navigate?direction=1')") }
 			>
 				<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<path d="M9 18l6-6-6-6"></path>

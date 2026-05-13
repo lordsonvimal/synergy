@@ -8,7 +8,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lordsonvimal/synergy/apps/chess/engine"
 	"github.com/lordsonvimal/synergy/apps/chess/game"
+	"github.com/lordsonvimal/synergy/apps/chess/logger"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/components"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 	"github.com/starfederation/datastar-go/datastar"
@@ -27,7 +29,7 @@ func broadcastBoard(c *gin.Context, g *game.Game, signals *ui_store.ChessBoardSi
 	sse.PatchElements(buf.String())
 
 	buf.Reset()
-	components.MoveNotationPanel(g.ID, g.History).Render(ctx, buf)
+	components.MoveNotationPanel(routePrefix, g.ID, g.History).Render(ctx, buf)
 	sse.PatchElements(buf.String())
 
 	return broadcastSignals(c, signals)
@@ -48,7 +50,7 @@ func broadcastSignals(c *gin.Context, signals *ui_store.ChessBoardSignals) error
 
 // hubBroadcastBoard pushes board + notation + signals as DataStar SSE frames to
 // every hub subscriber. Called after a move is applied in play mode so the
-// opponent's board updates in real time via the /play/:id/board-stream endpoint.
+// opponent's board updates in real time via the /play/:id/events endpoint.
 func hubBroadcastBoard(ctx context.Context, g *game.Game, signals *ui_store.ChessBoardSignals) {
 	var all []byte
 
@@ -57,7 +59,7 @@ func hubBroadcastBoard(ctx context.Context, g *game.Game, signals *ui_store.Ches
 	all = append(all, datastarPatchElementsFrame(buf.String())...)
 
 	buf.Reset()
-	components.MoveNotationPanel(g.ID, g.History).Render(ctx, buf)
+	components.MoveNotationPanel("/play", g.ID, g.History).Render(ctx, buf)
 	all = append(all, datastarPatchElementsFrame(buf.String())...)
 
 	if b, err := json.Marshal(signals); err == nil {
@@ -67,12 +69,12 @@ func hubBroadcastBoard(ctx context.Context, g *game.Game, signals *ui_store.Ches
 	g.Hub.Broadcast(all)
 }
 
-// routePrefixFor returns "/play" for online games, "/game" for solo games.
+// routePrefixFor returns "/play" for online games, "/solo" for solo games.
 func routePrefixFor(g *game.Game) string {
 	if g.PlayMeta != nil {
 		return "/play"
 	}
-	return "/game"
+	return "/solo"
 }
 
 // datastarPatchElementsFrame formats an HTML string as a DataStar patch-elements SSE frame.
@@ -95,4 +97,70 @@ func datastarPatchSignalsFrame(b []byte) []byte {
 	}
 	buf.WriteByte('\n')
 	return buf.Bytes()
+}
+
+// applySquareSelection processes a square click for both solo and play modes.
+// Auth and turn enforcement are the caller's responsibility.
+func applySquareSelection(c *gin.Context, g *game.Game, square uint8) {
+	ctx := c.Request.Context()
+
+	signals := ui_store.NewChessBoardSignals()
+	datastar.ReadSignals(c.Request, signals)
+
+	if g.HasSelection() && g.IsTarget(square) {
+		move := engine.Move{From: g.GetSelectionFrom(), To: square, Promotion: engine.NoPiece}
+		promoteWithPiece := signals.Promotion && signals.PromotionPiece != engine.NoPiece
+
+		if g.IsPromotionMove(move) && !promoteWithPiece {
+			signals.EnablePromotion(square)
+			if err := broadcastSignals(c, signals); err != nil {
+				logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast promotion")
+			}
+			return
+		}
+		if promoteWithPiece {
+			move.Promotion = signals.PromotionPiece
+		}
+		if g.ApplyMove(move, 0) {
+			signals.UpdateFromGame(g)
+			if promoteWithPiece {
+				signals.ClearPromotion()
+			}
+			if err := broadcastBoard(c, g, signals); err != nil {
+				logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast board")
+			}
+			if g.PlayMeta != nil {
+				hubBroadcastBoard(ctx, g, signals)
+			}
+			return
+		}
+	}
+
+	g.SelectSquare(ctx, square)
+	signals.UpdateFromGame(g)
+	if err := broadcastSignals(c, signals); err != nil {
+		logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast selection")
+	}
+}
+
+// syncDatastarBoard pushes the current board state to a Datastar SSE connection.
+// Called on every new Datastar connection so reconnects recover any missed move.
+func syncDatastarBoard(ctx context.Context, c *gin.Context, g *game.Game) {
+	var all []byte
+
+	buf := new(strings.Builder)
+	components.RenderChessBoard(g, "/play").Render(ctx, buf)
+	all = append(all, datastarPatchElementsFrame(buf.String())...)
+
+	buf.Reset()
+	components.MoveNotationPanel("/play", g.ID, g.History).Render(ctx, buf)
+	all = append(all, datastarPatchElementsFrame(buf.String())...)
+
+	signals := ui_store.ChessBoardSignalsFromGame(g)
+	if b, err := json.Marshal(signals); err == nil {
+		all = append(all, datastarPatchSignalsFrame(b)...)
+	}
+
+	c.Writer.Write(all)
+	c.Writer.Flush()
 }

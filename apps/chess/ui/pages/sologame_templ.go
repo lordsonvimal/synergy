@@ -13,7 +13,7 @@ import "github.com/lordsonvimal/synergy/apps/chess/ui/components"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/layouts"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 
-func NewGamePage(g *game.Game) templ.Component {
+func SoloGamePage(g *game.Game) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -53,7 +53,7 @@ func NewGamePage(g *game.Game) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSONString(ui_store.ChessBoardSignalsFromGame(g)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/newgame.templ`, Line: 14, Col: 73}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/sologame.templ`, Line: 14, Col: 73}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -67,7 +67,7 @@ func NewGamePage(g *game.Game) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"w-[min(100%,calc(100vh-16rem),540px)] flex flex-col rounded-sm overflow-hidden shadow-2xl\"><!-- Player cards + board: order-first/order-last from flip only affects this group --><div class=\"flex flex-col\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"w-[min(100%,calc(100vh-16rem),540px)] flex flex-col rounded-sm overflow-hidden shadow-2xl\"><div class=\"flex flex-col\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -79,15 +79,15 @@ func NewGamePage(g *game.Game) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.RenderChessBoard(g, "/game").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.RenderChessBoard(g, "/solo").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.RenderPromotionOverlay(g, "/game").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.RenderPromotionOverlay(g, "/solo").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<!-- History overlay: shown by DataStar when $viewingHistory is true --><div class=\"absolute inset-0 z-10\" data-show=\"$viewingHistory\" data-signals.ifmissing='{\"historyIdx\": -1, \"viewingHistory\": false}' style=\"display:none\"><div id=\"history-board-content\" class=\"w-full h-full\"></div></div></section>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"absolute inset-0 z-10\" data-show=\"$viewingHistory\" data-signals.ifmissing='{\"historyIdx\": -1, \"viewingHistory\": false}' style=\"display:none\"><div id=\"history-board-content\" class=\"w-full h-full\"></div></div></section>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -95,15 +95,15 @@ func NewGamePage(g *game.Game) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><!-- Notation panel: DataStar morphs this after each move -->")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.MoveNotationPanel(g.ID, g.History).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.MoveNotationPanel("/solo", g.ID, g.History).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div><!-- Tools panel: detached card below the board zone --><div class=\"w-[min(100%,calc(100vh-16rem),540px)] rounded-sm overflow-hidden shadow-sm\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div><div class=\"w-[min(100%,calc(100vh-16rem),540px)] rounded-sm overflow-hidden shadow-sm\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,10 +19,7 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/game"
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
 	"github.com/lordsonvimal/synergy/apps/chess/store"
-	"github.com/lordsonvimal/synergy/apps/chess/ui/components"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/pages"
-	"github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
-	"github.com/starfederation/datastar-go/datastar"
 )
 
 // generateParticipantToken generates a cryptographically random 32-char hex token.
@@ -178,39 +174,7 @@ func persistPlayGame(
 		logger.Error(ctx).Err(err).Msg("persistPlayGame: game_created event")
 	}
 
-	g.InitBatch(
-		meta.SessionID,
-		func(batchCtx context.Context, moves []game.PendingMove, events []game.PendingEvent) error {
-			dbMoves := make([]*db.Move, len(moves))
-			for i, m := range moves {
-				dbMoves[i] = &db.Move{
-					GameID: m.GameID, SessionID: m.SessionID, Seq: m.Seq,
-					UCI: m.UCI, SAN: m.SAN, FEN: m.FEN, MoveNumber: m.MoveNumber,
-					Color: m.Color, WRemNs: m.WRemNs, BRemNs: m.BRemNs,
-					LagCompNs: m.LagCompNs, ThinkTimeNs: m.ThinkTimeNs, PlayedAt: m.PlayedAt,
-				}
-			}
-			dbEvents := make([]*db.GameEvent, len(events))
-			for i, e := range events {
-				dbEvents[i] = &db.GameEvent{
-					GameID: e.GameID, SessionID: e.SessionID,
-					EventType: e.EventType, Payload: e.Payload, OccurredAt: e.OccurredAt,
-				}
-			}
-			if err := dbRepo.Moves().InsertBatch(batchCtx, dbMoves); err != nil {
-				return err
-			}
-			return dbRepo.GameEvents().InsertBatch(batchCtx, dbEvents)
-		},
-		func(batchCtx context.Context, status, winner string) error {
-			endedAt := time.Now().UnixNano()
-			var winnerPtr *string
-			if winner != "" {
-				winnerPtr = &winner
-			}
-			return dbRepo.Games().UpdateStatus(batchCtx, g.ID, status, winnerPtr, &endedAt)
-		},
-	)
+	initGameBatch(g, meta.SessionID, dbRepo)
 }
 
 // ShowPlayGame handles GET /play/:gameID.
@@ -238,7 +202,7 @@ func ShowPlayGame(c *gin.Context) {
 		return
 	}
 	if g.PlayMeta == nil {
-		c.Redirect(http.StatusSeeOther, "/game/"+gameID)
+		c.Redirect(http.StatusSeeOther, "/solo/"+gameID)
 		return
 	}
 
@@ -687,89 +651,30 @@ var errNotPlayGame = errors.New("not a play game")
 
 // loadPlayGameFromDB restores an online play game from the database after a server restart.
 func loadPlayGameFromDB(ctx context.Context, dbRepo db.Repository, gameID string) (*game.Game, error) {
-	dbGame, err := dbRepo.Games().Get(ctx, gameID)
+	core, err := loadGameCore(ctx, dbRepo, gameID)
 	if err != nil {
 		return nil, err
 	}
-	if dbGame.WhiteParticipantID == nil || dbGame.BlackParticipantID == nil {
+	if core.dbGame.WhiteParticipantID == nil || core.dbGame.BlackParticipantID == nil {
 		return nil, errNotPlayGame
 	}
 
-	dbMoves, err := dbRepo.Moves().ListByGame(ctx, gameID)
+	participants, err := dbRepo.Participants().ListBySession(ctx, core.dbGame.SessionID)
 	if err != nil {
 		return nil, err
 	}
 
-	var board *engine.Board
-	if len(dbMoves) > 0 {
-		board, err = engine.BoardFromFEN(dbMoves[len(dbMoves)-1].FEN)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		board = engine.NewBoard()
+	var timeCtrlNs, restoredIncNs int64
+	if core.dbGame.TimeControlNs != nil {
+		timeCtrlNs = *core.dbGame.TimeControlNs
 	}
-
-	history := make([]game.MoveRecord, len(dbMoves))
-	for i, m := range dbMoves {
-		color := engine.White
-		if m.Color == "black" {
-			color = engine.Black
-		}
-		history[i] = game.MoveRecord{SAN: m.SAN, FEN: m.FEN, Color: color, MoveNumber: m.MoveNumber}
-	}
-
-	var wRem, bRem, incNs int64
-	if dbGame.TimeControlNs != nil {
-		wRem, bRem = *dbGame.TimeControlNs, *dbGame.TimeControlNs
-	}
-	if dbGame.IncrementNs != nil {
-		incNs = *dbGame.IncrementNs
-	}
-	if len(dbMoves) > 0 {
-		last := dbMoves[len(dbMoves)-1]
-		wRem, bRem = last.WRemNs, last.BRemNs
-	}
-
-	state := dbStatusToState(dbGame.Status)
-	winner := engine.NoColor
-	if dbGame.Winner != nil {
-		switch *dbGame.Winner {
-		case "white":
-			winner = engine.White
-		case "black":
-			winner = engine.Black
-		}
-	}
-
-	var seq uint64
-	if len(dbMoves) > 0 {
-		seq = dbMoves[len(dbMoves)-1].Seq
-	}
-
-	clock := game.GameClock{
-		White: game.Clock{RemainingNs: wRem},
-		Black: game.Clock{RemainingNs: bRem},
-		IncNs: incNs,
-	}
-
-	participants, err := dbRepo.Participants().ListBySession(ctx, dbGame.SessionID)
-	if err != nil {
-		return nil, err
-	}
-
-	var timeCtrlNs int64
-	if dbGame.TimeControlNs != nil {
-		timeCtrlNs = *dbGame.TimeControlNs
-	}
-	var restoredIncNs int64
-	if dbGame.IncrementNs != nil {
-		restoredIncNs = *dbGame.IncrementNs
+	if core.dbGame.IncrementNs != nil {
+		restoredIncNs = *core.dbGame.IncrementNs
 	}
 
 	meta := &game.PlayMeta{
-		SessionID:         dbGame.SessionID,
-		OriginalMode:      game.GameMode{TimeNs: timeCtrlNs, Increment: restoredIncNs, Variant: dbGame.Variant},
+		SessionID:         core.dbGame.SessionID,
+		OriginalMode:      game.GameMode{TimeNs: timeCtrlNs, Increment: restoredIncNs, Variant: core.dbGame.Variant},
 		RematchProposedBy: engine.NoColor,
 		ClaimVictoryFor:   engine.NoColor,
 	}
@@ -786,109 +691,12 @@ func loadPlayGameFromDB(ctx context.Context, dbRepo db.Repository, gameID string
 		}
 	}
 
-	restored := game.NewRestoredPlayGame(gameID, board, clock, history, seq, state, winner, meta)
+	restored := game.NewRestoredPlayGame(gameID, core.board, core.clock, core.history, core.seq, core.state, core.winner, meta)
 
-	if state == game.GameOngoing {
-		restored.InitBatch(
-			dbGame.SessionID,
-			func(batchCtx context.Context, moves []game.PendingMove, events []game.PendingEvent) error {
-				dbMovesBatch := make([]*db.Move, len(moves))
-				for i, m := range moves {
-					dbMovesBatch[i] = &db.Move{
-						GameID: m.GameID, SessionID: m.SessionID, Seq: m.Seq,
-						UCI: m.UCI, SAN: m.SAN, FEN: m.FEN, MoveNumber: m.MoveNumber,
-						Color: m.Color, WRemNs: m.WRemNs, BRemNs: m.BRemNs,
-						LagCompNs: m.LagCompNs, ThinkTimeNs: m.ThinkTimeNs, PlayedAt: m.PlayedAt,
-					}
-				}
-				dbEventsBatch := make([]*db.GameEvent, len(events))
-				for i, e := range events {
-					dbEventsBatch[i] = &db.GameEvent{
-						GameID: e.GameID, SessionID: e.SessionID,
-						EventType: e.EventType, Payload: e.Payload, OccurredAt: e.OccurredAt,
-					}
-				}
-				if err := dbRepo.Moves().InsertBatch(batchCtx, dbMovesBatch); err != nil {
-					return err
-				}
-				return dbRepo.GameEvents().InsertBatch(batchCtx, dbEventsBatch)
-			},
-			func(batchCtx context.Context, status, winner string) error {
-				endedAt := time.Now().UnixNano()
-				var winnerPtr *string
-				if winner != "" {
-					winnerPtr = &winner
-				}
-				return dbRepo.Games().UpdateStatus(batchCtx, gameID, status, winnerPtr, &endedAt)
-			},
-		)
+	if core.state == game.GameOngoing {
+		initGameBatch(restored, core.dbGame.SessionID, dbRepo)
 	}
 
 	return restored, nil
 }
 
-// applySquareSelection contains the shared square-selection logic for both solo and play modes.
-func applySquareSelection(c *gin.Context, g *game.Game, square uint8) {
-	ctx := c.Request.Context()
-
-	signals := ui_store.NewChessBoardSignals()
-	datastar.ReadSignals(c.Request, signals)
-
-	if g.HasSelection() && g.IsTarget(square) {
-		move := engine.Move{From: g.GetSelectionFrom(), To: square, Promotion: engine.NoPiece}
-		promoteWithPiece := signals.Promotion && signals.PromotionPiece != engine.NoPiece
-
-		if g.IsPromotionMove(move) && !promoteWithPiece {
-			signals.EnablePromotion(square)
-			if err := broadcastSignals(c, signals); err != nil {
-				logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast promotion")
-			}
-			return
-		}
-		if promoteWithPiece {
-			move.Promotion = signals.PromotionPiece
-		}
-		if g.ApplyMove(move, 0) {
-			signals.UpdateFromGame(g)
-			if promoteWithPiece {
-				signals.ClearPromotion()
-			}
-			if err := broadcastBoard(c, g, signals); err != nil {
-				logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast board")
-			}
-			// Push the updated board to all other subscribers (opponent, spectators).
-			if g.PlayMeta != nil {
-				hubBroadcastBoard(ctx, g, signals)
-			}
-			return
-		}
-	}
-
-	g.SelectSquare(ctx, square)
-	signals.UpdateFromGame(g)
-	if err := broadcastSignals(c, signals); err != nil {
-		logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast selection")
-	}
-}
-
-// syncDatastarBoard pushes the current board state to a Datastar SSE connection.
-// Called on every new Datastar connection so reconnects recover any missed move.
-func syncDatastarBoard(ctx context.Context, c *gin.Context, g *game.Game) {
-	var all []byte
-
-	buf := new(strings.Builder)
-	components.RenderChessBoard(g, "/play").Render(ctx, buf)
-	all = append(all, datastarPatchElementsFrame(buf.String())...)
-
-	buf.Reset()
-	components.MoveNotationPanel(g.ID, g.History).Render(ctx, buf)
-	all = append(all, datastarPatchElementsFrame(buf.String())...)
-
-	signals := ui_store.ChessBoardSignalsFromGame(g)
-	if b, err := json.Marshal(signals); err == nil {
-		all = append(all, datastarPatchSignalsFrame(b)...)
-	}
-
-	c.Writer.Write(all)
-	c.Writer.Flush()
-}
