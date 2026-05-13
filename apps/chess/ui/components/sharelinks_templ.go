@@ -29,7 +29,7 @@ func ShareLinksPanel(gameID, whiteToken, blackToken, myRole string) templ.Compon
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-surface border border-edge rounded-md p-4 flex flex-col gap-3\"><p class=\"text-sm font-medium text-ink\">Share invite links with your opponent</p><div class=\"flex flex-col gap-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-3\"><p class=\"text-sm font-medium text-ink\">Share invite links with your opponent</p><div class=\"flex flex-col gap-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -41,7 +41,7 @@ func ShareLinksPanel(gameID, whiteToken, blackToken, myRole string) templ.Compon
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><p class=\"text-xs text-ink-dim\">The clock starts once both players have connected.</p></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><p class=\"text-xs text-ink-muted\">The clock starts once both players have connected.</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -70,7 +70,7 @@ func shareLinkRow(label, url string, isMyRole bool) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"flex flex-col gap-1\"><span class=\"text-xs text-ink-secondary\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"flex flex-col gap-1\"><span class=\"text-xs text-ink-subtle\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -119,7 +119,7 @@ func shareLinkRow(label, url string, isMyRole bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"flex-1 text-xs bg-muted border border-edge rounded px-2 py-1 text-ink-secondary select-all\"> <button type=\"button\" class=\"text-xs px-2 py-1 bg-primary text-on-primary rounded hover:bg-primary-hover transition\" data-on:click=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"flex-1 text-xs bg-surface-4 border border-edge rounded px-2 py-1 text-ink-subtle select-all\"> <button type=\"button\" class=\"text-xs px-2 py-1 bg-primary text-on-primary rounded hover:bg-primary-hover transition\" data-on:click=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

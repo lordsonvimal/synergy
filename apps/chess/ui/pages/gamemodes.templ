@@ -28,23 +28,23 @@ templ GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exis
 				}
 
 				<!-- Tab switcher -->
-				<div class="flex gap-1 mb-6 bg-muted rounded-lg p-1">
+				<div class="flex gap-1 mb-6 bg-surface-4 rounded-lg p-1">
 					<button
 						type="button"
 						data-on:click="$activeTab = 'online'"
-						data-class="{'bg-surface shadow-sm text-ink': $activeTab === 'online', 'text-ink-secondary hover:bg-muted': $activeTab !== 'online'}"
+						data-class="{'bg-surface-1 shadow-sm text-ink': $activeTab === 'online', 'text-ink-subtle hover:bg-surface-4': $activeTab !== 'online'}"
 						class="flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer"
 					>Online</button>
 					<button
 						type="button"
 						data-on:click="$activeTab = 'computer'"
-						data-class="{'bg-surface shadow-sm text-ink': $activeTab === 'computer', 'text-ink-secondary hover:bg-muted': $activeTab !== 'computer'}"
+						data-class="{'bg-surface-1 shadow-sm text-ink': $activeTab === 'computer', 'text-ink-subtle hover:bg-surface-4': $activeTab !== 'computer'}"
 						class="flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer"
 					>Computer</button>
 					<button
 						type="button"
 						data-on:click="$activeTab = 'self'"
-						data-class="{'bg-surface shadow-sm text-ink': $activeTab === 'self', 'text-ink-secondary hover:bg-muted': $activeTab !== 'self'}"
+						data-class="{'bg-surface-1 shadow-sm text-ink': $activeTab === 'self', 'text-ink-subtle hover:bg-surface-4': $activeTab !== 'self'}"
 						class="flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer"
 					>Self</button>
 				</div>
@@ -53,7 +53,7 @@ templ GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exis
 				<div data-show="$activeTab === 'online'">
 					if existingGameID != "" {
 						<!-- Already in game block -->
-						<div class="bg-surface border border-edge rounded-md p-4 flex flex-col gap-4">
+						<div class="bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-4">
 							<div class="flex items-start gap-3">
 								<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0 text-primary mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<circle cx="12" cy="12" r="10"></circle>
@@ -62,7 +62,7 @@ templ GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exis
 								</svg>
 								<div>
 									<p class="text-sm font-semibold text-ink">You have an ongoing game</p>
-									<p class="text-xs text-ink-secondary mt-0.5">Playing as { existingGameRole }</p>
+									<p class="text-xs text-ink-subtle mt-0.5">Playing as { existingGameRole }</p>
 								</div>
 							</div>
 							<div class="flex gap-3">
@@ -82,7 +82,7 @@ templ GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exis
 					} else {
 						<!-- Online game creation -->
 						if len(modes) == 0 {
-							<p class="text-sm text-ink-secondary">No game modes available.</p>
+							<p class="text-sm text-ink-subtle">No game modes available.</p>
 						} else {
 							<div class="grid gap-4">
 								for i, mode := range modes {
@@ -105,14 +105,14 @@ templ GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exis
 													};
 												})()
 											`, i, i)) }
-											class="w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left transition"
+											class="w-full bg-surface-1 rounded-md shadow-sm border border-edge p-4 text-left transition"
 										>
 											<div class="flex justify-between items-center gap-3">
 												<div class="min-w-0">
 													<div class="text-lg font-semibold text-ink truncate">{ mode.Name }</div>
-													<div class="text-sm text-ink-secondary">{ mode.Variant }</div>
+													<div class="text-sm text-ink-subtle">{ mode.Variant }</div>
 												</div>
-												<div class="text-sm text-ink-dim whitespace-nowrap shrink-0">
+												<div class="text-sm text-ink-muted whitespace-nowrap shrink-0">
 													{ helpers.FormatTime(mode.TimeNs) } + { helpers.FormatInc(mode.Increment) }
 												</div>
 											</div>
@@ -127,7 +127,7 @@ templ GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exis
 				<!-- Computer tab -->
 				<div data-show="$activeTab === 'computer'" style="display:none">
 					if len(modes) == 0 {
-						<p class="text-sm text-ink-secondary">No game modes available.</p>
+						<p class="text-sm text-ink-subtle">No game modes available.</p>
 					} else {
 						<div class="grid gap-4">
 							for i, mode := range modes {
@@ -150,14 +150,14 @@ templ GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exis
 												};
 											})()
 										`, i, i)) }
-										class="w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left transition"
+										class="w-full bg-surface-1 rounded-md shadow-sm border border-edge p-4 text-left transition"
 									>
 										<div class="flex justify-between items-center gap-3">
 											<div class="min-w-0">
 												<div class="text-lg font-semibold text-ink truncate">{ mode.Name }</div>
-												<div class="text-sm text-ink-secondary">{ mode.Variant }</div>
+												<div class="text-sm text-ink-subtle">{ mode.Variant }</div>
 											</div>
-											<div class="text-sm text-ink-dim whitespace-nowrap shrink-0">
+											<div class="text-sm text-ink-muted whitespace-nowrap shrink-0">
 												{ helpers.FormatTime(mode.TimeNs) } + { helpers.FormatInc(mode.Increment) }
 											</div>
 										</div>
@@ -172,7 +172,7 @@ templ GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exis
 				<div data-show="$activeTab === 'self'" style="display:none">
 					<div class="flex flex-col items-center gap-4 py-16 text-center">
 						<p class="font-semibold text-ink text-lg">Coming soon</p>
-						<p class="text-ink-secondary text-sm">Self-play mode is under development.</p>
+						<p class="text-ink-subtle text-sm">Self-play mode is under development.</p>
 					</div>
 				</div>
 			</div>

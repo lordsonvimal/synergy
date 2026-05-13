@@ -53,7 +53,7 @@ func PromotionButton(g *game.Game, piece engine.Piece, routePrefix string) templ
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"w-10 h-10 sm:w-12 sm:h-12 text-2xl sm:text-3xl hover:bg-muted rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary\" aria-label=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"w-10 h-10 sm:w-12 sm:h-12 text-2xl sm:text-3xl hover:bg-surface-4 rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary\" aria-label=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

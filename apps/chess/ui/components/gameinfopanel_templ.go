@@ -59,7 +59,7 @@ func BlackPlayerCard() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" aria-hidden=\"true\"></span> <span class=\"w-1.5 h-1.5 rounded-full bg-primary shrink-0\" data-show=\"$sideToMove === 1 && $gameState === 0\" style=\"display:none\" aria-hidden=\"true\"></span> <span id=\"black-clock\" data-testid=\"clock-black\" class=\"text-ink-dim text-sm font-mono tabular-nums font-semibold\" aria-label=\"Black clock\">--</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" aria-hidden=\"true\"></span> <span class=\"w-1.5 h-1.5 rounded-full bg-primary shrink-0\" data-show=\"$sideToMove === 1 && $gameState === 0\" style=\"display:none\" aria-hidden=\"true\"></span> <span id=\"black-clock\" data-testid=\"clock-black\" class=\"text-ink-muted text-sm font-mono tabular-nums font-semibold\" aria-label=\"Black clock\">--</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -114,7 +114,7 @@ func WhitePlayerCard() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" aria-hidden=\"true\"></span> <span class=\"w-1.5 h-1.5 rounded-full bg-primary shrink-0\" data-show=\"$sideToMove === 0 && $gameState === 0\" style=\"display:none\" aria-hidden=\"true\"></span> <span id=\"white-clock\" data-testid=\"clock-white\" class=\"text-ink-dim text-sm font-mono tabular-nums font-semibold\" aria-label=\"White clock\">--</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" aria-hidden=\"true\"></span> <span class=\"w-1.5 h-1.5 rounded-full bg-primary shrink-0\" data-show=\"$sideToMove === 0 && $gameState === 0\" style=\"display:none\" aria-hidden=\"true\"></span> <span id=\"white-clock\" data-testid=\"clock-white\" class=\"text-ink-muted text-sm font-mono tabular-nums font-semibold\" aria-label=\"White clock\">--</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

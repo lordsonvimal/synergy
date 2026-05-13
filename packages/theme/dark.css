@@ -1,3 +1,10 @@
+/* ===========================
+   EVERWISE CREST — DARK MODE OVERRIDES
+   Inverts surfaces, text, borders, and palette semantic tokens.
+   Palette scale order is reversed (50↔950) so tinted components
+   automatically read as dark-appropriate tints.
+   =========================== */
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     /* Neutral */
@@ -48,18 +55,7 @@
     --color-teal-900: #CCFBF1;
     --color-teal-950: #F0FDFA;
 
-    /* Surfaces */
-    --color-surface-sunken: #080E1B;
-
-    /* on-* text for new semantic colors */
-    --color-on-success: #052E16;
-    --color-on-warning: #422006;
-    --color-on-error: #450A0A;
-    --color-on-info: #082F49;
-    --color-on-neutral: #0A0A0A;
-    --color-on-violet: #2E1065;
-    --color-on-teal: #042F2E;
-
+    /* Primary */
     --color-primary: #60A5FA;
     --color-primary-hover: #3B82F6;
     --color-primary-subtle: #172554;
@@ -75,6 +71,7 @@
     --color-primary-900: #DBEAFE;
     --color-primary-950: #EFF6FF;
 
+    /* Accent */
     --color-accent: #FBBF24;
     --color-accent-hover: #FCD34D;
     --color-accent-subtle: #422006;
@@ -90,6 +87,7 @@
     --color-accent-900: #FEF3C7;
     --color-accent-950: #FFFBEB;
 
+    /* Success */
     --color-success: #4ADE80;
     --color-success-hover: #86EFAC;
     --color-success-subtle: #052E16;
@@ -105,6 +103,7 @@
     --color-success-900: #DCFCE7;
     --color-success-950: #F0FDF4;
 
+    /* Warning */
     --color-warning: #FACC15;
     --color-warning-hover: #FDE047;
     --color-warning-subtle: #422006;
@@ -120,6 +119,7 @@
     --color-warning-900: #FEF9C3;
     --color-warning-950: #FEFCE8;
 
+    /* Error */
     --color-error: #F87171;
     --color-error-hover: #FCA5A5;
     --color-error-subtle: #450A0A;
@@ -135,6 +135,7 @@
     --color-error-900: #FEE2E2;
     --color-error-950: #FEF2F2;
 
+    /* Info */
     --color-info: #38BDF8;
     --color-info-hover: #7DD3FC;
     --color-info-subtle: #082F49;
@@ -150,20 +151,38 @@
     --color-info-900: #E0F2FE;
     --color-info-950: #F0F9FF;
 
+    /* Surfaces */
     --color-canvas: #0B1120;
-    --color-surface: #141D2E;
-    --color-surface-raised: #1C2841;
-    --color-muted: #1E293B;
+    --color-surface-0: #1C2841;
+    --color-surface-1: #141D2E;
+    --color-surface-2: #111924;
+    --color-surface-3: #080E1B;
+    --color-surface-4: #1E293B;
 
+    /* Borders */
+    --color-edge-subtle: #1A2436;
     --color-edge: #2D3B50;
     --color-edge-strong: #475569;
+    --color-edge-emphasis: #64748B;
 
+    /* Text */
     --color-ink: #F1F5F9;
-    --color-ink-secondary: #94A3B8;
-    --color-ink-dim: #64748B;
+    --color-ink-subtle: #94A3B8;
+    --color-ink-muted: #64748B;
+    --color-ink-disabled: #334155;
+
+    /* On-color text */
     --color-on-primary: #FFFFFF;
     --color-on-accent: #422006;
+    --color-on-success: #052E16;
+    --color-on-warning: #422006;
+    --color-on-error: #450A0A;
+    --color-on-info: #082F49;
+    --color-on-neutral: #0A0A0A;
+    --color-on-violet: #2E1065;
+    --color-on-teal: #042F2E;
 
+    /* Shadows — elevated opacity for dark backgrounds */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.35), 0 4px 6px -4px rgb(0 0 0 / 0.2);
@@ -220,18 +239,7 @@
   --color-teal-900: #CCFBF1;
   --color-teal-950: #F0FDFA;
 
-  /* Surfaces */
-  --color-surface-sunken: #080E1B;
-
-  /* on-* text for new semantic colors */
-  --color-on-success: #052E16;
-  --color-on-warning: #422006;
-  --color-on-error: #450A0A;
-  --color-on-info: #082F49;
-  --color-on-neutral: #0A0A0A;
-  --color-on-violet: #2E1065;
-  --color-on-teal: #042F2E;
-
+  /* Primary */
   --color-primary: #60A5FA;
   --color-primary-hover: #3B82F6;
   --color-primary-subtle: #172554;
@@ -247,6 +255,7 @@
   --color-primary-900: #DBEAFE;
   --color-primary-950: #EFF6FF;
 
+  /* Accent */
   --color-accent: #FBBF24;
   --color-accent-hover: #FCD34D;
   --color-accent-subtle: #422006;
@@ -262,6 +271,7 @@
   --color-accent-900: #FEF3C7;
   --color-accent-950: #FFFBEB;
 
+  /* Success */
   --color-success: #4ADE80;
   --color-success-hover: #86EFAC;
   --color-success-subtle: #052E16;
@@ -277,6 +287,7 @@
   --color-success-900: #DCFCE7;
   --color-success-950: #F0FDF4;
 
+  /* Warning */
   --color-warning: #FACC15;
   --color-warning-hover: #FDE047;
   --color-warning-subtle: #422006;
@@ -292,6 +303,7 @@
   --color-warning-900: #FEF9C3;
   --color-warning-950: #FEFCE8;
 
+  /* Error */
   --color-error: #F87171;
   --color-error-hover: #FCA5A5;
   --color-error-subtle: #450A0A;
@@ -307,6 +319,7 @@
   --color-error-900: #FEE2E2;
   --color-error-950: #FEF2F2;
 
+  /* Info */
   --color-info: #38BDF8;
   --color-info-hover: #7DD3FC;
   --color-info-subtle: #082F49;
@@ -322,20 +335,38 @@
   --color-info-900: #E0F2FE;
   --color-info-950: #F0F9FF;
 
+  /* Surfaces */
   --color-canvas: #0B1120;
-  --color-surface: #141D2E;
-  --color-surface-raised: #1C2841;
-  --color-muted: #1E293B;
+  --color-surface-0: #1C2841;
+  --color-surface-1: #141D2E;
+  --color-surface-2: #111924;
+  --color-surface-3: #080E1B;
+  --color-surface-4: #1E293B;
 
+  /* Borders */
+  --color-edge-subtle: #1A2436;
   --color-edge: #2D3B50;
   --color-edge-strong: #475569;
+  --color-edge-emphasis: #64748B;
 
+  /* Text */
   --color-ink: #F1F5F9;
-  --color-ink-secondary: #94A3B8;
-  --color-ink-dim: #64748B;
+  --color-ink-subtle: #94A3B8;
+  --color-ink-muted: #64748B;
+  --color-ink-disabled: #334155;
+
+  /* On-color text */
   --color-on-primary: #FFFFFF;
   --color-on-accent: #422006;
+  --color-on-success: #052E16;
+  --color-on-warning: #422006;
+  --color-on-error: #450A0A;
+  --color-on-info: #082F49;
+  --color-on-neutral: #0A0A0A;
+  --color-on-violet: #2E1065;
+  --color-on-teal: #042F2E;
 
+  /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.35), 0 4px 6px -4px rgb(0 0 0 / 0.2);

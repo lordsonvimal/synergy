@@ -30,7 +30,7 @@ func RematchPrompt(gameID, csrfToken string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-surface border border-edge rounded-md p-4 flex flex-col gap-3\"><div class=\"flex items-center justify-between\"><p class=\"text-sm font-semibold text-ink\">Your opponent wants a rematch</p><span class=\"text-xs text-ink-dim tabular-nums\"><span data-text=\"$rematchSecondsLeft\"></span>s</span></div><div class=\"flex gap-3\"><!-- Accept navigates to the new game so it needs a full form POST + redirect. --><form method=\"POST\" action=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-3\"><div class=\"flex items-center justify-between\"><p class=\"text-sm font-semibold text-ink\">Your opponent wants a rematch</p><span class=\"text-xs text-ink-muted tabular-nums\"><span data-text=\"$rematchSecondsLeft\"></span>s</span></div><div class=\"flex gap-3\"><!-- Accept navigates to the new game so it needs a full form POST + redirect. --><form method=\"POST\" action=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -99,7 +99,7 @@ func RematchPending(gameID, csrfToken string) templ.Component {
 			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"bg-surface border border-edge rounded-md p-4 flex flex-col gap-3\"><div class=\"flex items-center justify-between\"><p class=\"text-sm font-semibold text-ink\">Rematch requested</p><span class=\"text-xs text-ink-dim tabular-nums\"><span data-text=\"$rematchSecondsLeft\"></span>s</span></div><!-- Opponent online: waiting message --><p class=\"text-xs text-ink-dim\" data-show=\"($role === 'white' && $blackOnline) || ($role === 'black' && $whiteOnline)\">Waiting for opponent to respond...</p><!-- Opponent offline: offline message --><p class=\"text-xs text-ink-dim\" data-show=\"($role === 'white' && !$blackOnline) || ($role === 'black' && !$whiteOnline)\" style=\"display:none\">Opponent is offline. Request will expire when the timer runs out.</p><button type=\"button\" data-on:click=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-3\"><div class=\"flex items-center justify-between\"><p class=\"text-sm font-semibold text-ink\">Rematch requested</p><span class=\"text-xs text-ink-muted tabular-nums\"><span data-text=\"$rematchSecondsLeft\"></span>s</span></div><!-- Opponent online: waiting message --><p class=\"text-xs text-ink-muted\" data-show=\"($role === 'white' && $blackOnline) || ($role === 'black' && $whiteOnline)\">Waiting for opponent to respond...</p><!-- Opponent offline: offline message --><p class=\"text-xs text-ink-muted\" data-show=\"($role === 'white' && !$blackOnline) || ($role === 'black' && !$whiteOnline)\" style=\"display:none\">Opponent is offline. Request will expire when the timer runs out.</p><button type=\"button\" data-on:click=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

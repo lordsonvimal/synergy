@@ -41,7 +41,7 @@ func MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) te
 		ctx = templ.ClearChildren(ctx)
 		rows := groupHistory(history)
 		noMoves := len(history) == 0
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"move-notation-panel\" data-testid=\"move-notation-panel\"><div class=\"flex items-center justify-between gap-2 px-3 py-2.5 bg-surface border-t border-edge min-h-13\"><!-- Previous move button --><button id=\"notation-prev\" aria-label=\"Previous move\" class=\"shrink-0 p-1.5 rounded-sm text-ink-dim hover:text-ink hover:bg-muted transition-colors duration-150 cursor-pointer\" data-class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"move-notation-panel\" data-testid=\"move-notation-panel\"><div class=\"flex items-center justify-between gap-2 px-3 py-2.5 bg-surface-1 border-t border-edge min-h-13\"><!-- Previous move button --><button id=\"notation-prev\" aria-label=\"Previous move\" class=\"shrink-0 p-1.5 rounded-sm text-ink-muted hover:text-ink hover:bg-surface-4 transition-colors duration-150 cursor-pointer\" data-class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -72,12 +72,12 @@ func MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) te
 			return templ_7745c5c3_Err
 		}
 		if noMoves {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<span class=\"text-ink-dim text-sm select-none\">No moves yet</span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<span class=\"text-ink-muted text-sm select-none\">No moves yet</span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<!-- Initial position indicator: shown only at historyIdx=-1 in history mode --> <div class=\"flex items-center gap-2\" data-show=\"$viewingHistory && $historyIdx === -1\" style=\"display:none\"><span class=\"text-ink-secondary text-sm select-none italic font-medium\">Start</span></div><!-- One row per full move; DataStar shows exactly the relevant one -->")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<!-- Initial position indicator: shown only at historyIdx=-1 in history mode --> <div class=\"flex items-center gap-2\" data-show=\"$viewingHistory && $historyIdx === -1\" style=\"display:none\"><span class=\"text-ink-subtle text-sm select-none italic font-medium\">Start</span></div><!-- One row per full move; DataStar shows exactly the relevant one -->")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -120,20 +120,20 @@ func MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) te
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" style=\"display:none\"><span class=\"text-ink-dim text-sm font-mono tabular-nums select-none shrink-0\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" style=\"display:none\"><span class=\"text-ink-muted text-sm font-mono tabular-nums select-none shrink-0\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(row.moveNumber))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 80, Col: 116}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/movenotationpanel.templ`, Line: 80, Col: 118}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, ".</span> <button class=\"text-sm font-mono px-2.5 py-1 rounded-sm hover:bg-muted transition-colors duration-100 cursor-pointer leading-none shrink-0\" data-class=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, ".</span> <button class=\"text-sm font-mono px-2.5 py-1 rounded-sm hover:bg-surface-4 transition-colors duration-100 cursor-pointer leading-none shrink-0\" data-class=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -189,7 +189,7 @@ func MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) te
 					if blackIsLatest {
 						blackClick = fmt.Sprintf("@get('"+routePrefix+"/%s/board-at/live')", gameID)
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<button class=\"text-sm font-mono px-2.5 py-1 rounded-sm hover:bg-muted transition-colors duration-100 cursor-pointer leading-none shrink-0\" data-class=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<button class=\"text-sm font-mono px-2.5 py-1 rounded-sm hover:bg-surface-4 transition-colors duration-100 cursor-pointer leading-none shrink-0\" data-class=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -233,7 +233,7 @@ func MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) te
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<span class=\"text-ink-dim text-sm font-mono px-1 select-none opacity-50\">···</span>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<span class=\"text-ink-muted text-sm font-mono px-1 select-none opacity-50\">···</span>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -257,7 +257,7 @@ func MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) te
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\">Go Live</button><!-- Next move button --><button id=\"notation-next\" aria-label=\"Next move\" class=\"shrink-0 p-1.5 rounded-sm text-ink-dim hover:text-ink hover:bg-muted transition-colors duration-150 cursor-pointer\" data-class=\"{'opacity-40 pointer-events-none': !$viewingHistory}\" data-on:click=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\">Go Live</button><!-- Next move button --><button id=\"notation-next\" aria-label=\"Next move\" class=\"shrink-0 p-1.5 rounded-sm text-ink-muted hover:text-ink hover:bg-surface-4 transition-colors duration-150 cursor-pointer\" data-class=\"{'opacity-40 pointer-events-none': !$viewingHistory}\" data-on:click=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

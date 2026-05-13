@@ -16,12 +16,12 @@ templ MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) {
 		noMoves := len(history) == 0
 	}}
 	<div id="move-notation-panel" data-testid="move-notation-panel">
-		<div class="flex items-center justify-between gap-2 px-3 py-2.5 bg-surface border-t border-edge min-h-13">
+		<div class="flex items-center justify-between gap-2 px-3 py-2.5 bg-surface-1 border-t border-edge min-h-13">
 			<!-- Previous move button -->
 			<button
 				id="notation-prev"
 				aria-label="Previous move"
-				class="shrink-0 p-1.5 rounded-sm text-ink-dim hover:text-ink hover:bg-muted transition-colors duration-150 cursor-pointer"
+				class="shrink-0 p-1.5 rounded-sm text-ink-muted hover:text-ink hover:bg-surface-4 transition-colors duration-150 cursor-pointer"
 				data-class={ fmt.Sprintf(`{'opacity-40 pointer-events-none': ($viewingHistory && $historyIdx <= -1) || (!$viewingHistory && %v)}`, noMoves) }
 				data-on:click={ templ.JSExpression("@post('" + routePrefix + "/" + gameID + "/history/navigate?direction=-1')") }
 			>
@@ -33,7 +33,7 @@ templ MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) {
 			<!-- Center display: one pair at a time -->
 			<div class="flex-1 flex items-center justify-center min-w-0 gap-1">
 				if noMoves {
-					<span class="text-ink-dim text-sm select-none">No moves yet</span>
+					<span class="text-ink-muted text-sm select-none">No moves yet</span>
 				} else {
 					<!-- Initial position indicator: shown only at historyIdx=-1 in history mode -->
 					<div
@@ -41,7 +41,7 @@ templ MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) {
 						data-show="$viewingHistory && $historyIdx === -1"
 						style="display:none"
 					>
-						<span class="text-ink-secondary text-sm select-none italic font-medium">Start</span>
+						<span class="text-ink-subtle text-sm select-none italic font-medium">Start</span>
 					</div>
 					<!-- One row per full move; DataStar shows exactly the relevant one -->
 					for i, row := range rows {
@@ -77,9 +77,9 @@ templ MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) {
 							data-show={ showExpr }
 							style="display:none"
 						>
-							<span class="text-ink-dim text-sm font-mono tabular-nums select-none shrink-0">{ strconv.Itoa(row.moveNumber) }.</span>
+							<span class="text-ink-muted text-sm font-mono tabular-nums select-none shrink-0">{ strconv.Itoa(row.moveNumber) }.</span>
 							<button
-								class="text-sm font-mono px-2.5 py-1 rounded-sm hover:bg-muted transition-colors duration-100 cursor-pointer leading-none shrink-0"
+								class="text-sm font-mono px-2.5 py-1 rounded-sm hover:bg-surface-4 transition-colors duration-100 cursor-pointer leading-none shrink-0"
 								data-class={ whiteDataClass }
 								data-on:click={ templ.JSExpression(whiteClick) }
 							>{ row.white }</button>
@@ -99,12 +99,12 @@ templ MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) {
 									}
 								}}
 								<button
-									class="text-sm font-mono px-2.5 py-1 rounded-sm hover:bg-muted transition-colors duration-100 cursor-pointer leading-none shrink-0"
+									class="text-sm font-mono px-2.5 py-1 rounded-sm hover:bg-surface-4 transition-colors duration-100 cursor-pointer leading-none shrink-0"
 									data-class={ blackDataClass }
 									data-on:click={ templ.JSExpression(blackClick) }
 								>{ row.black }</button>
 							} else {
-								<span class="text-ink-dim text-sm font-mono px-1 select-none opacity-50">···</span>
+								<span class="text-ink-muted text-sm font-mono px-1 select-none opacity-50">···</span>
 							}
 						</div>
 					}
@@ -124,7 +124,7 @@ templ MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) {
 			<button
 				id="notation-next"
 				aria-label="Next move"
-				class="shrink-0 p-1.5 rounded-sm text-ink-dim hover:text-ink hover:bg-muted transition-colors duration-150 cursor-pointer"
+				class="shrink-0 p-1.5 rounded-sm text-ink-muted hover:text-ink hover:bg-surface-4 transition-colors duration-150 cursor-pointer"
 				data-class="{'opacity-40 pointer-events-none': !$viewingHistory}"
 				data-on:click={ templ.JSExpression("@post('" + routePrefix + "/" + gameID + "/history/navigate?direction=1')") }
 			>

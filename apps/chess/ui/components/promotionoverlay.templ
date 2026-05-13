@@ -9,7 +9,7 @@ templ RenderPromotionOverlay(g *game.Game, routePrefix string) {
 		class="absolute inset-0 bg-black/40 flex items-center justify-center z-50 hidden"
 		data-class={ templ.JSExpression(`{ 'hidden': !$promotion }`) }
 	>
-		<div class="bg-surface-raised rounded-xl shadow-xl border border-edge p-2 sm:p-3 flex gap-2 sm:gap-3">
+		<div class="bg-surface-0 rounded-xl shadow-xl border border-edge p-2 sm:p-3 flex gap-2 sm:gap-3">
 			@PromotionButton(g, engine.Queen, routePrefix)
 			@PromotionButton(g, engine.Rook, routePrefix)
 			@PromotionButton(g, engine.Bishop, routePrefix)

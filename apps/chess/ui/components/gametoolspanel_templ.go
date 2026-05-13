@@ -32,7 +32,7 @@ func GameToolsPanel(gameID, role, csrfToken string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div data-testid=\"game-tools-panel\" class=\"flex items-center gap-2 px-3 py-2 bg-surface\"><!-- Flip board (icon only) --><button data-testid=\"flip-board-button\" aria-label=\"Flip board orientation\" data-on:click=\"$flipped = !$flipped\" class=\"inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-secondary hover:bg-muted hover:text-ink transition-colors duration-150 cursor-pointer shrink-0\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-3.5 h-3.5\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 16V4m0 0L3 8m4-4l4 4\"></path> <path d=\"M17 8v12m0 0l4-4m-4 4l-4-4\"></path></svg></button><!-- Spacer --><div class=\"flex-1\"></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div data-testid=\"game-tools-panel\" class=\"flex items-center gap-2 px-3 py-2 bg-surface-1\"><!-- Flip board (icon only) --><button data-testid=\"flip-board-button\" aria-label=\"Flip board orientation\" data-on:click=\"$flipped = !$flipped\" class=\"inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-subtle hover:bg-surface-4 hover:text-ink transition-colors duration-150 cursor-pointer shrink-0\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-3.5 h-3.5\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 16V4m0 0L3 8m4-4l4 4\"></path> <path d=\"M17 8v12m0 0l4-4m-4 4l-4-4\"></path></svg></button><!-- Spacer --><div class=\"flex-1\"></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -63,7 +63,7 @@ func GameToolsPanel(gameID, role, csrfToken string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" data-show=\"$gameState !== 0 && !$rematchProposed && !$rematchPending\" style=\"display:none\" class=\"px-3 py-1.5 text-xs font-medium border border-edge text-ink rounded-md hover:bg-muted transition cursor-pointer\">Rematch</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" data-show=\"$gameState !== 0 && !$rematchProposed && !$rematchPending\" style=\"display:none\" class=\"px-3 py-1.5 text-xs font-medium border border-edge text-ink rounded-md hover:bg-surface-4 transition cursor-pointer\">Rematch</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -83,7 +83,7 @@ func GameToolsPanel(gameID, role, csrfToken string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"></span> <span class=\"text-ink-dim text-xs leading-none\" data-text=\"$gameStateText\"></span></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"></span> <span class=\"text-ink-muted text-xs leading-none\" data-text=\"$gameStateText\"></span></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

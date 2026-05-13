@@ -16,7 +16,7 @@ templ PromotionButton(g *game.Game, piece engine.Piece, routePrefix string) {
 	}}
 	<button
 		data-testid={ "promotion-button-" + strings.ToLower(helpers.PieceName(piece)) }
-		class="w-10 h-10 sm:w-12 sm:h-12 text-2xl sm:text-3xl hover:bg-muted rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
+		class="w-10 h-10 sm:w-12 sm:h-12 text-2xl sm:text-3xl hover:bg-surface-4 rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
 		aria-label={ label }
 		data-on:click={ onClick }
 	>

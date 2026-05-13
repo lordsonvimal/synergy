@@ -23,12 +23,12 @@ templ Layout(title string, showBack bool) {
 		</head>
 		<body class="bg-neutral-50 text-ink h-full flex flex-col">
 			<header
-				class="flex items-center justify-between px-4 py-3 border-b border-edge bg-surface shrink-0"
+				class="flex items-center justify-between px-4 py-3 border-b border-edge bg-surface-1 shrink-0"
 				data-signals.ifmissing='{"menuOpen": false}'
 			>
 				<div class="flex items-center gap-2">
 					if showBack {
-						<a href="/" class="sm:hidden p-1 rounded-md hover:bg-muted text-ink-secondary transition" aria-label="Back to home">
+						<a href="/" class="sm:hidden p-1 rounded-md hover:bg-surface-4 text-ink-subtle transition" aria-label="Back to home">
 							<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
 						</a>
 					}
@@ -40,14 +40,14 @@ templ Layout(title string, showBack bool) {
 				<!-- Desktop nav -->
 				<nav class="hidden sm:flex items-center gap-1" aria-label="Main navigation">
 					<a href="/" class="px-3 py-1.5 text-sm font-medium text-primary bg-primary-subtle rounded-md">Play</a>
-					<span class="px-3 py-1.5 text-sm font-medium text-ink-dim cursor-not-allowed select-none" aria-disabled="true" title="Coming soon">Practice</span>
-					<span class="px-3 py-1.5 text-sm font-medium text-ink-dim cursor-not-allowed select-none" aria-disabled="true" title="Coming soon">Class</span>
+					<span class="px-3 py-1.5 text-sm font-medium text-ink-muted cursor-not-allowed select-none" aria-disabled="true" title="Coming soon">Practice</span>
+					<span class="px-3 py-1.5 text-sm font-medium text-ink-muted cursor-not-allowed select-none" aria-disabled="true" title="Coming soon">Class</span>
 				</nav>
 				<div class="flex items-center gap-2">
 					@components.ThemeToggle()
 					<!-- Mobile hamburger -->
 					<button
-						class="sm:hidden p-1.5 rounded-md hover:bg-muted text-ink-secondary transition"
+						class="sm:hidden p-1.5 rounded-md hover:bg-surface-4 text-ink-subtle transition"
 						data-on:click="$menuOpen = !$menuOpen"
 						aria-label="Toggle navigation menu"
 					>
@@ -61,16 +61,16 @@ templ Layout(title string, showBack bool) {
 			</header>
 			<!-- Mobile dropdown nav -->
 			<div
-				class="sm:hidden border-b border-edge bg-surface shrink-0"
+				class="sm:hidden border-b border-edge bg-surface-1 shrink-0"
 				data-show="$menuOpen"
 				style="display:none"
 			>
 				<nav class="px-4 py-2 flex flex-col gap-1" aria-label="Mobile navigation">
 					<a href="/" class="px-3 py-2 text-sm font-medium text-primary bg-primary-subtle rounded-md">Play</a>
-					<span class="px-3 py-2 text-sm font-medium text-ink-dim cursor-not-allowed select-none">
+					<span class="px-3 py-2 text-sm font-medium text-ink-muted cursor-not-allowed select-none">
 						Practice <span class="text-xs">(coming soon)</span>
 					</span>
-					<span class="px-3 py-2 text-sm font-medium text-ink-dim cursor-not-allowed select-none">
+					<span class="px-3 py-2 text-sm font-medium text-ink-muted cursor-not-allowed select-none">
 						Class <span class="text-xs">(coming soon)</span>
 					</span>
 				</nav>
@@ -106,9 +106,9 @@ templ Layout(title string, showBack bool) {
 					update();
 				})();
 			</script>
-			<footer class="shrink-0 border-t border-edge bg-surface px-4 py-2 flex items-center justify-between">
-				<span class="text-xs text-ink-dim">ChessLeap</span>
-				<span class="text-xs text-ink-dim">v0.1.0</span>
+			<footer class="shrink-0 border-t border-edge bg-surface-1 px-4 py-2 flex items-center justify-between">
+				<span class="text-xs text-ink-muted">ChessLeap</span>
+				<span class="text-xs text-ink-muted">v0.1.0</span>
 			</footer>
 		</body>
 	</html>

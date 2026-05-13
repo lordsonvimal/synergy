@@ -149,21 +149,54 @@
   --color-teal-900: #134E4A;
   --color-teal-950: #042F2E;
 
-  /* Surfaces — page bg: canvas, cards/panels/modals: surface, dropdowns/popovers: surface-raised, disabled/zebra: muted */
-  --color-canvas: #FAFBFD;
-  --color-surface: #FFFFFF;
-  --color-surface-raised: #FFFFFF;
-  --color-surface-sunken: #F8FAFC;
-  --color-muted: #F1F5F9;
+  /* ===========================
+     SURFACES — depth hierarchy (light → dark = more nested/recessed)
+     Elevation (floating vs resting) is expressed via shadow tokens, not surface color.
 
-  /* Borders — edge: dividers/card borders, edge-strong: input borders (default state) */
+     surface-0  floating: modals, dropdowns, tooltips — use with shadow-md or higher
+     surface-1  cards, panels, sidebars — the primary content surface
+     surface-2  nested sections within a card (e.g. participant row, drill tile)
+     surface-3  recessed / inset areas (e.g. code blocks, sunken inputs)
+     surface-4  zebra rows, disabled areas, subtle alternating backgrounds
+     canvas     page background — the deepest layer, never used on components
+     =========================== */
+  --color-surface-0: #FFFFFF;
+  --color-surface-1: #FAFCFF;
+  --color-surface-2: #F7FAFD;
+  --color-surface-3: #F2F6FB;
+  --color-surface-4: #EEF3F9;
+  --color-canvas: #E8EEF6;
+
+  /* ===========================
+     BORDERS — 4 levels of emphasis
+     Tinted surfaces (e.g. bg-primary-50) use {color}-200 as border — no extra token needed.
+
+     edge-subtle   internal dividers within a card, hairline separators
+     edge          default card/panel borders
+     edge-strong   input borders (default state), focused elements
+     edge-emphasis heavy dividers, high-contrast separators
+     =========================== */
+  --color-edge-subtle: #F1F5F9;
   --color-edge: #E2E8F0;
   --color-edge-strong: #CBD5E1;
+  --color-edge-emphasis: #94A3B8;
 
-  /* Text — ink: body/headings, ink-secondary: labels/descriptions, ink-dim: placeholders/disabled/timestamps */
+  /* ===========================
+     TEXT — semantic roles
+     For colored text (alerts, status, validation) use the palette directly:
+     text-error, text-success, text-warning, text-info, text-primary, etc.
+
+     ink          primary body text, headings
+     ink-subtle   labels, descriptions, secondary content
+     ink-muted    timestamps, placeholders, captions
+     ink-disabled disabled controls, non-interactive text
+     =========================== */
   --color-ink: #0F172A;
-  --color-ink-secondary: #475569;
-  --color-ink-dim: #94A3B8;
+  --color-ink-subtle: #475569;
+  --color-ink-muted: #94A3B8;
+  --color-ink-disabled: #CBD5E1;
+
+  /* On-color text — for text placed on semantic color backgrounds */
   --color-on-primary: #FFFFFF;
   --color-on-accent: #FFFFFF;
   --color-on-success: #FFFFFF;

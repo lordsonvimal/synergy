@@ -71,19 +71,19 @@ func GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exist
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<!-- Tab switcher --><div class=\"flex gap-1 mb-6 bg-muted rounded-lg p-1\"><button type=\"button\" data-on:click=\"$activeTab = 'online'\" data-class=\"{'bg-surface shadow-sm text-ink': $activeTab === 'online', 'text-ink-secondary hover:bg-muted': $activeTab !== 'online'}\" class=\"flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer\">Online</button> <button type=\"button\" data-on:click=\"$activeTab = 'computer'\" data-class=\"{'bg-surface shadow-sm text-ink': $activeTab === 'computer', 'text-ink-secondary hover:bg-muted': $activeTab !== 'computer'}\" class=\"flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer\">Computer</button> <button type=\"button\" data-on:click=\"$activeTab = 'self'\" data-class=\"{'bg-surface shadow-sm text-ink': $activeTab === 'self', 'text-ink-secondary hover:bg-muted': $activeTab !== 'self'}\" class=\"flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer\">Self</button></div><!-- Online tab --><div data-show=\"$activeTab === 'online'\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<!-- Tab switcher --><div class=\"flex gap-1 mb-6 bg-surface-4 rounded-lg p-1\"><button type=\"button\" data-on:click=\"$activeTab = 'online'\" data-class=\"{'bg-surface-1 shadow-sm text-ink': $activeTab === 'online', 'text-ink-subtle hover:bg-surface-4': $activeTab !== 'online'}\" class=\"flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer\">Online</button> <button type=\"button\" data-on:click=\"$activeTab = 'computer'\" data-class=\"{'bg-surface-1 shadow-sm text-ink': $activeTab === 'computer', 'text-ink-subtle hover:bg-surface-4': $activeTab !== 'computer'}\" class=\"flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer\">Computer</button> <button type=\"button\" data-on:click=\"$activeTab = 'self'\" data-class=\"{'bg-surface-1 shadow-sm text-ink': $activeTab === 'self', 'text-ink-subtle hover:bg-surface-4': $activeTab !== 'self'}\" class=\"flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer\">Self</button></div><!-- Online tab --><div data-show=\"$activeTab === 'online'\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if existingGameID != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<!-- Already in game block --> <div class=\"bg-surface border border-edge rounded-md p-4 flex flex-col gap-4\"><div class=\"flex items-start gap-3\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-5 h-5 shrink-0 text-primary mt-0.5\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle> <line x1=\"12\" y1=\"8\" x2=\"12\" y2=\"12\"></line> <line x1=\"12\" y1=\"16\" x2=\"12.01\" y2=\"16\"></line></svg><div><p class=\"text-sm font-semibold text-ink\">You have an ongoing game</p><p class=\"text-xs text-ink-secondary mt-0.5\">Playing as ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<!-- Already in game block --> <div class=\"bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-4\"><div class=\"flex items-start gap-3\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-5 h-5 shrink-0 text-primary mt-0.5\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle> <line x1=\"12\" y1=\"8\" x2=\"12\" y2=\"12\"></line> <line x1=\"12\" y1=\"16\" x2=\"12.01\" y2=\"16\"></line></svg><div><p class=\"text-sm font-semibold text-ink\">You have an ongoing game</p><p class=\"text-xs text-ink-subtle mt-0.5\">Playing as ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(existingGameRole)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 65, Col: 83}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 65, Col: 80}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -138,7 +138,7 @@ func GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exist
 					return templ_7745c5c3_Err
 				}
 				if len(modes) == 0 {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<p class=\"text-sm text-ink-secondary\">No game modes available.</p>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<p class=\"text-sm text-ink-subtle\">No game modes available.</p>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -236,7 +236,7 @@ func GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exist
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" class=\"w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left transition\"><div class=\"flex justify-between items-center gap-3\"><div class=\"min-w-0\"><div class=\"text-lg font-semibold text-ink truncate\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" class=\"w-full bg-surface-1 rounded-md shadow-sm border border-edge p-4 text-left transition\"><div class=\"flex justify-between items-center gap-3\"><div class=\"min-w-0\"><div class=\"text-lg font-semibold text-ink truncate\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -249,20 +249,20 @@ func GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exist
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div><div class=\"text-sm text-ink-secondary\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div><div class=\"text-sm text-ink-subtle\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var15 string
 						templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(mode.Variant)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 113, Col: 67}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 113, Col: 64}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div></div><div class=\"text-sm text-ink-dim whitespace-nowrap shrink-0\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div></div><div class=\"text-sm text-ink-muted whitespace-nowrap shrink-0\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -304,7 +304,7 @@ func GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exist
 				return templ_7745c5c3_Err
 			}
 			if len(modes) == 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<p class=\"text-sm text-ink-secondary\">No game modes available.</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<p class=\"text-sm text-ink-subtle\">No game modes available.</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -402,7 +402,7 @@ func GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exist
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "\" class=\"w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left transition\"><div class=\"flex justify-between items-center gap-3\"><div class=\"min-w-0\"><div class=\"text-lg font-semibold text-ink truncate\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "\" class=\"w-full bg-surface-1 rounded-md shadow-sm border border-edge p-4 text-left transition\"><div class=\"flex justify-between items-center gap-3\"><div class=\"min-w-0\"><div class=\"text-lg font-semibold text-ink truncate\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -415,20 +415,20 @@ func GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exist
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "</div><div class=\"text-sm text-ink-secondary\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "</div><div class=\"text-sm text-ink-subtle\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var25 string
 					templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(mode.Variant)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 158, Col: 66}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/gamemodes.templ`, Line: 158, Col: 63}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</div></div><div class=\"text-sm text-ink-dim whitespace-nowrap shrink-0\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</div></div><div class=\"text-sm text-ink-muted whitespace-nowrap shrink-0\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -464,7 +464,7 @@ func GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, exist
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</div><!-- Self tab --><div data-show=\"$activeTab === 'self'\" style=\"display:none\"><div class=\"flex flex-col items-center gap-4 py-16 text-center\"><p class=\"font-semibold text-ink text-lg\">Coming soon</p><p class=\"text-ink-secondary text-sm\">Self-play mode is under development.</p></div></div></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</div><!-- Self tab --><div data-show=\"$activeTab === 'self'\" style=\"display:none\"><div class=\"flex flex-col items-center gap-4 py-16 text-center\"><p class=\"font-semibold text-ink text-lg\">Coming soon</p><p class=\"text-ink-subtle text-sm\">Self-play mode is under development.</p></div></div></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
