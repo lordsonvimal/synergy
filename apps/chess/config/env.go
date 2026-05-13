@@ -40,3 +40,8 @@ func GetEnv(key, fallback string) string {
 func DBPath() string {
 	return filepath.Join(GetEnv("DATA_DIR", "."), "chess.db")
 }
+
+// SessionSecret returns the HMAC signing key for play session JWTs.
+func SessionSecret() []byte {
+	return []byte(GetEnv("SESSION_SECRET", "dev-insecure-secret-change-me"))
+}

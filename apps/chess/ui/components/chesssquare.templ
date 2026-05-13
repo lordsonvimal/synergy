@@ -46,7 +46,7 @@ templ coordLabels(rank, file int, coordColor, coordShadow string) {
 	}
 }
 
-templ RenderChessSquare(g *game.Game, rank int, file int) {
+templ RenderChessSquare(g *game.Game, rank int, file int, routePrefix string) {
 	{{
 		// rank 0, file 0 now equals 0 (A1)
 		// rank 7, file 0 now equals 56 (A8)
@@ -70,7 +70,7 @@ templ RenderChessSquare(g *game.Game, rank int, file int) {
 			coordShadow = "[text-shadow:0_1px_2px_rgba(0,0,0,0.5)]"
 		}
 
-		onClick := templ.JSExpression("@post('/game/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
+		onClick := templ.JSExpression("@post('" + routePrefix + "/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
 		label := helpers.SquareLabel(sq, color, piece, ok)
 	}}
 	<div

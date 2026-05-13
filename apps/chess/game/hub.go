@@ -1,6 +1,10 @@
 package game
 
-import "sync"
+import (
+	"encoding/json"
+	"fmt"
+	"sync"
+)
 
 // GameHub is a fan-out broadcast hub for SSE subscribers.
 // Each connected browser tab gets its own buffered channel.
@@ -50,4 +54,14 @@ func (h *GameHub) Len() int {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return len(h.subs)
+}
+
+// BroadcastEvent marshals v as JSON and broadcasts it to all subscribers.
+func (h *GameHub) BroadcastEvent(v any) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return
+	}
+	raw := fmt.Appendf(nil, "data: %s\n\n", b)
+	h.Broadcast(raw)
 }

@@ -1,20 +1,15 @@
 package components
 
 // BlackPlayerCard and WhitePlayerCard share identical Tailwind styles.
-// The only per-player differences are the piece-color dot fill and the
-// DataStar expressions that reference the correct side index (0/1).
+// Online presence dots are always in the DOM; they are hidden in game mode via
+// data-signals.ifmissing (defaulting whiteOnline/blackOnline to false) and
+// driven by SSE events in play mode.
 templ BlackPlayerCard() {
 	<div
 		data-testid="player-card-black"
+		data-signals.ifmissing='{"blackOnline": false, "clockUnlocked": false}'
 		class="flex items-center gap-3 px-3 py-2.5 bg-neutral-950 border-transparent transition-colors duration-150"
-		data-class={ templ.JSExpression(`
-			(() => {
-				const active = $sideToMove === 1 && $gameState === 0;
-				return {
-					'order-last': $flipped,
-				};
-			})()
-		`) }
+		data-class={ templ.JSExpression(`{'order-last': $flipped}`) }
 	>
 		<!-- Fixed chess-domain color: black piece -->
 		<span
@@ -23,6 +18,14 @@ templ BlackPlayerCard() {
 			aria-hidden="true"
 		></span>
 		<span class="text-on-neutral font-semibold text-sm flex-1 select-none">Black</span>
+		<!-- Online presence dot: hidden in game mode (signal defaults false), driven by SSE in play mode -->
+		<span
+			class="w-2 h-2 rounded-full shrink-0 transition-colors duration-300"
+			data-show="$clockUnlocked"
+			style="display:none"
+			data-class={ templ.JSExpression(`{'bg-success': $blackOnline, 'bg-ink-dim': !$blackOnline}`) }
+			aria-hidden="true"
+		></span>
 		<span
 			class="w-1.5 h-1.5 rounded-full bg-primary shrink-0"
 			data-show="$sideToMove === 1 && $gameState === 0"
@@ -41,15 +44,9 @@ templ BlackPlayerCard() {
 templ WhitePlayerCard() {
 	<div
 		data-testid="player-card-white"
+		data-signals.ifmissing='{"whiteOnline": false, "clockUnlocked": false}'
 		class="flex items-center gap-3 px-3 py-2.5 bg-neutral-950 border-transparent transition-colors duration-150"
-		data-class={ templ.JSExpression(`
-			(() => {
-				const active = $sideToMove === 0 && $gameState === 0;
-				return {
-					'order-first': $flipped,
-				};
-			})()
-		`) }
+		data-class={ templ.JSExpression(`{'order-first': $flipped}`) }
 	>
 		<!-- Fixed chess-domain color: white piece -->
 		<span
@@ -58,6 +55,14 @@ templ WhitePlayerCard() {
 			aria-hidden="true"
 		></span>
 		<span class="text-on-neutral font-semibold text-sm flex-1 select-none">White</span>
+		<!-- Online presence dot: hidden in game mode (signal defaults false), driven by SSE in play mode -->
+		<span
+			class="w-2 h-2 rounded-full shrink-0 transition-colors duration-300"
+			data-show="$clockUnlocked"
+			style="display:none"
+			data-class={ templ.JSExpression(`{'bg-success': $whiteOnline, 'bg-ink-dim': !$whiteOnline}`) }
+			aria-hidden="true"
+		></span>
 		<span
 			class="w-1.5 h-1.5 rounded-full bg-primary shrink-0"
 			data-show="$sideToMove === 0 && $gameState === 0"

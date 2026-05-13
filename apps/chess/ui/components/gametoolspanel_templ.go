@@ -9,9 +9,9 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // GameToolsPanel renders the flip button and game-result row.
-// Sits below the move notation panel. Designed as a strip for future tools
-// (Rematch, Resign, Take back, Analyze, etc.).
-func GameToolsPanel() templ.Component {
+// Pass gameID + role + csrfToken for online play mode to enable claim-victory
+// and propose-rematch buttons; pass empty strings for computer/self game mode.
+func GameToolsPanel(gameID, role, csrfToken string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -32,22 +32,58 @@ func GameToolsPanel() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div data-testid=\"game-tools-panel\" class=\"flex items-center gap-2 px-3 py-2 bg-surface\"><!-- Flip board (icon only) --><button data-testid=\"flip-board-button\" aria-label=\"Flip board orientation\" data-on:click=\"$flipped = !$flipped\" class=\"inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-secondary hover:bg-surface hover:text-ink transition-colors duration-150 cursor-pointer shrink-0\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-3.5 h-3.5\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 16V4m0 0L3 8m4-4l4 4\"></path> <path d=\"M17 8v12m0 0l4-4m-4 4l-4-4\"></path></svg></button><!-- Spacer --><div class=\"flex-1\"></div><!-- Game result — visible only when game ends --><div class=\"flex flex-col items-end gap-0.5\" data-show=\"$gameState !== 0\" style=\"display:none\"><span class=\"text-ink font-semibold text-sm leading-none\" data-text=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div data-testid=\"game-tools-panel\" class=\"flex items-center gap-2 px-3 py-2 bg-surface\"><!-- Flip board (icon only) --><button data-testid=\"flip-board-button\" aria-label=\"Flip board orientation\" data-on:click=\"$flipped = !$flipped\" class=\"inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-secondary hover:bg-muted hover:text-ink transition-colors duration-150 cursor-pointer shrink-0\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"w-3.5 h-3.5\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 16V4m0 0L3 8m4-4l4 4\"></path> <path d=\"M17 8v12m0 0l4-4m-4 4l-4-4\"></path></svg></button><!-- Spacer --><div class=\"flex-1\"></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(`
+		if gameID != "" && (role == "white" || role == "black") {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<!-- Claim victory: shown when opponent has been disconnected ≥60s --> <button type=\"button\" data-on:click=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var2 string
+			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression("@post('/play/" + gameID + "/claim-victory')"))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gametoolspanel.templ`, Line: 41, Col: 85}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" data-show=\"$claimVictory\" style=\"display:none\" class=\"px-3 py-1.5 text-xs font-medium bg-primary text-on-primary rounded-md hover:bg-primary-hover transition cursor-pointer\">Claim victory</button><!-- Propose rematch: shown after game ends if no rematch in progress --> <button type=\"button\" data-on:click=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var3 string
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression("@post('/play/" + gameID + "/rematch')"))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gametoolspanel.templ`, Line: 49, Col: 79}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" data-show=\"$gameState !== 0 && !$rematchProposed\" style=\"display:none\" class=\"px-3 py-1.5 text-xs font-medium border border-edge text-ink rounded-md hover:bg-muted transition cursor-pointer\">Rematch</button>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<!-- Game result — visible only when game ends --><div class=\"flex flex-col items-end gap-0.5\" data-show=\"$gameState !== 0\" style=\"display:none\"><span class=\"text-ink font-semibold text-sm leading-none\" data-text=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var4 string
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(`
 					$winner === 255 ? 'Draw' : ($winner === 0 ? 'White wins' : 'Black wins')
 				`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gametoolspanel.templ`, Line: 47, Col: 6}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gametoolspanel.templ`, Line: 66, Col: 6}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"></span> <span class=\"text-ink-dim text-xs leading-none\" data-text=\"$gameStateText\"></span></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"></span> <span class=\"text-ink-dim text-xs leading-none\" data-text=\"$gameStateText\"></span></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

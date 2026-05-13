@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/lordsonvimal/synergy/apps/chess/engine"
 )
 
 const (
@@ -34,6 +36,78 @@ func (g *Game) startWatchdog() {
 				if g.State != GameOngoing {
 					g.mu.Unlock()
 					return
+				}
+
+				// Play-mode gate: skip clock until both players have connected once.
+				if g.PlayMeta != nil {
+					pm := g.PlayMeta
+					pm.mu.Lock()
+
+					if !pm.BothPlayersConnectedOnce {
+						pm.mu.Unlock()
+						g.mu.Unlock()
+						continue
+					}
+
+					// First-move timeout: 30s after both players first connected.
+					if pm.FirstMoveDeadline != nil &&
+						now.After(*pm.FirstMoveDeadline) &&
+						len(g.History) == 0 {
+						pm.mu.Unlock()
+						g.State = GameAbandoned
+						g.signalGameOver()
+						g.mu.Unlock()
+						return
+					}
+
+					// Rematch proposal expiry: 30s.
+					if pm.RematchProposedAt != nil &&
+						now.Sub(*pm.RematchProposedAt) > 30*time.Second {
+						pm.RematchProposedBy = engine.NoColor
+						pm.RematchProposedAt = nil
+						pm.mu.Unlock()
+						go g.broadcastJSON(RematchExpiredEvent{Type: "rematch_expired"})
+					} else {
+						pm.mu.Unlock()
+					}
+
+					// Re-lock pm to check disconnect thresholds.
+					pm.mu.Lock()
+					whiteDisNs := pm.totalDisconnectedNsLocked(engine.White, now)
+					blackDisNs := pm.totalDisconnectedNsLocked(engine.Black, now)
+					claimFor := pm.ClaimVictoryFor
+
+					// 60s: enable claim-victory button (once per side).
+					if claimFor == engine.NoColor {
+						if whiteDisNs >= 60*int64(time.Second) {
+							pm.ClaimVictoryFor = engine.White
+							pm.mu.Unlock()
+							go g.broadcastJSON(ClaimVictoryEvent{Type: "claim_victory_available", DisconnectedFor: "white"})
+						} else if blackDisNs >= 60*int64(time.Second) {
+							pm.ClaimVictoryFor = engine.Black
+							pm.mu.Unlock()
+							go g.broadcastJSON(ClaimVictoryEvent{Type: "claim_victory_available", DisconnectedFor: "black"})
+						} else {
+							pm.mu.Unlock()
+						}
+					} else {
+						pm.mu.Unlock()
+					}
+
+					// 120s: auto-abandon.
+					if whiteDisNs >= 120*int64(time.Second) || blackDisNs >= 120*int64(time.Second) {
+						var winner engine.Color
+						if whiteDisNs >= 120*int64(time.Second) {
+							winner = engine.Black
+						} else {
+							winner = engine.White
+						}
+						g.State = GameAbandoned
+						g.Winner = winner
+						g.signalGameOver()
+						g.mu.Unlock()
+						return
+					}
 				}
 
 				// Compute live remaining for both sides.

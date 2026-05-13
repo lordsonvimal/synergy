@@ -63,6 +63,7 @@ type Participant struct {
 	Token       string
 	JoinedAt    int64
 	LeftAt      *int64
+	Claimed     bool
 }
 
 type ChatMessage struct {
@@ -102,6 +103,7 @@ type ParticipantStore interface {
 	Create(ctx context.Context, p *Participant) error
 	GetByToken(ctx context.Context, token string) (*Participant, error)
 	ListBySession(ctx context.Context, sessionID string) ([]*Participant, error)
+	SetClaimed(ctx context.Context, id string, claimedAt int64) error
 }
 
 type ChatStore interface {

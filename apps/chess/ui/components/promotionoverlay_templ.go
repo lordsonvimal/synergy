@@ -11,7 +11,7 @@ import templruntime "github.com/a-h/templ/runtime"
 import "github.com/lordsonvimal/synergy/apps/chess/engine"
 import "github.com/lordsonvimal/synergy/apps/chess/game"
 
-func RenderPromotionOverlay(g *game.Game) templ.Component {
+func RenderPromotionOverlay(g *game.Game, routePrefix string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -49,19 +49,19 @@ func RenderPromotionOverlay(g *game.Game) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = PromotionButton(g, engine.Queen).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = PromotionButton(g, engine.Queen, routePrefix).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = PromotionButton(g, engine.Rook).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = PromotionButton(g, engine.Rook, routePrefix).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = PromotionButton(g, engine.Bishop).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = PromotionButton(g, engine.Bishop, routePrefix).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = PromotionButton(g, engine.Knight).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = PromotionButton(g, engine.Knight, routePrefix).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

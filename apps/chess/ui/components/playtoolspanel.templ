@@ -1,0 +1,24 @@
+package components
+
+// RematchPrompt renders a banner shown to the player who received a rematch proposal.
+templ RematchPrompt(gameID, csrfToken string) {
+	<div class="bg-surface border border-edge rounded-md p-4 flex flex-col gap-3">
+		<p class="text-sm font-semibold text-ink">Your opponent wants a rematch</p>
+		<div class="flex gap-3">
+			<!-- Accept navigates to the new game so it needs a full form POST + redirect. -->
+			<form method="POST" action={ templ.SafeURL("/play/" + gameID + "/rematch/accept") }>
+				<input type="hidden" name="_csrf" value={ csrfToken }/>
+				<button
+					type="submit"
+					class="px-4 py-2 text-sm font-medium bg-primary text-on-primary rounded-md hover:bg-primary-hover transition cursor-pointer"
+				>Accept</button>
+			</form>
+			<!-- Decline sends a fire-and-forget POST; state update arrives via SSE. -->
+			<button
+				type="button"
+				data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/rematch/decline')") }
+				class="px-4 py-2 text-sm font-medium text-error border border-error rounded-md hover:bg-error-subtle transition cursor-pointer"
+			>Decline</button>
+		</div>
+	</div>
+}

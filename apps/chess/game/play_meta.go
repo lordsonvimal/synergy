@@ -1,0 +1,196 @@
+package game
+
+import (
+	"sync"
+	"time"
+
+	"github.com/lordsonvimal/synergy/apps/chess/engine"
+)
+
+// PlayMeta holds all state specific to the online two-player (/play/*) flow.
+// It is nil for solo (/game/*) games.
+type PlayMeta struct {
+	mu sync.Mutex
+
+	// Set at creation; immutable thereafter.
+	SessionID          string
+	WhiteParticipantID string
+	BlackParticipantID string
+	WhiteToken         string
+	BlackToken         string
+	OriginalMode       GameMode // preserved for rematch game creation
+
+	// Role claiming — backed by DB `claimed` column; restored on server restart.
+	WhiteClaimed bool
+	BlackClaimed bool
+
+	// Active SSE connection counts.
+	whiteConns int
+	blackConns int
+
+	// Cumulative disconnect time per side.
+	whiteTotalDisconnectedNs int64
+	blackTotalDisconnectedNs int64
+	whiteDisconnectAt        *time.Time // nil = currently online
+	blackDisconnectAt        *time.Time
+
+	// Clock-unlock gate: true once both players have had ≥1 SSE connection.
+	BothPlayersConnectedOnce bool
+	FirstMoveDeadline        *time.Time // 30s after both first connect
+
+	// ClaimVictoryFor is set when a player has been disconnected ≥60s.
+	ClaimVictoryFor engine.Color
+
+	// Rematch state.
+	RematchProposedBy engine.Color
+	RematchProposedAt *time.Time
+}
+
+// RecordSSEConnect notes a new SSE connection for the given role.
+// Returns true the first time both white and black are simultaneously online.
+func (m *PlayMeta) RecordSSEConnect(role string) (bothNowConnected bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	now := time.Now()
+	switch role {
+	case "white":
+		m.whiteConns++
+		if m.whiteDisconnectAt != nil {
+			m.whiteTotalDisconnectedNs += now.Sub(*m.whiteDisconnectAt).Nanoseconds()
+			m.whiteDisconnectAt = nil
+		}
+	case "black":
+		m.blackConns++
+		if m.blackDisconnectAt != nil {
+			m.blackTotalDisconnectedNs += now.Sub(*m.blackDisconnectAt).Nanoseconds()
+			m.blackDisconnectAt = nil
+		}
+	default:
+		return false
+	}
+
+	if !m.BothPlayersConnectedOnce && m.whiteConns > 0 && m.blackConns > 0 {
+		m.BothPlayersConnectedOnce = true
+		return true
+	}
+	return false
+}
+
+// RecordSSEDisconnect notes a dropped SSE connection for the given role.
+func (m *PlayMeta) RecordSSEDisconnect(role string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	now := time.Now()
+	switch role {
+	case "white":
+		if m.whiteConns > 0 {
+			m.whiteConns--
+		}
+		if m.whiteConns == 0 && m.whiteDisconnectAt == nil {
+			m.whiteDisconnectAt = &now
+		}
+	case "black":
+		if m.blackConns > 0 {
+			m.blackConns--
+		}
+		if m.blackConns == 0 && m.blackDisconnectAt == nil {
+			m.blackDisconnectAt = &now
+		}
+	}
+}
+
+// OnlineStatus returns whether white and black each have ≥1 active SSE connection.
+func (m *PlayMeta) OnlineStatus() (white, black bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.whiteConns > 0, m.blackConns > 0
+}
+
+// totalDisconnectedNsLocked returns cumulative disconnected nanoseconds for a side.
+// Caller must hold m.mu.
+func (m *PlayMeta) totalDisconnectedNsLocked(color engine.Color, now time.Time) int64 {
+	if color == engine.White {
+		total := m.whiteTotalDisconnectedNs
+		if m.whiteDisconnectAt != nil {
+			total += now.Sub(*m.whiteDisconnectAt).Nanoseconds()
+		}
+		return total
+	}
+	total := m.blackTotalDisconnectedNs
+	if m.blackDisconnectAt != nil {
+		total += now.Sub(*m.blackDisconnectAt).Nanoseconds()
+	}
+	return total
+}
+
+// TryClaim atomically checks and claims a token.
+// Returns participantID and role on success; ok=false if token is unknown or already claimed.
+func (m *PlayMeta) TryClaim(token string) (participantID, role string, ok bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	switch token {
+	case m.WhiteToken:
+		if !m.WhiteClaimed {
+			m.WhiteClaimed = true
+			return m.WhiteParticipantID, "white", true
+		}
+	case m.BlackToken:
+		if !m.BlackClaimed {
+			m.BlackClaimed = true
+			return m.BlackParticipantID, "black", true
+		}
+	}
+	return "", "", false
+}
+
+// GetClaimVictoryFor returns the side whose disconnect enables claim-victory.
+func (m *PlayMeta) GetClaimVictoryFor() engine.Color {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.ClaimVictoryFor
+}
+
+// IsStarted returns true after both players have had ≥1 SSE connection.
+func (m *PlayMeta) IsStarted() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.BothPlayersConnectedOnce
+}
+
+// TryProposeRematch atomically sets a rematch proposal if none exists.
+func (m *PlayMeta) TryProposeRematch(proposerColor engine.Color) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.RematchProposedBy != engine.NoColor {
+		return false
+	}
+	now := time.Now()
+	m.RematchProposedBy = proposerColor
+	m.RematchProposedAt = &now
+	return true
+}
+
+// AcceptAndClearRematch atomically accepts and clears a rematch proposal.
+// Returns the proposer's color and true on success; false if the accepter is the proposer
+// or no proposal exists.
+func (m *PlayMeta) AcceptAndClearRematch(accepterColor engine.Color) (engine.Color, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.RematchProposedBy == engine.NoColor || m.RematchProposedBy == accepterColor {
+		return engine.NoColor, false
+	}
+	proposer := m.RematchProposedBy
+	m.RematchProposedBy = engine.NoColor
+	m.RematchProposedAt = nil
+	return proposer, true
+}
+
+// ClearRematch clears any pending rematch proposal.
+func (m *PlayMeta) ClearRematch() {
+	m.mu.Lock()
+	m.RematchProposedBy = engine.NoColor
+	m.RematchProposedAt = nil
+	m.mu.Unlock()
+}

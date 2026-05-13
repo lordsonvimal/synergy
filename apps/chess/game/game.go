@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lordsonvimal/synergy/apps/chess/engine"
@@ -47,6 +48,7 @@ type Game struct {
 	Seq       uint64
 	State     GameState
 	Winner    engine.Color // valid after game over
+	PlayMeta  *PlayMeta    // nil for /game/* solo flow
 
 	mu             sync.RWMutex
 	legalMoveCache map[engine.Color]bool // cache per side
@@ -75,6 +77,58 @@ func NewGame(mode *GameMode) *Game {
 	return g
 }
 
+// NewPlayGame creates an online two-player game. The clock is NOT started at
+// creation — it starts when both players first connect via SSE.
+func NewPlayGame(mode *GameMode, meta *PlayMeta) *Game {
+	board := engine.NewBoard()
+	id := uuid.New().String()
+	gc := NewClock(mode.TimeNs, mode.Increment)
+
+	g := &Game{
+		ID:       id,
+		Board:    board,
+		Clock:    gc,
+		Hub:      NewGameHub(),
+		History:  make([]MoveRecord, 0),
+		Seq:      0,
+		State:    GameOngoing,
+		Winner:   engine.NoColor,
+		PlayMeta: meta,
+		stopCh:   make(chan struct{}),
+	}
+	g.startWatchdog()
+	return g
+}
+
+// NewRestoredPlayGame builds an ongoing play game from DB after a server restart.
+// The clock is not started; it waits for both players to reconnect via SSE.
+func NewRestoredPlayGame(
+	id string, board *engine.Board, clock GameClock,
+	history []MoveRecord, seq uint64, state GameState, winner engine.Color,
+	meta *PlayMeta,
+) *Game {
+	stopCh := make(chan struct{})
+	if state != GameOngoing {
+		close(stopCh)
+	}
+	g := &Game{
+		ID:       id,
+		Board:    board,
+		Clock:    clock,
+		Hub:      NewGameHub(),
+		History:  history,
+		Seq:      seq,
+		State:    state,
+		Winner:   winner,
+		PlayMeta: meta,
+		stopCh:   stopCh,
+	}
+	if state == GameOngoing {
+		g.startWatchdog()
+	}
+	return g
+}
+
 // NewRestoredGame builds a Game from fields loaded out of the DB.
 // Unexported fields are initialised safely; no watchdog is started.
 func NewRestoredGame(
@@ -96,6 +150,46 @@ func NewRestoredGame(
 		Winner:  winner,
 		stopCh:  stopCh,
 	}
+}
+
+// BroadcastEvent marshals v as JSON and broadcasts it to all SSE subscribers.
+func (g *Game) BroadcastEvent(v any) {
+	go g.broadcastJSON(v)
+}
+
+// AbandonWithResult sets the game as abandoned, optionally with a winner,
+// and signals game over. Returns false if the game was already finished.
+func (g *Game) AbandonWithResult(winner engine.Color) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.State != GameOngoing {
+		return false
+	}
+	g.State = GameAbandoned
+	g.Winner = winner
+	g.signalGameOver()
+	return true
+}
+
+// IsOngoing returns true if the game is still in progress.
+func (g *Game) IsOngoing() bool {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.State == GameOngoing
+}
+
+// StartPlayClock is called by PlayEventsHandler the first time both players
+// simultaneously have an SSE connection. It records the first-move deadline
+// on PlayMeta and starts the white clock.
+func (g *Game) StartPlayClock(deadline time.Time) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.PlayMeta != nil {
+		g.PlayMeta.mu.Lock()
+		g.PlayMeta.FirstMoveDeadline = &deadline
+		g.PlayMeta.mu.Unlock()
+	}
+	g.Clock.Start(engine.White)
 }
 
 // InitBatch wires up DB persistence for this game. Call once after NewGame,

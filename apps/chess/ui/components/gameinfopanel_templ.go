@@ -9,8 +9,9 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // BlackPlayerCard and WhitePlayerCard share identical Tailwind styles.
-// The only per-player differences are the piece-color dot fill and the
-// DataStar expressions that reference the correct side index (0/1).
+// Online presence dots are always in the DOM; they are hidden in game mode via
+// data-signals.ifmissing (defaulting whiteOnline/blackOnline to false) and
+// driven by SSE events in play mode.
 func BlackPlayerCard() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -32,27 +33,33 @@ func BlackPlayerCard() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div data-testid=\"player-card-black\" class=\"flex items-center gap-3 px-3 py-2.5 bg-neutral-950 border-transparent transition-colors duration-150\" data-class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div data-testid=\"player-card-black\" data-signals.ifmissing='{\"blackOnline\": false, \"clockUnlocked\": false}' class=\"flex items-center gap-3 px-3 py-2.5 bg-neutral-950 border-transparent transition-colors duration-150\" data-class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(`
-			(() => {
-				const active = $sideToMove === 1 && $gameState === 0;
-				return {
-					'order-last': $flipped,
-				};
-			})()
-		`))
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(`{'order-last': $flipped}`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 17, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 12, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><!-- Fixed chess-domain color: black piece --><span class=\"w-3 h-3 rounded-full shrink-0 border border-edge\" style=\"background-color: #1A1A1A;\" aria-hidden=\"true\"></span> <span class=\"text-on-neutral font-semibold text-sm flex-1 select-none\">Black</span> <span class=\"w-1.5 h-1.5 rounded-full bg-primary shrink-0\" data-show=\"$sideToMove === 1 && $gameState === 0\" style=\"display:none\" aria-hidden=\"true\"></span> <span id=\"black-clock\" data-testid=\"clock-black\" class=\"text-ink-dim text-sm font-mono tabular-nums font-semibold\" aria-label=\"Black clock\">--</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><!-- Fixed chess-domain color: black piece --><span class=\"w-3 h-3 rounded-full shrink-0 border border-edge\" style=\"background-color: #1A1A1A;\" aria-hidden=\"true\"></span> <span class=\"text-on-neutral font-semibold text-sm flex-1 select-none\">Black</span><!-- Online presence dot: hidden in game mode (signal defaults false), driven by SSE in play mode --><span class=\"w-2 h-2 rounded-full shrink-0 transition-colors duration-300\" data-show=\"$clockUnlocked\" style=\"display:none\" data-class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var3 string
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(`{'bg-success': $blackOnline, 'bg-ink-dim': !$blackOnline}`))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 26, Col: 95}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" aria-hidden=\"true\"></span> <span class=\"w-1.5 h-1.5 rounded-full bg-primary shrink-0\" data-show=\"$sideToMove === 1 && $gameState === 0\" style=\"display:none\" aria-hidden=\"true\"></span> <span id=\"black-clock\" data-testid=\"clock-black\" class=\"text-ink-dim text-sm font-mono tabular-nums font-semibold\" aria-label=\"Black clock\">--</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -76,32 +83,38 @@ func WhitePlayerCard() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var3 == nil {
-			templ_7745c5c3_Var3 = templ.NopComponent
+		templ_7745c5c3_Var4 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var4 == nil {
+			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div data-testid=\"player-card-white\" class=\"flex items-center gap-3 px-3 py-2.5 bg-neutral-950 border-transparent transition-colors duration-150\" data-class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div data-testid=\"player-card-white\" data-signals.ifmissing='{\"whiteOnline\": false, \"clockUnlocked\": false}' class=\"flex items-center gap-3 px-3 py-2.5 bg-neutral-950 border-transparent transition-colors duration-150\" data-class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var4 string
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(`
-			(() => {
-				const active = $sideToMove === 0 && $gameState === 0;
-				return {
-					'order-first': $flipped,
-				};
-			})()
-		`))
+		var templ_7745c5c3_Var5 string
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(`{'order-first': $flipped}`))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 52, Col: 4}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 49, Col: 62}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><!-- Fixed chess-domain color: white piece --><span class=\"w-3 h-3 rounded-full shrink-0 border border-edge\" style=\"background-color: #F5F5F5;\" aria-hidden=\"true\"></span> <span class=\"text-on-neutral font-semibold text-sm flex-1 select-none\">White</span> <span class=\"w-1.5 h-1.5 rounded-full bg-primary shrink-0\" data-show=\"$sideToMove === 0 && $gameState === 0\" style=\"display:none\" aria-hidden=\"true\"></span> <span id=\"white-clock\" data-testid=\"clock-white\" class=\"text-ink-dim text-sm font-mono tabular-nums font-semibold\" aria-label=\"White clock\">--</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"><!-- Fixed chess-domain color: white piece --><span class=\"w-3 h-3 rounded-full shrink-0 border border-edge\" style=\"background-color: #F5F5F5;\" aria-hidden=\"true\"></span> <span class=\"text-on-neutral font-semibold text-sm flex-1 select-none\">White</span><!-- Online presence dot: hidden in game mode (signal defaults false), driven by SSE in play mode --><span class=\"w-2 h-2 rounded-full shrink-0 transition-colors duration-300\" data-show=\"$clockUnlocked\" style=\"display:none\" data-class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var6 string
+		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSExpression(`{'bg-success': $whiteOnline, 'bg-ink-dim': !$whiteOnline}`))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/gameinfopanel.templ`, Line: 63, Col: 95}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" aria-hidden=\"true\"></span> <span class=\"w-1.5 h-1.5 rounded-full bg-primary shrink-0\" data-show=\"$sideToMove === 0 && $gameState === 0\" style=\"display:none\" aria-hidden=\"true\"></span> <span id=\"white-clock\" data-testid=\"clock-white\" class=\"text-ink-dim text-sm font-mono tabular-nums font-semibold\" aria-label=\"White clock\">--</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -126,12 +139,12 @@ func GameStatusBanner() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var5 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var5 == nil {
-			templ_7745c5c3_Var5 = templ.NopComponent
+		templ_7745c5c3_Var7 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var7 == nil {
+			templ_7745c5c3_Var7 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div aria-live=\"polite\" aria-atomic=\"true\" class=\"sr-only\"><span data-text=\"'Turn: ' + ($sideToMove === 0 ? 'White' : 'Black') + '. ' + $gameStateText\"></span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div aria-live=\"polite\" aria-atomic=\"true\" class=\"sr-only\"><span data-text=\"'Turn: ' + ($sideToMove === 0 ? 'White' : 'Black') + '. ' + $gameStateText\"></span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

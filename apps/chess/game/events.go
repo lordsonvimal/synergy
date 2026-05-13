@@ -19,3 +19,50 @@ type GameOverEvent struct {
 	Winner    int       `json:"winner"`
 	StateText string    `json:"state_text"`
 }
+
+// OnlineStatusEvent is broadcast when a player connects or disconnects via SSE.
+type OnlineStatusEvent struct {
+	Type        string `json:"type"`
+	WhiteOnline bool   `json:"white_online"`
+	BlackOnline bool   `json:"black_online"`
+}
+
+// ClockUnlockedEvent is broadcast the first time both players are simultaneously online.
+type ClockUnlockedEvent struct {
+	Type string `json:"type"`
+}
+
+// ClaimVictoryEvent is broadcast when a player has been disconnected for ≥60s.
+type ClaimVictoryEvent struct {
+	Type            string `json:"type"`
+	DisconnectedFor string `json:"disconnected_for"` // "white" | "black"
+}
+
+// GameCancelledEvent is broadcast when a game is abandoned before any moves.
+type GameCancelledEvent struct {
+	Type string `json:"type"`
+}
+
+// RematchProposedEvent is broadcast to the opponent when a rematch is proposed.
+type RematchProposedEvent struct {
+	Type       string `json:"type"`
+	ProposedBy string `json:"proposed_by"` // "white" | "black"
+}
+
+// RematchAcceptedEvent is broadcast to both players when a rematch is accepted.
+// ProposerRedirectURL contains the token URL the proposer should navigate to,
+// since the server can only set the accepter's cookie via the HTTP response.
+type RematchAcceptedEvent struct {
+	Type                string `json:"type"`
+	ProposerRedirectURL string `json:"proposer_redirect_url"`
+}
+
+// RematchDeclinedEvent is broadcast to the proposer when their rematch is declined.
+type RematchDeclinedEvent struct {
+	Type string `json:"type"`
+}
+
+// RematchExpiredEvent is broadcast to both players when a rematch proposal times out.
+type RematchExpiredEvent struct {
+	Type string `json:"type"`
+}

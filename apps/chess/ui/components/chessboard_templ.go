@@ -13,7 +13,7 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/game"
 )
 
-func RenderChessBoard(g *game.Game) templ.Component {
+func RenderChessBoard(g *game.Game, routePrefix string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -40,7 +40,7 @@ func RenderChessBoard(g *game.Game) templ.Component {
 		}
 		for rank := 7; rank >= 0; rank-- {
 			for file := 0; file < 8; file++ {
-				templ_7745c5c3_Err = RenderChessSquare(g, rank, file).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = RenderChessSquare(g, rank, file, routePrefix).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

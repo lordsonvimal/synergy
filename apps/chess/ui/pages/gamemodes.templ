@@ -7,12 +7,11 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/ui/layouts"
 )
 
-templ GameModesPage(modes []game.GameMode, csrfToken string, errMsg string) {
-	@layouts.Layout("ChessLeap — Game Modes", false) {
+templ GameModesPage(modes []game.GameMode, csrfToken string, errMsg string, existingGameID string, existingGameRole string) {
+	@layouts.Layout("ChessLeap", false) {
 		<script type="module" src="/assets/datastar.js"></script>
-		<div data-signals="{loadingMode: -1}" class="flex items-center justify-center min-h-full">
+		<div data-signals="{loadingMode: -1, activeTab: 'online'}" class="flex items-center justify-center min-h-full">
 			<div class="w-full max-w-2xl px-4 py-6 sm:px-6">
-				<h1 class="text-2xl font-bold text-ink mb-6">Choose a Game Mode</h1>
 				if errMsg != "" {
 					<div
 						data-testid="error-banner"
@@ -27,58 +26,155 @@ templ GameModesPage(modes []game.GameMode, csrfToken string, errMsg string) {
 						{ errMsg }
 					</div>
 				}
-				if len(modes) == 0 {
-					<div data-testid="empty-state" class="flex flex-col items-center gap-4 py-16 text-center">
-						<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-ink-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-						</svg>
-						<div>
-							<p class="font-semibold text-ink text-lg">No game modes available</p>
-							<p class="text-ink-secondary text-sm mt-1">Please check back later or refresh the page.</p>
+
+				<!-- Tab switcher -->
+				<div class="flex gap-1 mb-6 bg-muted rounded-lg p-1">
+					<button
+						type="button"
+						data-on:click="$activeTab = 'online'"
+						data-class="{'bg-surface shadow-sm text-ink': $activeTab === 'online', 'text-ink-secondary hover:bg-muted': $activeTab !== 'online'}"
+						class="flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer"
+					>Online</button>
+					<button
+						type="button"
+						data-on:click="$activeTab = 'computer'"
+						data-class="{'bg-surface shadow-sm text-ink': $activeTab === 'computer', 'text-ink-secondary hover:bg-muted': $activeTab !== 'computer'}"
+						class="flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer"
+					>Computer</button>
+					<button
+						type="button"
+						data-on:click="$activeTab = 'self'"
+						data-class="{'bg-surface shadow-sm text-ink': $activeTab === 'self', 'text-ink-secondary hover:bg-muted': $activeTab !== 'self'}"
+						class="flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer"
+					>Self</button>
+				</div>
+
+				<!-- Online tab -->
+				<div data-show="$activeTab === 'online'">
+					if existingGameID != "" {
+						<!-- Already in game block -->
+						<div class="bg-surface border border-edge rounded-md p-4 flex flex-col gap-4">
+							<div class="flex items-start gap-3">
+								<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0 text-primary mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<circle cx="12" cy="12" r="10"></circle>
+									<line x1="12" y1="8" x2="12" y2="12"></line>
+									<line x1="12" y1="16" x2="12.01" y2="16"></line>
+								</svg>
+								<div>
+									<p class="text-sm font-semibold text-ink">You have an ongoing game</p>
+									<p class="text-xs text-ink-secondary mt-0.5">Playing as { existingGameRole }</p>
+								</div>
+							</div>
+							<div class="flex gap-3">
+								<a
+									href={ templ.SafeURL("/play/" + existingGameID) }
+									class="flex-1 text-center py-2 text-sm font-medium bg-primary text-on-primary rounded-md hover:bg-primary-hover transition"
+								>Rejoin game</a>
+								<form method="POST" action={ templ.SafeURL("/play/" + existingGameID + "/abandon") }>
+									<input type="hidden" name="_csrf" value={ csrfToken }/>
+									<button
+										type="submit"
+										class="py-2 px-4 text-sm font-medium text-error border border-error rounded-md hover:bg-error-subtle transition"
+									>Abandon &amp; start new</button>
+								</form>
+							</div>
 						</div>
-						<a
-							href="/"
-							class="px-4 py-2 text-sm font-medium text-on-primary bg-primary rounded-md hover:bg-primary-hover transition-colors duration-150"
-						>Refresh</a>
-					</div>
-				} else {
-					<div class="grid gap-4">
-						for i, mode := range modes {
-							<form method="POST" action="/game">
-								<input type="hidden" name="_csrf" value={ csrfToken }/>
-								<input type="hidden" name="mode" value={ mode.Name }/>
-								<button
-									data-testid={ fmt.Sprintf("game-mode-button-%d", i) }
-									type="submit"
-									data-on:click={ templ.JSExpression(fmt.Sprintf("$loadingMode = %d", i)) }
-									data-attr:disabled={ templ.JSExpression(fmt.Sprintf("$loadingMode !== -1 && $loadingMode !== %d", i)) }
-									data-class={ templ.JSExpression(fmt.Sprintf(`
-										(() => {
-											const active = $loadingMode === %d;
-											const blocked = $loadingMode !== -1 && $loadingMode !== %d;
-											return {
-												'opacity-50 cursor-not-allowed pointer-events-none': blocked,
-												'bg-primary-subtle border-primary cursor-wait': active,
-												'hover:bg-primary-subtle hover:shadow-md cursor-pointer': !active && !blocked,
-											};
-										})()
-									`, i, i)) }
-									class="w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left transition"
-								>
-									<div class="flex justify-between items-center gap-3">
-										<div class="min-w-0">
-											<div class="text-lg font-semibold text-ink truncate">{ mode.Name }</div>
-											<div class="text-sm text-ink-secondary">{ mode.Variant }</div>
-										</div>
-										<div class="text-sm text-ink-dim whitespace-nowrap shrink-0">
-											{ helpers.FormatTime(mode.TimeNs) } + { helpers.FormatInc(mode.Increment) }
-										</div>
-									</div>
-								</button>
-							</form>
+					} else {
+						<!-- Online game creation -->
+						if len(modes) == 0 {
+							<p class="text-sm text-ink-secondary">No game modes available.</p>
+						} else {
+							<div class="grid gap-4">
+								for i, mode := range modes {
+									<form method="POST" action="/play">
+										<input type="hidden" name="_csrf" value={ csrfToken }/>
+										<input type="hidden" name="mode" value={ mode.Name }/>
+										<button
+											data-testid={ fmt.Sprintf("play-mode-button-%d", i) }
+											type="submit"
+											data-on:click={ templ.JSExpression(fmt.Sprintf("$loadingMode = %d", i)) }
+											data-attr:disabled={ templ.JSExpression(fmt.Sprintf("$loadingMode !== -1 && $loadingMode !== %d", i)) }
+											data-class={ templ.JSExpression(fmt.Sprintf(`
+												(() => {
+													const active = $loadingMode === %d;
+													const blocked = $loadingMode !== -1 && $loadingMode !== %d;
+													return {
+														'opacity-50 cursor-not-allowed pointer-events-none': blocked,
+														'bg-primary-subtle border-primary cursor-wait': active,
+														'hover:bg-primary-subtle hover:shadow-md cursor-pointer': !active && !blocked,
+													};
+												})()
+											`, i, i)) }
+											class="w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left transition"
+										>
+											<div class="flex justify-between items-center gap-3">
+												<div class="min-w-0">
+													<div class="text-lg font-semibold text-ink truncate">{ mode.Name }</div>
+													<div class="text-sm text-ink-secondary">{ mode.Variant }</div>
+												</div>
+												<div class="text-sm text-ink-dim whitespace-nowrap shrink-0">
+													{ helpers.FormatTime(mode.TimeNs) } + { helpers.FormatInc(mode.Increment) }
+												</div>
+											</div>
+										</button>
+									</form>
+								}
+							</div>
 						}
+					}
+				</div>
+
+				<!-- Computer tab -->
+				<div data-show="$activeTab === 'computer'" style="display:none">
+					if len(modes) == 0 {
+						<p class="text-sm text-ink-secondary">No game modes available.</p>
+					} else {
+						<div class="grid gap-4">
+							for i, mode := range modes {
+								<form method="POST" action="/game">
+									<input type="hidden" name="_csrf" value={ csrfToken }/>
+									<input type="hidden" name="mode" value={ mode.Name }/>
+									<button
+										data-testid={ fmt.Sprintf("game-mode-button-%d", i) }
+										type="submit"
+										data-on:click={ templ.JSExpression(fmt.Sprintf("$loadingMode = %d", i)) }
+										data-attr:disabled={ templ.JSExpression(fmt.Sprintf("$loadingMode !== -1 && $loadingMode !== %d", i)) }
+										data-class={ templ.JSExpression(fmt.Sprintf(`
+											(() => {
+												const active = $loadingMode === %d;
+												const blocked = $loadingMode !== -1 && $loadingMode !== %d;
+												return {
+													'opacity-50 cursor-not-allowed pointer-events-none': blocked,
+													'bg-primary-subtle border-primary cursor-wait': active,
+													'hover:bg-primary-subtle hover:shadow-md cursor-pointer': !active && !blocked,
+												};
+											})()
+										`, i, i)) }
+										class="w-full bg-surface rounded-md shadow-sm border border-edge p-4 text-left transition"
+									>
+										<div class="flex justify-between items-center gap-3">
+											<div class="min-w-0">
+												<div class="text-lg font-semibold text-ink truncate">{ mode.Name }</div>
+												<div class="text-sm text-ink-secondary">{ mode.Variant }</div>
+											</div>
+											<div class="text-sm text-ink-dim whitespace-nowrap shrink-0">
+												{ helpers.FormatTime(mode.TimeNs) } + { helpers.FormatInc(mode.Increment) }
+											</div>
+										</div>
+									</button>
+								</form>
+							}
+						</div>
+					}
+				</div>
+
+				<!-- Self tab -->
+				<div data-show="$activeTab === 'self'" style="display:none">
+					<div class="flex flex-col items-center gap-4 py-16 text-center">
+						<p class="font-semibold text-ink text-lg">Coming soon</p>
+						<p class="text-ink-secondary text-sm">Self-play mode is under development.</p>
 					</div>
-				}
+				</div>
 			</div>
 		</div>
 	}

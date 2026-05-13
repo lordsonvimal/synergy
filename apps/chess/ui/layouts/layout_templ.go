@@ -44,17 +44,17 @@ func Layout(title string, showBack bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\"><link href=\"/static/style.css\" rel=\"stylesheet\"><script>\n\t\t\t\t(function() {\n\t\t\t\t\tconst t = localStorage.getItem(\"theme\");\n\t\t\t\t\tif (t) { document.documentElement.setAttribute(\"data-theme\", t); }\n\t\t\t\t\telse if (window.matchMedia(\"(prefers-color-scheme: dark)\").matches) {\n\t\t\t\t\t\tdocument.documentElement.setAttribute(\"data-theme\", \"dark\");\n\t\t\t\t\t}\n\t\t\t\t})();\n\t\t\t</script></head><body class=\"bg-neutral-50 text-ink h-full flex flex-col\"><header class=\"flex items-center justify-between px-4 py-3 border-b border-edge bg-surface shrink-0\"><div class=\"flex items-center gap-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\"><link href=\"/static/style.css\" rel=\"stylesheet\"><script>\n\t\t\t\t(function() {\n\t\t\t\t\tconst t = localStorage.getItem(\"theme\");\n\t\t\t\t\tif (t) { document.documentElement.setAttribute(\"data-theme\", t); }\n\t\t\t\t\telse if (window.matchMedia(\"(prefers-color-scheme: dark)\").matches) {\n\t\t\t\t\t\tdocument.documentElement.setAttribute(\"data-theme\", \"dark\");\n\t\t\t\t\t}\n\t\t\t\t})();\n\t\t\t</script></head><body class=\"bg-neutral-50 text-ink h-full flex flex-col\"><header class=\"flex items-center justify-between px-4 py-3 border-b border-edge bg-surface shrink-0\" data-signals.ifmissing='{\"menuOpen\": false}'><div class=\"flex items-center gap-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if showBack {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<a href=\"/\" class=\"p-1 rounded-md hover:bg-muted text-ink-secondary transition\" aria-label=\"Back to game modes\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 18l-6-6 6-6\"></path></svg></a> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<a href=\"/\" class=\"sm:hidden p-1 rounded-md hover:bg-muted text-ink-secondary transition\" aria-label=\"Back to home\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 18l-6-6 6-6\"></path></svg></a> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<a href=\"/\" class=\"flex items-center gap-2 text-lg font-semibold text-ink tracking-tight\"><img src=\"/favicon.svg\" alt=\"ChessLeap logo\" width=\"28\" height=\"28\" class=\"rounded-md\"> ChessLeap</a></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<a href=\"/\" class=\"flex items-center gap-2 text-lg font-semibold text-ink tracking-tight\"><img src=\"/favicon.svg\" alt=\"ChessLeap logo\" width=\"28\" height=\"28\" class=\"rounded-md\"> ChessLeap</a></div><!-- Desktop nav --><nav class=\"hidden sm:flex items-center gap-1\" aria-label=\"Main navigation\"><a href=\"/\" class=\"px-3 py-1.5 text-sm font-medium text-primary bg-primary-subtle rounded-md\">Play</a> <span class=\"px-3 py-1.5 text-sm font-medium text-ink-dim cursor-not-allowed select-none\" aria-disabled=\"true\" title=\"Coming soon\">Practice</span> <span class=\"px-3 py-1.5 text-sm font-medium text-ink-dim cursor-not-allowed select-none\" aria-disabled=\"true\" title=\"Coming soon\">Class</span></nav><div class=\"flex items-center gap-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -62,7 +62,7 @@ func Layout(title string, showBack bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</header><main class=\"flex-1 overflow-auto\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<!-- Mobile hamburger --><button class=\"sm:hidden p-1.5 rounded-md hover:bg-muted text-ink-secondary transition\" data-on:click=\"$menuOpen = !$menuOpen\" aria-label=\"Toggle navigation menu\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"3\" y1=\"6\" x2=\"21\" y2=\"6\"></line> <line x1=\"3\" y1=\"12\" x2=\"21\" y2=\"12\"></line> <line x1=\"3\" y1=\"18\" x2=\"21\" y2=\"18\"></line></svg></button></div></header><!-- Mobile dropdown nav --><div class=\"sm:hidden border-b border-edge bg-surface shrink-0\" data-show=\"$menuOpen\" style=\"display:none\"><nav class=\"px-4 py-2 flex flex-col gap-1\" aria-label=\"Mobile navigation\"><a href=\"/\" class=\"px-3 py-2 text-sm font-medium text-primary bg-primary-subtle rounded-md\">Play</a> <span class=\"px-3 py-2 text-sm font-medium text-ink-dim cursor-not-allowed select-none\">Practice <span class=\"text-xs\">(coming soon)</span></span> <span class=\"px-3 py-2 text-sm font-medium text-ink-dim cursor-not-allowed select-none\">Class <span class=\"text-xs\">(coming soon)</span></span></nav></div><main class=\"flex-1 overflow-auto\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

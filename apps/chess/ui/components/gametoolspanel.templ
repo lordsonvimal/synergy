@@ -1,9 +1,9 @@
 package components
 
 // GameToolsPanel renders the flip button and game-result row.
-// Sits below the move notation panel. Designed as a strip for future tools
-// (Rematch, Resign, Take back, Analyze, etc.).
-templ GameToolsPanel() {
+// Pass gameID + role + csrfToken for online play mode to enable claim-victory
+// and propose-rematch buttons; pass empty strings for computer/self game mode.
+templ GameToolsPanel(gameID, role, csrfToken string) {
 	<div
 		data-testid="game-tools-panel"
 		class="flex items-center gap-2 px-3 py-2 bg-surface"
@@ -13,7 +13,7 @@ templ GameToolsPanel() {
 			data-testid="flip-board-button"
 			aria-label="Flip board orientation"
 			data-on:click="$flipped = !$flipped"
-			class="inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-secondary hover:bg-surface hover:text-ink transition-colors duration-150 cursor-pointer shrink-0"
+			class="inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-secondary hover:bg-muted hover:text-ink transition-colors duration-150 cursor-pointer shrink-0"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -33,6 +33,25 @@ templ GameToolsPanel() {
 
 		<!-- Spacer -->
 		<div class="flex-1"></div>
+
+		if gameID != "" && (role == "white" || role == "black") {
+			<!-- Claim victory: shown when opponent has been disconnected ≥60s -->
+			<button
+				type="button"
+				data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/claim-victory')") }
+				data-show="$claimVictory"
+				style="display:none"
+				class="px-3 py-1.5 text-xs font-medium bg-primary text-on-primary rounded-md hover:bg-primary-hover transition cursor-pointer"
+			>Claim victory</button>
+			<!-- Propose rematch: shown after game ends if no rematch in progress -->
+			<button
+				type="button"
+				data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/rematch')") }
+				data-show="$gameState !== 0 && !$rematchProposed"
+				style="display:none"
+				class="px-3 py-1.5 text-xs font-medium border border-edge text-ink rounded-md hover:bg-muted transition cursor-pointer"
+			>Rematch</button>
+		}
 
 		<!-- Game result — visible only when game ends -->
 		<div

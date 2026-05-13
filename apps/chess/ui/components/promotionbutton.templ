@@ -8,10 +8,10 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
 )
 
-templ PromotionButton(g *game.Game, piece engine.Piece) {
+templ PromotionButton(g *game.Game, piece engine.Piece, routePrefix string) {
 	{{
 		color := g.Board.SideToMove
-		onClick := templ.JSExpression(fmt.Sprintf(`$promotionPiece = %d; @post('/game/%s/select/' + $promotedSquare)`, piece, g.ID))
+		onClick := templ.JSExpression(fmt.Sprintf(`$promotionPiece = %d; @post('%s/%s/select/' + $promotedSquare)`, piece, routePrefix, g.ID))
 		label := "Promote to " + helpers.PieceName(piece)
 	}}
 	<button

@@ -3,17 +3,17 @@ package components
 import "github.com/lordsonvimal/synergy/apps/chess/engine"
 import "github.com/lordsonvimal/synergy/apps/chess/game"
 
-templ RenderPromotionOverlay(g *game.Game) {
+templ RenderPromotionOverlay(g *game.Game, routePrefix string) {
 	<div
 		data-testid="promotion-overlay"
 		class="absolute inset-0 bg-black/40 flex items-center justify-center z-50 hidden"
 		data-class={ templ.JSExpression(`{ 'hidden': !$promotion }`) }
 	>
 		<div class="bg-surface-raised rounded-xl shadow-xl border border-edge p-2 sm:p-3 flex gap-2 sm:gap-3">
-			@PromotionButton(g, engine.Queen)
-			@PromotionButton(g, engine.Rook)
-			@PromotionButton(g, engine.Bishop)
-			@PromotionButton(g, engine.Knight)
+			@PromotionButton(g, engine.Queen, routePrefix)
+			@PromotionButton(g, engine.Rook, routePrefix)
+			@PromotionButton(g, engine.Bishop, routePrefix)
+			@PromotionButton(g, engine.Knight, routePrefix)
 		</div>
 	</div>
 }

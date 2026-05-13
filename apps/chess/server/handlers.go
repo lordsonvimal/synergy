@@ -22,9 +22,21 @@ import (
 )
 
 func ShowGameModes(c *gin.Context) {
+	ctx := c.Request.Context()
 	modes := game.ListGameModes()
 	errMsg := gameErrorMessage(c.Query("error"))
-	Render(c, http.StatusOK, pages.GameModesPage(modes, CSRFToken(c), errMsg))
+
+	var existingGameID, existingGameRole string
+	if claims, err := GetPlaySession(c.Request); err == nil {
+		if repo, ok := store.GetRepoFromContext(ctx); ok {
+			if g, ok := repo.Get(claims.GameID); ok && g.IsOngoing() {
+				existingGameID = claims.GameID
+				existingGameRole = claims.Role
+			}
+		}
+	}
+
+	Render(c, http.StatusOK, pages.GameModesPage(modes, CSRFToken(c), errMsg, existingGameID, existingGameRole))
 }
 
 func ShowGame(c *gin.Context) {
@@ -573,6 +585,8 @@ func gameErrorMessage(code string) string {
 		return "Game not found. It may have expired — please start a new game."
 	case "server_error":
 		return "Something went wrong on our end. Please try again."
+	case "already_in_game":
+		return "You already have an ongoing game. Rejoin or abandon it before starting a new one."
 	default:
 		return ""
 	}

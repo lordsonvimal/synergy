@@ -79,11 +79,11 @@ func NewGamePage(g *game.Game) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.RenderChessBoard(g).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.RenderChessBoard(g, "/game").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.RenderPromotionOverlay(g).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.RenderPromotionOverlay(g, "/game").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -107,7 +107,7 @@ func NewGamePage(g *game.Game) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.GameToolsPanel().Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.GameToolsPanel("", "", "").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

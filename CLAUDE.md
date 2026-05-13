@@ -10,6 +10,7 @@ All frontend apps share the Everwise Crest design system. The personality is **t
 
 - **Spacing rhythm**: 8px grid (0.5rem increments) — all spacing must be multiples of 8
 - **Z-Index**: layers 1–10, each a direct child of `<body>` using a semantic element — elements within a layer never need their own z-index. Order: 1 canvas, 2 main, 3 headers/footers, 4 side panels, 5 overlays, 6 modals, 7 toasts, 8 tooltips, 9 loading, 10 critical alerts.
+- **Clickable elements**: every button, link, and interactive element must have `cursor-pointer` and a visible hover state (background, border, or color change). No exceptions — includes tab switchers, icon buttons, and form submit buttons.
 
 ## Architecture & Design Patterns
 
