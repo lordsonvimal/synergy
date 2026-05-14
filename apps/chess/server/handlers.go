@@ -189,6 +189,15 @@ func SoloEventsHandler(c *gin.Context) {
 	ch := g.Hub.Subscribe()
 	defer g.Hub.Unsubscribe(ch)
 
+	// Send the current clock state so the client shows correct times immediately,
+	// even for ended games where the watchdog is stopped and no ticks will arrive.
+	if g.Timed {
+		if raw := sseBytes(g.ClockTickSnapshot()); raw != nil {
+			c.Writer.Write(raw)
+			c.Writer.Flush()
+		}
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -205,8 +214,10 @@ func SoloEventsHandler(c *gin.Context) {
 
 // historyNavSignals is the signal payload patched by history navigation handlers.
 type historyNavSignals struct {
-	HistoryIdx     int  `json:"historyIdx"`
-	ViewingHistory bool `json:"viewingHistory"`
+	HistoryIdx        int    `json:"historyIdx"`
+	ViewingHistory    bool   `json:"viewingHistory"`
+	HistoryWhiteRemNs *int64 `json:"historyWhiteRemNs,omitempty"`
+	HistoryBlackRemNs *int64 `json:"historyBlackRemNs,omitempty"`
 }
 
 // BoardAtHistoryHandler handles GET /{solo|play}/:gameID/board-at/:halfMoveIdx.
@@ -240,15 +251,15 @@ func BoardAtHistoryHandler(c *gin.Context) {
 		return
 	}
 
-	fen, found := g.HistoryFENAt(int(idx64))
+	rec, found := g.HistoryAt(int(idx64))
 	if !found {
 		c.Status(http.StatusNotFound)
 		return
 	}
 
-	board, err := engine.BoardFromFENDisplay(fen)
+	board, err := engine.BoardFromFENDisplay(rec.FEN)
 	if err != nil {
-		logger.Error(ctx).Err(err).Str("fen", fen).Msg("BoardAtHistoryHandler: FEN parse")
+		logger.Error(ctx).Err(err).Str("fen", rec.FEN).Msg("BoardAtHistoryHandler: FEN parse")
 		c.Status(http.StatusInternalServerError)
 		return
 	}
@@ -257,7 +268,12 @@ func BoardAtHistoryHandler(c *gin.Context) {
 	components.RenderHistoryBoard(board).Render(ctx, buf)
 	sse.PatchElements(buf.String())
 
-	b, _ := json.Marshal(historyNavSignals{HistoryIdx: int(idx64), ViewingHistory: true})
+	signals := historyNavSignals{HistoryIdx: int(idx64), ViewingHistory: true}
+	if g.Timed {
+		signals.HistoryWhiteRemNs = &rec.WRemNs
+		signals.HistoryBlackRemNs = &rec.BRemNs
+	}
+	b, _ := json.Marshal(signals)
 	sse.PatchSignals(b)
 }
 
@@ -329,20 +345,25 @@ func NavigateHistoryHandler(c *gin.Context) {
 		buf := new(strings.Builder)
 		components.RenderHistoryBoard(engine.NewBoard()).Render(ctx, buf)
 		sse.PatchElements(buf.String())
-		b, _ := json.Marshal(historyNavSignals{HistoryIdx: -1, ViewingHistory: true})
+		signals := historyNavSignals{HistoryIdx: -1, ViewingHistory: true}
+		if g.Timed {
+			signals.HistoryWhiteRemNs = &g.InitialTimeNs
+			signals.HistoryBlackRemNs = &g.InitialTimeNs
+		}
+		b, _ := json.Marshal(signals)
 		sse.PatchSignals(b)
 		return
 	}
 
-	fen, found := g.HistoryFENAt(targetIdx)
+	rec, found := g.HistoryAt(targetIdx)
 	if !found {
 		c.Status(http.StatusNotFound)
 		return
 	}
 
-	board, err := engine.BoardFromFENDisplay(fen)
+	board, err := engine.BoardFromFENDisplay(rec.FEN)
 	if err != nil {
-		logger.Error(ctx).Err(err).Str("fen", fen).Msg("NavigateHistoryHandler: FEN parse")
+		logger.Error(ctx).Err(err).Str("fen", rec.FEN).Msg("NavigateHistoryHandler: FEN parse")
 		c.Status(http.StatusInternalServerError)
 		return
 	}
@@ -351,7 +372,12 @@ func NavigateHistoryHandler(c *gin.Context) {
 	components.RenderHistoryBoard(board).Render(ctx, buf)
 	sse.PatchElements(buf.String())
 
-	b, _ := json.Marshal(historyNavSignals{HistoryIdx: targetIdx, ViewingHistory: true})
+	signals := historyNavSignals{HistoryIdx: targetIdx, ViewingHistory: true}
+	if g.Timed {
+		signals.HistoryWhiteRemNs = &rec.WRemNs
+		signals.HistoryBlackRemNs = &rec.BRemNs
+	}
+	b, _ := json.Marshal(signals)
 	sse.PatchSignals(b)
 }
 
@@ -396,7 +422,7 @@ func loadGameCore(ctx context.Context, dbRepo db.Repository, gameID string) (*ga
 		if m.Color == "black" {
 			color = engine.Black
 		}
-		history[i] = game.MoveRecord{SAN: m.SAN, FEN: m.FEN, Color: color, MoveNumber: m.MoveNumber}
+		history[i] = game.MoveRecord{SAN: m.SAN, FEN: m.FEN, Color: color, MoveNumber: m.MoveNumber, WRemNs: m.WRemNs, BRemNs: m.BRemNs}
 	}
 
 	var wRem, bRem, incNs int64
@@ -443,8 +469,12 @@ func loadSoloGameFromDB(ctx context.Context, dbRepo db.Repository, id string) (*
 	if err != nil {
 		return nil, err
 	}
-	timed := core.dbGame.TimeControlNs != nil && *core.dbGame.TimeControlNs > 0
-	return game.NewRestoredGame(id, core.board, core.clock, core.history, core.seq, core.state, core.winner, timed), nil
+	var initialTimeNs int64
+	if core.dbGame.TimeControlNs != nil {
+		initialTimeNs = *core.dbGame.TimeControlNs
+	}
+	timed := initialTimeNs > 0
+	return game.NewRestoredGame(id, core.board, core.clock, core.history, core.seq, core.state, core.winner, timed, initialTimeNs), nil
 }
 
 // initGameBatch wires up the DB flush callbacks shared by solo and play games.

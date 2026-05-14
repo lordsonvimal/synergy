@@ -1,9 +1,13 @@
 import { clocks, initClockSync, getClockOffset } from "./sync.js"
-import { mergePatch } from "/assets/datastar.js"
+import { effect, getPath, mergePatch } from "/assets/datastar.js"
 
 const REMATCH_TIMEOUT_S = 30
 let rematchSecondsLeft = 0
 let rematchTimerInterval = null
+
+// Final clock values for ended games — used to restore display after history navigation.
+let gameEndedWhiteRemNs = null
+let gameEndedBlackRemNs = null
 
 // Read the player's role from the initial data-signals JSON (set once at page load).
 const playerRole = (() => {
@@ -67,15 +71,30 @@ if (gameID) {
     switch (msg.type) {
       case "clock_tick": {
         if (!isTimed) break
-        const offset = getClockOffset()
-        clocks.white.sync(
-          { remaining_ns: msg.white_remaining_ns, server_ts_ns: msg.server_ts_ns, running: msg.white_running },
-          offset,
-        )
-        clocks.black.sync(
-          { remaining_ns: msg.black_remaining_ns, server_ts_ns: msg.server_ts_ns, running: msg.black_running },
-          offset,
-        )
+        const isEnded = (getPath("gameState") ?? 0) !== 0
+        if (!isEnded) {
+          // Live game: sync with server time for drift correction.
+          const offset = getClockOffset()
+          clocks.white.sync(
+            { remaining_ns: msg.white_remaining_ns, server_ts_ns: msg.server_ts_ns, running: msg.white_running },
+            offset,
+          )
+          clocks.black.sync(
+            { remaining_ns: msg.black_remaining_ns, server_ts_ns: msg.server_ts_ns, running: msg.black_running },
+            offset,
+          )
+        } else {
+          // Ended game: capture final values. Do NOT call sync() — it overwrites
+          // remainingNs on every call when running=false, which would clobber the
+          // history-navigation clock values when the SSE reconnects mid-history.
+          gameEndedWhiteRemNs = msg.white_remaining_ns
+          gameEndedBlackRemNs = msg.black_remaining_ns
+          // Only update the display if the user isn't browsing move history.
+          if (!(getPath("viewingHistory") ?? false)) {
+            clocks.white.setRemaining(gameEndedWhiteRemNs)
+            clocks.black.setRemaining(gameEndedBlackRemNs)
+          }
+        }
         break
       }
 
@@ -87,6 +106,8 @@ if (gameID) {
         }
         clocks.white.stop()
         clocks.black.stop()
+        gameEndedWhiteRemNs = clocks.white.remainingNs
+        gameEndedBlackRemNs = clocks.black.remainingNs
         // Keep the EventSource open — rematch events (proposed/accepted/declined)
         // arrive on the same stream after the game ends.
         mergePatch({
@@ -141,6 +162,30 @@ if (gameID) {
         clearRematchTimer()
         mergePatch({ rematchProposed: false, rematchPending: false, rematchSecondsLeft: 0 })
         break
+    }
+  })
+}
+
+// ── History clock sync (ended games only) ────────────────────────────────────
+// When viewing move history in a finished game, show the clock at each move.
+// For live games, history nav does not affect the clock display.
+if (isTimed && gameID) {
+  effect(() => {
+    const gState = getPath("gameState") ?? 0
+    if (gState === 0) return // live game — clock controlled by clock_tick SSE
+
+    const viewingHistory = getPath("viewingHistory") ?? false
+    const historyIdx = getPath("historyIdx") ?? -1
+
+    if (viewingHistory) {
+      const wRem = getPath("historyWhiteRemNs")
+      const bRem = getPath("historyBlackRemNs")
+      if (wRem != null) clocks.white.setRemaining(wRem)
+      if (bRem != null) clocks.black.setRemaining(bRem)
+    } else if (gameEndedWhiteRemNs != null) {
+      // Returning to live view of an ended game — restore final clock values.
+      clocks.white.setRemaining(gameEndedWhiteRemNs)
+      clocks.black.setRemaining(gameEndedBlackRemNs)
     }
   })
 }

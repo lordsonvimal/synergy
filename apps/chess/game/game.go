@@ -38,18 +38,19 @@ const (
 )
 
 type Game struct {
-	ID        string
-	Board     *engine.Board
-	Clock     GameClock
-	Batch     *MoveBatch
-	Hub       *GameHub
-	Selection *SelectionState
-	History   []MoveRecord
-	Seq       uint64
-	State     GameState
-	Winner    engine.Color // valid after game over
-	PlayMeta  *PlayMeta    // nil for /game/* solo flow
-	Timed     bool         // false = no clock, watchdog skips flag checks
+	ID            string
+	Board         *engine.Board
+	Clock         GameClock
+	Batch         *MoveBatch
+	Hub           *GameHub
+	Selection     *SelectionState
+	History       []MoveRecord
+	Seq           uint64
+	State         GameState
+	Winner        engine.Color // valid after game over
+	PlayMeta      *PlayMeta    // nil for /game/* solo flow
+	Timed         bool         // false = no clock, watchdog skips flag checks
+	InitialTimeNs int64        // starting time control in ns; 0 for untimed games
 
 	mu             sync.RWMutex
 	legalMoveCache map[engine.Color]bool // cache per side
@@ -63,16 +64,17 @@ func NewGame(mode *GameMode) *Game {
 	gc.Start(engine.White)
 
 	g := &Game{
-		ID:      id,
-		Board:   board,
-		Clock:   gc,
-		Hub:     NewGameHub(),
-		History: make([]MoveRecord, 0),
-		Seq:     0,
-		State:   GameOngoing,
-		Winner:  engine.NoColor,
-		Timed:   mode.Timed,
-		stopCh:  make(chan struct{}),
+		ID:            id,
+		Board:         board,
+		Clock:         gc,
+		Hub:           NewGameHub(),
+		History:       make([]MoveRecord, 0),
+		Seq:           0,
+		State:         GameOngoing,
+		Winner:        engine.NoColor,
+		Timed:         mode.Timed,
+		InitialTimeNs: mode.TimeNs,
+		stopCh:        make(chan struct{}),
 	}
 
 	if mode.Timed {
@@ -89,17 +91,18 @@ func NewPlayGame(mode *GameMode, meta *PlayMeta) *Game {
 	gc := NewClock(mode.TimeNs, mode.Increment)
 
 	g := &Game{
-		ID:       id,
-		Board:    board,
-		Clock:    gc,
-		Hub:      NewGameHub(),
-		History:  make([]MoveRecord, 0),
-		Seq:      0,
-		State:    GameOngoing,
-		Winner:   engine.NoColor,
-		PlayMeta: meta,
-		Timed:    mode.Timed,
-		stopCh:   make(chan struct{}),
+		ID:            id,
+		Board:         board,
+		Clock:         gc,
+		Hub:           NewGameHub(),
+		History:       make([]MoveRecord, 0),
+		Seq:           0,
+		State:         GameOngoing,
+		Winner:        engine.NoColor,
+		PlayMeta:      meta,
+		Timed:         mode.Timed,
+		InitialTimeNs: mode.TimeNs,
+		stopCh:        make(chan struct{}),
 	}
 	g.startWatchdog()
 	return g
@@ -117,17 +120,18 @@ func NewRestoredPlayGame(
 		close(stopCh)
 	}
 	g := &Game{
-		ID:       id,
-		Board:    board,
-		Clock:    clock,
-		Hub:      NewGameHub(),
-		History:  history,
-		Seq:      seq,
-		State:    state,
-		Winner:   winner,
-		PlayMeta: meta,
-		Timed:    meta.OriginalMode.Timed,
-		stopCh:   stopCh,
+		ID:            id,
+		Board:         board,
+		Clock:         clock,
+		Hub:           NewGameHub(),
+		History:       history,
+		Seq:           seq,
+		State:         state,
+		Winner:        winner,
+		PlayMeta:      meta,
+		Timed:         meta.OriginalMode.Timed,
+		InitialTimeNs: meta.OriginalMode.TimeNs,
+		stopCh:        stopCh,
 	}
 	if state == GameOngoing {
 		g.startWatchdog()
@@ -139,23 +143,24 @@ func NewRestoredPlayGame(
 // Unexported fields are initialised safely; no watchdog is started.
 func NewRestoredGame(
 	id string, board *engine.Board, clock GameClock,
-	history []MoveRecord, seq uint64, state GameState, winner engine.Color, timed bool,
+	history []MoveRecord, seq uint64, state GameState, winner engine.Color, timed bool, initialTimeNs int64,
 ) *Game {
 	stopCh := make(chan struct{})
 	if state != GameOngoing {
 		close(stopCh)
 	}
 	return &Game{
-		ID:      id,
-		Board:   board,
-		Clock:   clock,
-		Hub:     NewGameHub(),
-		History: history,
-		Seq:     seq,
-		State:   state,
-		Winner:  winner,
-		Timed:   timed,
-		stopCh:  stopCh,
+		ID:            id,
+		Board:         board,
+		Clock:         clock,
+		Hub:           NewGameHub(),
+		History:       history,
+		Seq:           seq,
+		State:         state,
+		Winner:        winner,
+		Timed:         timed,
+		InitialTimeNs: initialTimeNs,
+		stopCh:        stopCh,
 	}
 }
 
@@ -280,6 +285,8 @@ func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
 		FEN:        g.Board.FEN(),
 		Color:      color,
 		MoveNumber: moveNumber,
+		WRemNs:     g.Clock.White.RemainingNs,
+		BRemNs:     g.Clock.Black.RemainingNs,
 	})
 
 	// Reset legal move cache since board changed
@@ -399,6 +406,10 @@ func (g *Game) UpdateGameState() {
 // Must be called after g.State and g.Winner have been set.
 // Called with the game mutex held — broadcasts are async so no deadlock.
 func (g *Game) signalGameOver() {
+	// Freeze both clocks so no side keeps counting down after the game ends.
+	g.Clock.White.Running = false
+	g.Clock.Black.Running = false
+
 	select {
 	case <-g.stopCh:
 		// already stopped
@@ -585,6 +596,32 @@ func (g *Game) HistoryFENAt(idx int) (string, bool) {
 		return "", false
 	}
 	return g.History[idx].FEN, true
+}
+
+// HistoryAt returns the full MoveRecord at the given zero-based half-move index,
+// including clock remaining times. The second return value is false if out of range.
+func (g *Game) HistoryAt(idx int) (MoveRecord, bool) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	if idx < 0 || idx >= len(g.History) {
+		return MoveRecord{}, false
+	}
+	return g.History[idx], true
+}
+
+// ClockTickSnapshot returns the current clock state as a ClockTickEvent.
+func (g *Game) ClockTickSnapshot() ClockTickEvent {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	nowNs := time.Now().UnixNano()
+	return ClockTickEvent{
+		Type:             "clock_tick",
+		WhiteRemainingNs: g.Clock.RemainingAt(0, nowNs),
+		BlackRemainingNs: g.Clock.RemainingAt(1, nowNs),
+		WhiteRunning:     g.Clock.White.Running,
+		BlackRunning:     g.Clock.Black.Running,
+		ServerTsNs:       nowNs,
+	}
 }
 
 // HistoryLen returns the number of half-moves recorded so far.

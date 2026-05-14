@@ -302,7 +302,7 @@ func PlayEventsHandler(c *gin.Context) {
 		})
 	}()
 
-	if bothJustConnected {
+	if bothJustConnected && g.IsOngoing() {
 		g.StartPlayClock(time.Now().Add(30 * time.Second))
 		g.Hub.BroadcastEvent(game.ClockUnlockedEvent{Type: "clock_unlocked"})
 	}
@@ -327,6 +327,14 @@ func PlayEventsHandler(c *gin.Context) {
 			if raw := sseBytes(game.RematchProposedEvent{
 				Type: "rematch_proposed", ProposedBy: proposerRole,
 			}); raw != nil {
+				c.Writer.Write(raw)
+				c.Writer.Flush()
+			}
+		}
+		// Send the current clock state so the client shows correct times immediately,
+		// even for ended games where the watchdog is stopped and no ticks will arrive.
+		if g.Timed {
+			if raw := sseBytes(g.ClockTickSnapshot()); raw != nil {
 				c.Writer.Write(raw)
 				c.Writer.Flush()
 			}
@@ -687,10 +695,11 @@ func loadPlayGameFromDB(ctx context.Context, dbRepo db.Repository, gameID string
 	}
 
 	meta := &game.PlayMeta{
-		SessionID:         core.dbGame.SessionID,
-		OriginalMode:      game.GameMode{TimeNs: timeCtrlNs, Increment: restoredIncNs, Variant: core.dbGame.Variant, Timed: timeCtrlNs > 0},
-		RematchProposedBy: engine.NoColor,
-		ClaimVictoryFor:   engine.NoColor,
+		SessionID:            core.dbGame.SessionID,
+		OriginalMode:         game.GameMode{TimeNs: timeCtrlNs, Increment: restoredIncNs, Variant: core.dbGame.Variant, Timed: timeCtrlNs > 0},
+		RematchProposedBy:    engine.NoColor,
+		ClaimVictoryFor:      engine.NoColor,
+		BothPlayersConnectedOnce: core.state != game.GameOngoing,
 	}
 	for _, p := range participants {
 		switch p.Role {
