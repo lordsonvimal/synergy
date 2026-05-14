@@ -145,6 +145,14 @@ func (m *PlayMeta) TryClaim(token string) (participantID, role string, ok bool) 
 	return "", "", false
 }
 
+// GetRematchProposer returns the color that has a pending rematch proposal,
+// or engine.NoColor if none is pending.
+func (m *PlayMeta) GetRematchProposer() engine.Color {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.RematchProposedBy
+}
+
 // GetClaimVictoryFor returns the side whose disconnect enables claim-victory.
 func (m *PlayMeta) GetClaimVictoryFor() engine.Color {
 	m.mu.Lock()

@@ -126,6 +126,7 @@ func NewRestoredPlayGame(
 		State:    state,
 		Winner:   winner,
 		PlayMeta: meta,
+		Timed:    meta.OriginalMode.Timed,
 		stopCh:   stopCh,
 	}
 	if state == GameOngoing {
@@ -138,7 +139,7 @@ func NewRestoredPlayGame(
 // Unexported fields are initialised safely; no watchdog is started.
 func NewRestoredGame(
 	id string, board *engine.Board, clock GameClock,
-	history []MoveRecord, seq uint64, state GameState, winner engine.Color,
+	history []MoveRecord, seq uint64, state GameState, winner engine.Color, timed bool,
 ) *Game {
 	stopCh := make(chan struct{})
 	if state != GameOngoing {
@@ -153,6 +154,7 @@ func NewRestoredGame(
 		Seq:     seq,
 		State:   state,
 		Winner:  winner,
+		Timed:   timed,
 		stopCh:  stopCh,
 	}
 }

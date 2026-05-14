@@ -317,6 +317,20 @@ func PlayEventsHandler(c *gin.Context) {
 			c.Writer.Write(raw)
 			c.Writer.Flush()
 		}
+		// Re-send any pending rematch proposal so a reconnecting client doesn't
+		// miss an event that was broadcast before its EventSource was open.
+		if proposer := g.PlayMeta.GetRematchProposer(); proposer != engine.NoColor {
+			proposerRole := "white"
+			if proposer == engine.Black {
+				proposerRole = "black"
+			}
+			if raw := sseBytes(game.RematchProposedEvent{
+				Type: "rematch_proposed", ProposedBy: proposerRole,
+			}); raw != nil {
+				c.Writer.Write(raw)
+				c.Writer.Flush()
+			}
+		}
 	} else {
 		// Sync current board state to the Datastar connection on every connect/reconnect.
 		// On initial load this is a no-op (board is already in the page HTML); on reconnect
@@ -674,7 +688,7 @@ func loadPlayGameFromDB(ctx context.Context, dbRepo db.Repository, gameID string
 
 	meta := &game.PlayMeta{
 		SessionID:         core.dbGame.SessionID,
-		OriginalMode:      game.GameMode{TimeNs: timeCtrlNs, Increment: restoredIncNs, Variant: core.dbGame.Variant},
+		OriginalMode:      game.GameMode{TimeNs: timeCtrlNs, Increment: restoredIncNs, Variant: core.dbGame.Variant, Timed: timeCtrlNs > 0},
 		RematchProposedBy: engine.NoColor,
 		ClaimVictoryFor:   engine.NoColor,
 	}

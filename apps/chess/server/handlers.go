@@ -443,7 +443,8 @@ func loadSoloGameFromDB(ctx context.Context, dbRepo db.Repository, id string) (*
 	if err != nil {
 		return nil, err
 	}
-	return game.NewRestoredGame(id, core.board, core.clock, core.history, core.seq, core.state, core.winner), nil
+	timed := core.dbGame.TimeControlNs != nil && *core.dbGame.TimeControlNs > 0
+	return game.NewRestoredGame(id, core.board, core.clock, core.history, core.seq, core.state, core.winner, timed), nil
 }
 
 // initGameBatch wires up the DB flush callbacks shared by solo and play games.

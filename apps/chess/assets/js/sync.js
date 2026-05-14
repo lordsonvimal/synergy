@@ -46,6 +46,9 @@ export function connectEventStream(eventURL, onMessage) {
 }
 
 export async function initClockSync(eventURL, onMessage) {
-  await measureOffset()
-  return connectEventStream(eventURL, onMessage)
+  // Connect the EventSource immediately so game events (rematch_proposed, etc.)
+  // are not missed while the clock offset measurement is in flight.
+  const es = connectEventStream(eventURL, onMessage)
+  measureOffset() // runs in background; clock accuracy is not blocking
+  return es
 }
