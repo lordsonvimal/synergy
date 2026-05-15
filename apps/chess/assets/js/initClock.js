@@ -5,7 +5,9 @@ const REMATCH_TIMEOUT_S = 30
 let rematchSecondsLeft = 0
 let rematchTimerInterval = null
 
-// Final clock values for ended games — used to restore display after history navigation.
+// Final clock values for ended games. Stored as plain JS variables — datastar's
+// reactive system silently fails to track signals that start as null/undefined,
+// so we cannot rely on signals to carry these values across async boundaries.
 let gameEndedWhiteRemNs = null
 let gameEndedBlackRemNs = null
 
@@ -84,12 +86,14 @@ if (gameID) {
             offset,
           )
         } else {
-          // Ended game: capture final values. Do NOT call sync() — it overwrites
-          // remainingNs on every call when running=false, which would clobber the
-          // history-navigation clock values when the SSE reconnects mid-history.
+          // Ended game: store the final values, then update the display directly
+          // unless the user is currently browsing history. This is the only
+          // place the page-load case is handled — the effect below cannot be
+          // relied on because it is set up before datastar populates signals
+          // from the page's data-signals attribute, so its first run subscribes
+          // to nothing.
           gameEndedWhiteRemNs = msg.white_remaining_ns
           gameEndedBlackRemNs = msg.black_remaining_ns
-          // Only update the display if the user isn't browsing move history.
           if (!(getPath("viewingHistory") ?? false)) {
             clocks.white.setRemaining(gameEndedWhiteRemNs)
             clocks.black.setRemaining(gameEndedBlackRemNs)
@@ -99,15 +103,23 @@ if (gameID) {
       }
 
       case "game_over":
-        // Pin the flagged clock to exactly 0 on flag.
-        if (msg.state === 3) {
-          if (msg.winner === 1) clocks.white.setRemaining(0)
-          else if (msg.winner === 0) clocks.black.setRemaining(0)
+        // Pin the flagged clock to exactly 0 on flag, but only on the first
+        // game_over. On SSE reconnect game_over replays, and if the user is
+        // viewing history at that moment, setRemaining(0) would clobber the
+        // history display. The same null-guard protects the JS-var capture.
+        if (gameEndedWhiteRemNs === null) {
+          if (msg.state === 3) {
+            if (msg.winner === 1) clocks.white.setRemaining(0)
+            else if (msg.winner === 0) clocks.black.setRemaining(0)
+          }
+          clocks.white.stop()
+          clocks.black.stop()
+          gameEndedWhiteRemNs = clocks.white.remainingNs
+          gameEndedBlackRemNs = clocks.black.remainingNs
+        } else {
+          clocks.white.stop()
+          clocks.black.stop()
         }
-        clocks.white.stop()
-        clocks.black.stop()
-        gameEndedWhiteRemNs = clocks.white.remainingNs
-        gameEndedBlackRemNs = clocks.black.remainingNs
         // Keep the EventSource open — rematch events (proposed/accepted/declined)
         // arrive on the same stream after the game ends.
         mergePatch({
@@ -169,26 +181,38 @@ if (gameID) {
 // ── History clock sync (ended games only) ────────────────────────────────────
 // When viewing move history in a finished game, show the clock at each move.
 // For live games, history nav does not affect the clock display.
-if (isTimed && gameID) {
+//
+// CRITICAL: this module loads before datastar scans the DOM and populates
+// signals from data-signals attributes, so calling effect() synchronously
+// here would have its first run see all signals as undefined and subscribe
+// to nothing. We poll until gameState is populated (signalling datastar
+// initialisation has happened for this page's signals) before setting up
+// the effect, so it tracks every signal correctly on its first run.
+function setupEndedGameEffect() {
+  if (getPath("gameState") === undefined) {
+    setTimeout(setupEndedGameEffect, 16)
+    return
+  }
   effect(() => {
     const gState = getPath("gameState") ?? 0
-    if (gState === 0) return // live game — clock controlled by clock_tick SSE
+    if (gState === 0) return // live game — clock controlled by sync() in clock_tick
 
     const viewingHistory = getPath("viewingHistory") ?? false
-    const historyIdx = getPath("historyIdx") ?? -1
+    getPath("historyIdx") // tracked dep
+    const historyWRem = getPath("historyWhiteRemNs")
+    const historyBRem = getPath("historyBlackRemNs")
 
     if (viewingHistory) {
-      const wRem = getPath("historyWhiteRemNs")
-      const bRem = getPath("historyBlackRemNs")
-      if (wRem != null) clocks.white.setRemaining(wRem)
-      if (bRem != null) clocks.black.setRemaining(bRem)
+      if (historyWRem != null) clocks.white.setRemaining(historyWRem)
+      if (historyBRem != null) clocks.black.setRemaining(historyBRem)
     } else if (gameEndedWhiteRemNs != null) {
-      // Returning to live view of an ended game — restore final clock values.
       clocks.white.setRemaining(gameEndedWhiteRemNs)
       clocks.black.setRemaining(gameEndedBlackRemNs)
     }
   })
 }
+
+if (isTimed && gameID) setupEndedGameEffect()
 
 // ── Keyboard navigation ───────────────────────────────────────────────────────
 
