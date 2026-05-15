@@ -143,6 +143,29 @@ func applySquareSelection(c *gin.Context, g *game.Game, square uint8) {
 	}
 }
 
+// writeClockSnapshot writes a single datastar signal patch carrying the given
+// clock snapshot directly to this connection (not via the hub).
+func writeClockSnapshot(c *gin.Context, snap game.ClockTickEvent) {
+	writeSignalsDirect(c, map[string]any{
+		"clkW":    snap.WhiteRemainingNs,
+		"clkB":    snap.BlackRemainingNs,
+		"clkWRun": snap.WhiteRunning,
+		"clkBRun": snap.BlackRunning,
+		"clkTs":   snap.ServerTsNs,
+	})
+}
+
+// writeSignalsDirect writes a datastar signal patch directly to one connection,
+// bypassing the hub. Used for connection-specific initial state.
+func writeSignalsDirect(c *gin.Context, signals map[string]any) {
+	b, err := json.Marshal(signals)
+	if err != nil {
+		return
+	}
+	c.Writer.Write(datastarPatchSignalsFrame(b))
+	c.Writer.Flush()
+}
+
 // syncDatastarBoard pushes the current board state to a Datastar SSE connection.
 // Called on every new Datastar connection so reconnects recover any missed move.
 func syncDatastarBoard(ctx context.Context, c *gin.Context, g *game.Game) {

@@ -9,6 +9,10 @@ templ SoloGamePage(g *game.Game) {
 	@layouts.Layout("ChessLeap", true) {
 		<script type="module" src="/assets/datastar.js"></script>
 		<script type="module" src="/assets/js/initClock.js"></script>
+		<!-- data-init opens a persistent datastar @get to /events. All clock
+		     ticks, game-over and history-clock signals arrive over this single
+		     SSE connection (replaces the former native EventSource). -->
+		<div class="hidden" data-init={ "@get('/solo/" + g.ID + "/events')" }></div>
 		<div
 			class="flex flex-col items-center justify-center min-h-full p-4 gap-3"
 			data-signals={ templ.JSONString(ui_store.ChessBoardSignalsFromGame(g)) }

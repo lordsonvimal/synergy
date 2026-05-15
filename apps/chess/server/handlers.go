@@ -189,13 +189,13 @@ func SoloEventsHandler(c *gin.Context) {
 	ch := g.Hub.Subscribe()
 	defer g.Hub.Unsubscribe(ch)
 
-	// Send the current clock state so the client shows correct times immediately,
-	// even for ended games where the watchdog is stopped and no ticks will arrive.
+	// Push the current clock snapshot as a datastar signal patch so the client
+	// shows correct times immediately, even for ended games where the watchdog
+	// is stopped and no further ticks will arrive. Written directly to this
+	// connection only — no need to broadcast to other subscribers.
 	if g.Timed {
-		if raw := sseBytes(g.ClockTickSnapshot()); raw != nil {
-			c.Writer.Write(raw)
-			c.Writer.Flush()
-		}
+		snap := g.ClockTickSnapshot()
+		writeClockSnapshot(c, snap)
 	}
 
 	for {

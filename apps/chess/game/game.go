@@ -164,10 +164,6 @@ func NewRestoredGame(
 	}
 }
 
-// BroadcastEvent marshals v as JSON and broadcasts it to all SSE subscribers.
-func (g *Game) BroadcastEvent(v any) {
-	go g.broadcastJSON(v)
-}
 
 // AbandonWithResult sets the game as abandoned, optionally with a winner,
 // and signals game over. Returns false if the game was already finished.
@@ -341,15 +337,14 @@ func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
 	// waiting up to 1s for the next watchdog broadcast.
 	if g.Timed && g.State == GameOngoing {
 		nowNs := monoNow()
-		evt := ClockTickEvent{
-			Type:             "clock_tick",
-			WhiteRemainingNs: g.Clock.RemainingAt(0, nowNs),
-			BlackRemainingNs: g.Clock.RemainingAt(1, nowNs),
-			WhiteRunning:     g.Clock.White.Running,
-			BlackRunning:     g.Clock.Black.Running,
-			ServerTsNs:       nowNs,
+		signals := map[string]any{
+			"clkW":    g.Clock.RemainingAt(0, nowNs),
+			"clkB":    g.Clock.RemainingAt(1, nowNs),
+			"clkWRun": g.Clock.White.Running,
+			"clkBRun": g.Clock.Black.Running,
+			"clkTs":   nowNs,
 		}
-		go g.broadcastJSON(evt)
+		go g.Hub.BroadcastSignals(signals)
 	}
 
 	return true
@@ -429,13 +424,13 @@ func (g *Game) signalGameOver() {
 	}
 
 	stateText := gameStateText(g.State)
-	evt := GameOverEvent{
-		Type:      "game_over",
-		State:     g.State,
-		Winner:    int(g.Winner),
-		StateText: stateText,
+	signals := map[string]any{
+		"gameState":     int(g.State),
+		"gameStateText": stateText,
+		"winner":        int(g.Winner),
+		"claimVictory":  false,
 	}
-	go g.broadcastJSON(evt)
+	go g.Hub.BroadcastSignals(signals)
 }
 
 func gameStateDBStatus(s GameState) string {
@@ -615,7 +610,6 @@ func (g *Game) ClockTickSnapshot() ClockTickEvent {
 	defer g.mu.RUnlock()
 	nowNs := time.Now().UnixNano()
 	return ClockTickEvent{
-		Type:             "clock_tick",
 		WhiteRemainingNs: g.Clock.RemainingAt(0, nowNs),
 		BlackRemainingNs: g.Clock.RemainingAt(1, nowNs),
 		WhiteRunning:     g.Clock.White.Running,

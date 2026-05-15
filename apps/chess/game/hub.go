@@ -1,9 +1,17 @@
 package game
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"sync"
+)
+
+// Datastar SSE constants. Defined here (rather than imported from datastar-go)
+// to avoid pulling that dependency into the game package.
+const (
+	datastarPatchSignalsEvent = "datastar-patch-signals"
+	datastarSignalsLine       = "signals "
 )
 
 // GameHub is a fan-out broadcast hub for SSE subscribers.
@@ -56,12 +64,17 @@ func (h *GameHub) Len() int {
 	return len(h.subs)
 }
 
-// BroadcastEvent marshals v as JSON and broadcasts it to all subscribers.
-func (h *GameHub) BroadcastEvent(v any) {
-	b, err := json.Marshal(v)
+// BroadcastSignals broadcasts a datastar signal patch as a SSE frame to all
+// subscribers. Replaces the older plain-JSON BroadcastEvent so that there is
+// a single SSE protocol on the wire (datastar's), eliminating the need for a
+// separate native EventSource on the client.
+func (h *GameHub) BroadcastSignals(signals map[string]any) {
+	b, err := json.Marshal(signals)
 	if err != nil {
 		return
 	}
-	raw := fmt.Appendf(nil, "data: %s\n\n", b)
-	h.Broadcast(raw)
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "event: %s\n", datastarPatchSignalsEvent)
+	fmt.Fprintf(&buf, "data: %s%s\n\n", datastarSignalsLine, b)
+	h.Broadcast(buf.Bytes())
 }

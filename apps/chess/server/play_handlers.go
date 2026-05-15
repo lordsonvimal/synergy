@@ -1,11 +1,9 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -31,14 +29,6 @@ func generateParticipantToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-// sseBytes formats v as a raw SSE data frame.
-func sseBytes(v any) []byte {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return nil
-	}
-	return fmt.Appendf(nil, "data: %s\n\n", b)
-}
 
 // CreatePlay handles POST /play.
 func CreatePlay(c *gin.Context) {
@@ -279,17 +269,13 @@ func PlayEventsHandler(c *gin.Context) {
 		role = claims.Role
 	}
 
-	// Datastar @get requests always include ?datastar=… (even if empty store sends "{}").
-	// Native EventSource from initClock.js does not include this param.
-	isDatastar := c.Query("datastar") != ""
-
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Header("X-Accel-Buffering", "no")
 
 	// Subscribe before RecordSSEConnect so this client's channel is present when
-	// clock_unlocked is broadcast — the second player to connect triggers it.
+	// the clockUnlocked signal is broadcast — the second player to connect triggers it.
 	ch := g.Hub.Subscribe()
 	defer g.Hub.Unsubscribe(ch)
 
@@ -297,53 +283,33 @@ func PlayEventsHandler(c *gin.Context) {
 	defer func() {
 		g.PlayMeta.RecordSSEDisconnect(role)
 		whiteOnline, blackOnline := g.PlayMeta.OnlineStatus()
-		g.Hub.BroadcastEvent(game.OnlineStatusEvent{
-			Type: "online_status", WhiteOnline: whiteOnline, BlackOnline: blackOnline,
+		g.Hub.BroadcastSignals(map[string]any{
+			"whiteOnline": whiteOnline, "blackOnline": blackOnline,
 		})
 	}()
 
 	if bothJustConnected && g.IsOngoing() {
 		g.StartPlayClock(time.Now().Add(30 * time.Second))
-		g.Hub.BroadcastEvent(game.ClockUnlockedEvent{Type: "clock_unlocked"})
+		g.Hub.BroadcastSignals(map[string]any{"clockUnlocked": true})
 	}
 
-	// Send current online status only to the EventSource connection (plain JSON).
-	// Datastar connections don't handle this event type and would error on it.
-	if !isDatastar {
-		whiteOnline, blackOnline := g.PlayMeta.OnlineStatus()
-		if raw := sseBytes(game.OnlineStatusEvent{
-			Type: "online_status", WhiteOnline: whiteOnline, BlackOnline: blackOnline,
-		}); raw != nil {
-			c.Writer.Write(raw)
-			c.Writer.Flush()
+	// Initial state for this connection: board snapshot + current clock + any
+	// pending rematch + current online status. Written directly so the new
+	// client gets correct values without waiting for a hub broadcast.
+	syncDatastarBoard(ctx, c, g)
+	if g.Timed {
+		writeClockSnapshot(c, g.ClockTickSnapshot())
+	}
+	whiteOnline, blackOnline := g.PlayMeta.OnlineStatus()
+	writeSignalsDirect(c, map[string]any{
+		"whiteOnline": whiteOnline, "blackOnline": blackOnline,
+	})
+	if proposer := g.PlayMeta.GetRematchProposer(); proposer != engine.NoColor {
+		proposerRole := "white"
+		if proposer == engine.Black {
+			proposerRole = "black"
 		}
-		// Re-send any pending rematch proposal so a reconnecting client doesn't
-		// miss an event that was broadcast before its EventSource was open.
-		if proposer := g.PlayMeta.GetRematchProposer(); proposer != engine.NoColor {
-			proposerRole := "white"
-			if proposer == engine.Black {
-				proposerRole = "black"
-			}
-			if raw := sseBytes(game.RematchProposedEvent{
-				Type: "rematch_proposed", ProposedBy: proposerRole,
-			}); raw != nil {
-				c.Writer.Write(raw)
-				c.Writer.Flush()
-			}
-		}
-		// Send the current clock state so the client shows correct times immediately,
-		// even for ended games where the watchdog is stopped and no ticks will arrive.
-		if g.Timed {
-			if raw := sseBytes(g.ClockTickSnapshot()); raw != nil {
-				c.Writer.Write(raw)
-				c.Writer.Flush()
-			}
-		}
-	} else {
-		// Sync current board state to the Datastar connection on every connect/reconnect.
-		// On initial load this is a no-op (board is already in the page HTML); on reconnect
-		// it recovers any move that was broadcast while the connection was down.
-		syncDatastarBoard(ctx, c, g)
+		writeSignalsDirect(c, map[string]any{"rematchProposedBy": proposerRole})
 	}
 
 	for {
@@ -353,12 +319,6 @@ func PlayEventsHandler(c *gin.Context) {
 		case msg, open := <-ch:
 			if !open {
 				return
-			}
-			// Datastar events start with "event: datastar-…"; plain JSON starts with "data: ".
-			// Route each message to the appropriate connection type only.
-			isDsMsg := bytes.HasPrefix(msg, []byte("event:"))
-			if isDatastar != isDsMsg {
-				continue
 			}
 			c.Writer.Write(msg)
 			c.Writer.Flush()
@@ -488,15 +448,13 @@ func ProposeRematch(c *gin.Context) {
 		return
 	}
 
-	g.Hub.BroadcastEvent(game.RematchProposedEvent{
-		Type: "rematch_proposed", ProposedBy: claims.Role,
-	})
+	g.Hub.BroadcastSignals(map[string]any{"rematchProposedBy": claims.Role})
 
 	// The watchdog exits when the game ends, so expire the rematch from a dedicated goroutine.
 	go func() {
 		time.Sleep(30 * time.Second)
 		if g.PlayMeta.ClearRematchIfPendingBy(proposerColor) {
-			g.Hub.BroadcastEvent(game.RematchExpiredEvent{Type: "rematch_expired"})
+			g.Hub.BroadcastSignals(map[string]any{"rematchProposedBy": ""})
 		}
 	}()
 
@@ -583,10 +541,7 @@ func AcceptRematch(c *gin.Context) {
 	}
 	proposerURL := fmt.Sprintf("/play/%s?token=%s", newGame.ID, proposerToken)
 
-	g.Hub.BroadcastEvent(game.RematchAcceptedEvent{
-		Type:                "rematch_accepted",
-		ProposerRedirectURL: proposerURL,
-	})
+	g.Hub.BroadcastSignals(map[string]any{"rematchAcceptedUrl": proposerURL})
 
 	c.Redirect(http.StatusSeeOther, "/play/"+newGame.ID)
 }
@@ -614,7 +569,7 @@ func DeclineRematch(c *gin.Context) {
 	}
 
 	g.PlayMeta.ClearRematch()
-	g.Hub.BroadcastEvent(game.RematchDeclinedEvent{Type: "rematch_declined"})
+	g.Hub.BroadcastSignals(map[string]any{"rematchProposedBy": ""})
 	_ = ctx
 	c.Status(http.StatusNoContent)
 }
@@ -661,7 +616,10 @@ func AbandonPlayGame(c *gin.Context) {
 	}
 
 	if g.AbandonWithResult(winner) && !gameStarted {
-		g.BroadcastEvent(game.GameCancelledEvent{Type: "game_cancelled"})
+		g.Hub.BroadcastSignals(map[string]any{
+			"gameState":     int(game.GameAbandoned),
+			"gameStateText": "Game cancelled",
+		})
 	}
 
 	_ = ctx

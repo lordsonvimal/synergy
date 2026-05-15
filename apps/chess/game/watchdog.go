@@ -1,8 +1,6 @@
 package game
 
 import (
-	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/lordsonvimal/synergy/apps/chess/engine"
@@ -15,8 +13,8 @@ const (
 
 // startWatchdog launches a goroutine that:
 //  - polls the active clock every 100ms for flag fall
-//  - broadcasts a ClockTickEvent to all SSE subscribers once per second
-//  - broadcasts a GameOverEvent and stops when the game ends
+//  - broadcasts a clock-tick datastar signal patch to all SSE subscribers once per second
+//  - broadcasts a game-over datastar signal patch and stops when the game ends
 //
 // It exits when the game is over or ctx is cancelled via the game's stopWatchdog channel.
 func (g *Game) startWatchdog() {
@@ -66,7 +64,7 @@ func (g *Game) startWatchdog() {
 						pm.RematchProposedBy = engine.NoColor
 						pm.RematchProposedAt = nil
 						pm.mu.Unlock()
-						go g.broadcastJSON(RematchExpiredEvent{Type: "rematch_expired"})
+						go g.Hub.BroadcastSignals(map[string]any{"rematchProposedBy": ""})
 					} else {
 						pm.mu.Unlock()
 					}
@@ -82,11 +80,11 @@ func (g *Game) startWatchdog() {
 						if whiteDisNs >= 60*int64(time.Second) {
 							pm.ClaimVictoryFor = engine.White
 							pm.mu.Unlock()
-							go g.broadcastJSON(ClaimVictoryEvent{Type: "claim_victory_available", DisconnectedFor: "white"})
+							go g.Hub.BroadcastSignals(map[string]any{"claimVictory": true, "claimVictoryFor": "white"})
 						} else if blackDisNs >= 60*int64(time.Second) {
 							pm.ClaimVictoryFor = engine.Black
 							pm.mu.Unlock()
-							go g.broadcastJSON(ClaimVictoryEvent{Type: "claim_victory_available", DisconnectedFor: "black"})
+							go g.Hub.BroadcastSignals(map[string]any{"claimVictory": true, "claimVictoryFor": "black"})
 						} else {
 							pm.mu.Unlock()
 						}
@@ -133,19 +131,18 @@ func (g *Game) startWatchdog() {
 					return
 				}
 
-				// 1 Hz clock tick broadcast.
+				// 1 Hz clock tick broadcast as a datastar signal patch.
 				if now.Sub(lastTick) >= tickBroadcastInterval {
 					lastTick = now
-					evt := ClockTickEvent{
-						Type:             "clock_tick",
-						WhiteRemainingNs: whiteRem,
-						BlackRemainingNs: blackRem,
-						WhiteRunning:     g.Clock.White.Running,
-						BlackRunning:     g.Clock.Black.Running,
-						ServerTsNs:       nowNs,
+					signals := map[string]any{
+						"clkW":    whiteRem,
+						"clkB":    blackRem,
+						"clkWRun": g.Clock.White.Running,
+						"clkBRun": g.Clock.Black.Running,
+						"clkTs":   nowNs,
 					}
 					g.mu.Unlock()
-					g.broadcastJSON(evt)
+					g.Hub.BroadcastSignals(signals)
 				} else {
 					g.mu.Unlock()
 				}
@@ -154,13 +151,3 @@ func (g *Game) startWatchdog() {
 	}()
 }
 
-// broadcastJSON marshals v and broadcasts it as an unnamed SSE data event
-// ("data: <json>\n\n") so GameEventsHandler can write the bytes directly.
-func (g *Game) broadcastJSON(v any) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return
-	}
-	raw := fmt.Appendf(nil, "data: %s\n\n", b)
-	g.Hub.Broadcast(raw)
-}
