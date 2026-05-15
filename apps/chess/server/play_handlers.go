@@ -289,8 +289,12 @@ func PlayEventsHandler(c *gin.Context) {
 	}()
 
 	if bothJustConnected && g.IsOngoing() {
-		g.StartPlayClock(time.Now().Add(30 * time.Second))
-		g.Hub.BroadcastSignals(map[string]any{"clockUnlocked": true})
+		deadline := time.Now().Add(20 * time.Second)
+		g.StartPlayClock(deadline)
+		g.Hub.BroadcastSignals(map[string]any{
+			"clockUnlocked":       true,
+			"firstMoveDeadlineNs": deadline.UnixNano(),
+		})
 	}
 
 	// Initial state for this connection: board snapshot + current clock + any
@@ -301,9 +305,13 @@ func PlayEventsHandler(c *gin.Context) {
 		writeClockSnapshot(c, g.ClockTickSnapshot())
 	}
 	whiteOnline, blackOnline := g.PlayMeta.OnlineStatus()
-	writeSignalsDirect(c, map[string]any{
+	initialSignals := map[string]any{
 		"whiteOnline": whiteOnline, "blackOnline": blackOnline,
-	})
+	}
+	if dlNs := g.PlayMeta.GetFirstMoveDeadlineNs(); dlNs != 0 && len(g.History) == 0 && g.IsOngoing() {
+		initialSignals["firstMoveDeadlineNs"] = dlNs
+	}
+	writeSignalsDirect(c, initialSignals)
 	if proposer := g.PlayMeta.GetRematchProposer(); proposer != engine.NoColor {
 		proposerRole := "white"
 		if proposer == engine.Black {

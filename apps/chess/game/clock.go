@@ -52,15 +52,21 @@ func (gc *GameClock) Stop(color engine.Color, lagCompNs int64) {
 	now := monoNow()
 	c := gc.clock(color)
 
-	if c.Running {
-		elapsed := now - c.LastStartNs - lagCompNs
-		if elapsed < 0 {
-			elapsed = 0
-		}
-		c.RemainingNs -= elapsed
-		if c.RemainingNs < 0 {
-			c.RemainingNs = 0
-		}
+	// If the clock was not running (e.g. white's first move before the play
+	// clock has started ticking), do not consume time and do not award the
+	// increment — the player effectively used no time.
+	if !c.Running {
+		gc.Turn++
+		return
+	}
+
+	elapsed := now - c.LastStartNs - lagCompNs
+	if elapsed < 0 {
+		elapsed = 0
+	}
+	c.RemainingNs -= elapsed
+	if c.RemainingNs < 0 {
+		c.RemainingNs = 0
 	}
 
 	c.RemainingNs += gc.IncNs

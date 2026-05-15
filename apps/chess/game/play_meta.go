@@ -160,6 +160,17 @@ func (m *PlayMeta) GetClaimVictoryFor() engine.Color {
 	return m.ClaimVictoryFor
 }
 
+// GetFirstMoveDeadlineNs returns the first-move deadline as unix nanoseconds,
+// or 0 if no deadline has been set.
+func (m *PlayMeta) GetFirstMoveDeadlineNs() int64 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.FirstMoveDeadline == nil {
+		return 0
+	}
+	return m.FirstMoveDeadline.UnixNano()
+}
+
 // IsStarted returns true after both players have had ≥1 SSE connection.
 func (m *PlayMeta) IsStarted() bool {
 	m.mu.Lock()

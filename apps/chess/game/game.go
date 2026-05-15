@@ -188,7 +188,8 @@ func (g *Game) IsOngoing() bool {
 
 // StartPlayClock is called by PlayEventsHandler the first time both players
 // simultaneously have an SSE connection. It records the first-move deadline
-// on PlayMeta and starts the white clock.
+// on PlayMeta. The white clock is NOT started here — it only begins ticking
+// after white plays the first move (black's clock starts then).
 func (g *Game) StartPlayClock(deadline time.Time) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -197,7 +198,6 @@ func (g *Game) StartPlayClock(deadline time.Time) {
 		g.PlayMeta.FirstMoveDeadline = &deadline
 		g.PlayMeta.mu.Unlock()
 	}
-	g.Clock.Start(engine.White)
 }
 
 // InitBatch wires up DB persistence for this game. Call once after NewGame,
@@ -335,16 +335,23 @@ func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
 
 	// Push an immediate clock tick so the client switches sides without
 	// waiting up to 1s for the next watchdog broadcast.
-	if g.Timed && g.State == GameOngoing {
+	if g.State == GameOngoing {
 		nowNs := monoNow()
-		signals := map[string]any{
-			"clkW":    g.Clock.RemainingAt(0, nowNs),
-			"clkB":    g.Clock.RemainingAt(1, nowNs),
-			"clkWRun": g.Clock.White.Running,
-			"clkBRun": g.Clock.Black.Running,
-			"clkTs":   nowNs,
+		signals := map[string]any{}
+		if g.Timed {
+			signals["clkW"] = g.Clock.RemainingAt(0, nowNs)
+			signals["clkB"] = g.Clock.RemainingAt(1, nowNs)
+			signals["clkWRun"] = g.Clock.White.Running
+			signals["clkBRun"] = g.Clock.Black.Running
+			signals["clkTs"] = nowNs
 		}
-		go g.Hub.BroadcastSignals(signals)
+		// First move in a play game: clear the pre-game countdown signal.
+		if g.PlayMeta != nil && len(g.History) == 1 {
+			signals["firstMoveDeadlineNs"] = 0
+		}
+		if len(signals) > 0 {
+			go g.Hub.BroadcastSignals(signals)
+		}
 	}
 
 	return true

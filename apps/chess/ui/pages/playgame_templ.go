@@ -82,7 +82,7 @@ func PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) tem
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<!-- Share links panel — visible only while the opponent hasn't claimed yet.\n\t\t\t     Once both tokens are claimed the panel is never rendered; there is\n\t\t\t     nothing left to share. data-show hides it once the clock unlocks\n\t\t\t     (both players connected) in the rare window before SSE fires. -->")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<!-- First-move countdown: visible only while waiting for white's first move\n\t\t\t     after both players have connected. Hidden once white plays or expires. --><div class=\"w-[min(100%,calc(100vh-16rem),540px)] flex items-center justify-between gap-3 px-4 py-2.5 rounded-sm border border-edge bg-surface-1\" data-show=\"$firstMoveDeadlineNs > 0 && $gameState === 0\" style=\"display:none\" role=\"status\" aria-live=\"polite\"><span class=\"text-ink text-sm font-medium\">White to make the first move</span> <span data-testid=\"first-move-countdown\" class=\"text-primary text-sm font-mono tabular-nums font-semibold\" data-text=\"$firstMoveSecondsLeft + 's'\"></span></div><!-- Share links panel — visible only while the opponent hasn't claimed yet.\n\t\t\t     Once both tokens are claimed the panel is never rendered; there is\n\t\t\t     nothing left to share. data-show hides it once the clock unlocks\n\t\t\t     (both players connected) in the rare window before SSE fires. -->")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -175,51 +175,65 @@ func PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) tem
 }
 
 type playSignals struct {
-	SelectedSquare     int    `json:"selectedSquare"`
-	SideToMove         int    `json:"sideToMove"`
-	PossibleMoves      []int  `json:"possibleMoves"`
-	Promotion          bool   `json:"promotion"`
-	PromotedSquare     int    `json:"promotedSquare"`
-	PromotionPiece     int    `json:"promotionPiece"`
-	GameState          int    `json:"gameState"`
-	GameStateText      string `json:"gameStateText"`
-	IsCheck            bool   `json:"isCheck"`
-	Winner             int    `json:"winner"`
-	Flipped            bool   `json:"flipped"`
-	Role               string `json:"role"`
-	WhiteOnline        bool   `json:"whiteOnline"`
-	BlackOnline        bool   `json:"blackOnline"`
-	ClockUnlocked      bool   `json:"clockUnlocked"`
-	Timed              bool   `json:"timed"`
-	ClaimVictory       bool   `json:"claimVictory"`
-	RematchProposed    bool   `json:"rematchProposed"`
-	RematchPending     bool   `json:"rematchPending"`
-	RematchSecondsLeft int    `json:"rematchSecondsLeft"`
+	SelectedSquare       int    `json:"selectedSquare"`
+	SideToMove           int    `json:"sideToMove"`
+	PossibleMoves        []int  `json:"possibleMoves"`
+	Promotion            bool   `json:"promotion"`
+	PromotedSquare       int    `json:"promotedSquare"`
+	PromotionPiece       int    `json:"promotionPiece"`
+	GameState            int    `json:"gameState"`
+	GameStateText        string `json:"gameStateText"`
+	IsCheck              bool   `json:"isCheck"`
+	Winner               int    `json:"winner"`
+	Flipped              bool   `json:"flipped"`
+	Role                 string `json:"role"`
+	WhiteOnline          bool   `json:"whiteOnline"`
+	BlackOnline          bool   `json:"blackOnline"`
+	ClockUnlocked        bool   `json:"clockUnlocked"`
+	Timed                bool   `json:"timed"`
+	FirstMoveDeadlineNs  int64  `json:"firstMoveDeadlineNs"`
+	FirstMoveSecondsLeft int    `json:"firstMoveSecondsLeft"`
+	ClaimVictory         bool   `json:"claimVictory"`
+	RematchProposed      bool   `json:"rematchProposed"`
+	RematchPending       bool   `json:"rematchPending"`
+	RematchSecondsLeft   int    `json:"rematchSecondsLeft"`
+}
+
+func firstMoveDeadlineNsFor(g *game.Game) int64 {
+	if g.PlayMeta == nil {
+		return 0
+	}
+	if !g.IsOngoing() || g.HistoryLen() > 0 {
+		return 0
+	}
+	return g.PlayMeta.GetFirstMoveDeadlineNs()
 }
 
 func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 	base := ui_store.ChessBoardSignalsFromGame(g)
 	return &playSignals{
-		SelectedSquare:     int(base.SelectedSquare),
-		SideToMove:         int(base.SideToMove),
-		PossibleMoves:      base.PossibleMoves,
-		Promotion:          base.Promotion,
-		PromotedSquare:     int(base.PromotedSquare),
-		PromotionPiece:     int(base.PromotionPiece),
-		GameState:          int(base.GameState),
-		GameStateText:      base.GameStateText,
-		IsCheck:            base.IsCheck,
-		Winner:             int(base.Winner),
-		Flipped:            flipped,
-		Role:               role,
-		WhiteOnline:        false,
-		BlackOnline:        false,
-		ClockUnlocked:      g.PlayMeta != nil && g.PlayMeta.IsStarted(),
-		Timed:              base.Timed,
-		ClaimVictory:       false,
-		RematchProposed:    false,
-		RematchPending:     false,
-		RematchSecondsLeft: 0,
+		SelectedSquare:       int(base.SelectedSquare),
+		SideToMove:           int(base.SideToMove),
+		PossibleMoves:        base.PossibleMoves,
+		Promotion:            base.Promotion,
+		PromotedSquare:       int(base.PromotedSquare),
+		PromotionPiece:       int(base.PromotionPiece),
+		GameState:            int(base.GameState),
+		GameStateText:        base.GameStateText,
+		IsCheck:              base.IsCheck,
+		Winner:               int(base.Winner),
+		Flipped:              flipped,
+		Role:                 role,
+		WhiteOnline:          false,
+		BlackOnline:          false,
+		ClockUnlocked:        g.PlayMeta != nil && g.PlayMeta.IsStarted(),
+		Timed:                base.Timed,
+		FirstMoveDeadlineNs:  firstMoveDeadlineNsFor(g),
+		FirstMoveSecondsLeft: 0,
+		ClaimVictory:         false,
+		RematchProposed:      false,
+		RematchPending:       false,
+		RematchSecondsLeft:   0,
 	}
 }
 

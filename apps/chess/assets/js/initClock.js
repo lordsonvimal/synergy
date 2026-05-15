@@ -97,8 +97,48 @@ function setupEffects() {
   initIfMissing("clkWRun", false)
   initIfMissing("clkBRun", false)
   initIfMissing("clkTs", 0)
+  initIfMissing("firstMoveDeadlineNs", 0)
+  initIfMissing("firstMoveSecondsLeft", 0)
   initIfMissing("rematchProposedBy", "")
   initIfMissing("rematchAcceptedUrl", "")
+
+  // First-move countdown: while both players are connected but white hasn't
+  // moved yet, the server pushes firstMoveDeadlineNs (unix ns). Tick a local
+  // 1Hz timer to update firstMoveSecondsLeft so the banner shows seconds
+  // remaining. The server-side watchdog is authoritative for abandonment;
+  // this is display-only.
+  let firstMoveInterval = null
+  const clearFirstMoveTimer = () => {
+    if (firstMoveInterval !== null) {
+      clearInterval(firstMoveInterval)
+      firstMoveInterval = null
+    }
+  }
+  const updateFirstMoveSecondsLeft = () => {
+    const deadlineNs = Number(getPath("firstMoveDeadlineNs") ?? 0)
+    if (!deadlineNs) {
+      mergePatch({ firstMoveSecondsLeft: 0 })
+      return 0
+    }
+    const offsetNs = getClockOffset() // server - client, in ns
+    const nowNs = Date.now() * 1e6 + offsetNs
+    const remNs = Math.max(0, deadlineNs - nowNs)
+    const remS = Math.ceil(remNs / 1e9)
+    mergePatch({ firstMoveSecondsLeft: remS })
+    return remS
+  }
+  effect(() => {
+    const deadlineNs = Number(getPath("firstMoveDeadlineNs") ?? 0)
+    clearFirstMoveTimer()
+    if (!deadlineNs) {
+      mergePatch({ firstMoveSecondsLeft: 0 })
+      return
+    }
+    if (updateFirstMoveSecondsLeft() <= 0) return
+    firstMoveInterval = setInterval(() => {
+      if (updateFirstMoveSecondsLeft() <= 0) clearFirstMoveTimer()
+    }, 250)
+  })
 
   // Clock-tick effect: server pushes {clkW, clkB, clkWRun, clkBRun, clkTs}
   // every second (or on every move). For live games we sync into ClientClock

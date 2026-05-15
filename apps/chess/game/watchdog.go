@@ -47,7 +47,7 @@ func (g *Game) startWatchdog() {
 						continue
 					}
 
-					// First-move timeout: 30s after both players first connected.
+					// First-move timeout: 20s after both players first connected.
 					if pm.FirstMoveDeadline != nil &&
 						now.After(*pm.FirstMoveDeadline) &&
 						len(g.History) == 0 {
