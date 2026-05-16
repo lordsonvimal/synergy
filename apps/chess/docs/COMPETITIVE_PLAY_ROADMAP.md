@@ -15,6 +15,7 @@ This document tracks the improvements needed to make the chess app viable for ra
 | 5 | **Atomic move delivery to mover (online)** — POST response now carries the full board HTML + notation + signals in one SSE write (was: signals on POST + board via hub). Removes the perceived gap between "highlight clears" and "piece appears in new square". | `server/sse.go::broadcastBoard` / `applyMoveRequest` |
 | 6 | **Content-hashed asset pipeline + gzip** — `dist/` is built by esbuild (`scripts/build-js.mjs`) plus a small asset hasher (`scripts/build-assets.mjs`). `dist/manifest.json` maps logical names → fingerprinted filenames; `helpers.Asset()` resolves them in templ; `server/static.go` serves precompressed `.gz` siblings when the client accepts gzip and sets `immutable` cache headers on hashed names. Importmap lets every bundle share one datastar runtime. | `scripts/build-{js,assets}.mjs`, `ui/helpers/assets.go`, `server/static.go`, `ui/layouts/layout.templ`, `apps/chess/package.json` |
 | 7 | **Hot manifest reload** — `helpers.LoadAssetManifest` re-reads on mtime change, so an asset rebuild against a running dev server no longer strands hashed URLs that no longer exist on disk. | `ui/helpers/assets.go` |
+| 8 | **Periodic NTP re-sync mid-game (was P0)** — `measureClockOffset` now re-runs every 60 s via `startPeriodicClockResync`; the next `clock_tick` after each re-measure folds the updated offset into the display via `ClientClock.sync`'s existing `correctionNs` ramp (smooth blend over ~20 ticks for sub-500 ms drift, hard resync above). Interval is torn down on `beforeunload` per the leak-prevention rule. | `assets/js/sync.js`, `assets/js/initClock.js` |
 
 ### Bug fixes (during the optimistic-UI rollout)
 
@@ -30,20 +31,6 @@ Engine regression tests for B1–B3 live in `engine/engine_test.go` (`TestRookMo
 ---
 
 ## Remaining improvements
-
-### P0 — Required for rated competitive play
-
-#### Periodic NTP re-sync mid-game
-**What:** `measureClockOffset` in `assets/js/sync.js` runs once at page load. If RTT changes mid-game (route flaps, proxy changes), the measured offset becomes stale and clock display drifts.
-
-**Why it matters:** On 1+0 bullet, a 250 ms drift is 25% of the time increment. Players lose on flag while their display shows time remaining.
-
-**Implementation sketch:**
-- Re-run `measureClockOffset()` every 60 s in a `setInterval`.
-- Gradually apply the new offset via the existing `correctionNs` mechanism in `ClientClock.sync()` rather than hard-jumping.
-- Complexity: **low** — ~10 lines of JS.
-
----
 
 ### P1 — Quality of life for competitive play
 

@@ -1,4 +1,4 @@
-import { clocks, measureClockOffset, getClockOffset } from "./sync.js"
+import { clocks, measureClockOffset, getClockOffset, startPeriodicClockResync, stopPeriodicClockResync } from "./sync.js"
 import { effect, getPath, mergePatch } from "datastar"
 
 // All server→client communication on game pages goes through ONE datastar SSE
@@ -68,6 +68,8 @@ if (gameID && clocks.white.el && clocks.black.el) {
     }
     raf()
     measureClockOffset() // background NTP sync; non-blocking
+    startPeriodicClockResync() // re-measure every 60s to catch route/RTT changes
+    window.addEventListener("beforeunload", stopPeriodicClockResync)
   }
 }
 
