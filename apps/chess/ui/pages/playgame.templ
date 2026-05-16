@@ -35,7 +35,10 @@ templ PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) {
 				data-testid="reconnecting-banner"
 			>
 				<span class="inline-block w-2 h-2 rounded-full bg-warning animate-pulse" aria-hidden="true"></span>
-				<span>Reconnecting&hellip; your clock is paused.</span>
+				<span>
+					Reconnecting&hellip;
+					<span data-show="$timed"> your clock is paused.</span>
+				</span>
 			</div>
 
 			<!-- First-move countdown: visible only while waiting for white's first move
