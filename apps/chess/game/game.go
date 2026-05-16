@@ -55,6 +55,32 @@ type Game struct {
 	mu             sync.RWMutex
 	legalMoveCache map[engine.Color]bool // cache per side
 	stopCh         chan struct{}          // closed to stop the watchdog
+
+	// lastSelectionSeq is the highest client-provided selection sequence seen
+	// for the current side-to-move. Selection POSTs whose seq is not strictly
+	// greater are dropped without mutating state or writing a response, so a
+	// late-arriving stale request can't overwrite a newer selection. Reset to 0
+	// whenever side-to-move changes (inside ApplyMove).
+	lastSelectionSeq int64
+}
+
+// TryAdvanceSelectionSeq atomically gates a selection request by its
+// monotonic client sequence. Returns true (and records the seq) if seq is
+// strictly greater than the highest seq seen so far for this side; returns
+// false to indicate the request is stale and should be dropped silently.
+// A seq of 0 (e.g. clients that never set it) is always allowed through so
+// legacy callers and tests don't break.
+func (g *Game) TryAdvanceSelectionSeq(seq int64) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if seq == 0 {
+		return true
+	}
+	if seq <= g.lastSelectionSeq {
+		return false
+	}
+	g.lastSelectionSeq = seq
+	return true
 }
 
 func NewGame(mode *GameMode) *Game {
@@ -330,8 +356,9 @@ func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
 		)
 	}
 
-	g.ClearSelection()  // After move, clear selection
-	g.UpdateGameState() // Update game state after each move
+	g.ClearSelection()       // After move, clear selection
+	g.lastSelectionSeq = 0   // side-to-move changes; reset per-side seq gate
+	g.UpdateGameState()      // Update game state after each move
 
 	// Push an immediate clock tick so the client switches sides without
 	// waiting up to 1s for the next watchdog broadcast.

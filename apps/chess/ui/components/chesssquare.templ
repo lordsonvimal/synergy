@@ -70,7 +70,36 @@ templ RenderChessSquare(g *game.Game, rank int, file int, routePrefix string) {
 			coordShadow = "[text-shadow:0_1px_2px_rgba(0,0,0,0.5)]"
 		}
 
-		onClick := templ.JSExpression("$clientTsNs = Date.now() * 1000000; @post('" + routePrefix + "/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
+		// Click handler responsibilities:
+		//   1. Bump $selectionSeq (monotonic, per-click). Echoed by the server as
+		//      $serverSelectionSeq so the board can ignore stale responses.
+		//   2. Update $pendingSelectedSquare / $pendingPossibleMoves so the
+		//      highlight stays put until the server's authoritative state
+		//      catches up — clicking a target keeps the source-square highlight,
+		//      clicking a new piece moves it immediately.
+		//   3. Stamp $clientTsNs for clock-lag compensation, then POST.
+		onClick := templ.JSExpression(fmt.Sprintf(`(() => {
+			const sq = %d;
+			// In online play, ignore clicks when it isn't this player's turn —
+			// the server would reject with 403 anyway, but skipping locally
+			// avoids stranding optimistic pending state that the server will
+			// never acknowledge (which would freeze the freshness gate).
+			if ($role === 'white' || $role === 'black') {
+				const mySide = $role === 'white' ? 0 : 1;
+				if (mySide !== $sideToMove) return false;
+			}
+			const wasTarget = ($possibleMoves || []).includes(sq);
+			$selectionSeq = ($selectionSeq || 0) + 1;
+			if (wasTarget) {
+				$pendingSelectedSquare = $selectedSquare;
+				$pendingPossibleMoves = $possibleMoves;
+			} else {
+				$pendingSelectedSquare = sq;
+				$pendingPossibleMoves = [];
+			}
+			$clientTsNs = Date.now() * 1000000;
+			return true;
+		})() && @post('`+routePrefix+`/`+g.ID+`/select/`+fmt.Sprint(sq)+`')`, sq))
 		label := helpers.SquareLabel(sq, color, piece, ok)
 	}}
 	<div
@@ -85,8 +114,20 @@ templ RenderChessSquare(g *game.Game, rank int, file int, routePrefix string) {
 		data-class={ templ.JSExpression(fmt.Sprintf(`
 		(() => {
 			const square = %d;
-			const isSelected = $selectedSquare === square;
-			const isTarget   = $possibleMoves.includes(square);
+			// Freshness gate: when the server's last ack matches the client's
+			// latest seq, the authoritative state is current — use it. Otherwise
+			// a click is in flight; show the optimistic pending state instead so
+			// stale responses can't make the highlight flicker back to a previous
+			// square.
+			// Use ackSelectionSeq (monotonic, advanced only forward by the
+			// chessboard's data-effect) rather than the raw serverSelectionSeq
+			// so a late-arriving stale response that lowers serverSelectionSeq
+			// can't trick the gate.
+			const fresh = ($ackSelectionSeq || 0) === ($selectionSeq || 0);
+			const sel     = fresh ? $selectedSquare : ($pendingSelectedSquare ?? 255);
+			const targets = fresh ? ($possibleMoves || []) : ($pendingPossibleMoves || []);
+			const isSelected = sel === square;
+			const isTarget   = targets.includes(square);
 			return {
 				'chess-sq-target':   isTarget && !isSelected,
 				'chess-sq-selected': isSelected,

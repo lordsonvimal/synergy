@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -75,6 +76,13 @@ func broadcastSignals(c *gin.Context, signals *ui_store.ChessBoardSignals) error
 // hubBroadcastBoard pushes board + notation + signals as DataStar SSE frames to
 // every hub subscriber. Called after a move is applied in play mode so the
 // opponent's board updates in real time via the /play/:id/events endpoint.
+//
+// The serverSelectionSeq field is intentionally stripped from the broadcast:
+// it is a per-mover acknowledgement and would otherwise advance the opponent's
+// $ackSelectionSeq past their own $selectionSeq, breaking the freshness gate
+// on the opponent's board (selection highlights would freeze on their previous
+// pending state and they'd have to click many times before highlights worked
+// again). The mover still receives the seq via the POST response.
 func hubBroadcastBoard(ctx context.Context, g *game.Game, signals *ui_store.ChessBoardSignals) {
 	var all []byte
 
@@ -86,11 +94,26 @@ func hubBroadcastBoard(ctx context.Context, g *game.Game, signals *ui_store.Ches
 	components.MoveNotationPanel("/play", g.ID, g.History).Render(ctx, buf)
 	all = append(all, datastarPatchElementsFrame(buf.String())...)
 
-	if b, err := json.Marshal(signals); err == nil {
+	if b, err := marshalSignalsForHub(signals); err == nil {
 		all = append(all, datastarPatchSignalsFrame(b)...)
 	}
 
 	g.Hub.Broadcast(all)
+}
+
+// marshalSignalsForHub marshals signals but drops serverSelectionSeq so the
+// per-mover ack doesn't leak to other subscribers via the hub.
+func marshalSignalsForHub(signals *ui_store.ChessBoardSignals) ([]byte, error) {
+	b, err := json.Marshal(signals)
+	if err != nil {
+		return nil, err
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		return nil, err
+	}
+	delete(m, "serverSelectionSeq")
+	return json.Marshal(m)
 }
 
 // routePrefixFor returns "/play" for online games, "/solo" for solo games.
@@ -131,6 +154,14 @@ func applySquareSelection(c *gin.Context, g *game.Game, square uint8) {
 	signals := ui_store.NewChessBoardSignals()
 	datastar.ReadSignals(c.Request, signals)
 
+	// Drop stale selections: when the client rapidly fires multiple clicks, only
+	// the highest-seq one is processed. Older seqs return empty (no SSE body) so
+	// they can never overwrite a newer selection on the wire.
+	if !g.TryAdvanceSelectionSeq(signals.SelectionSeq) {
+		c.Status(http.StatusNoContent)
+		return
+	}
+
 	// Compute one-way network lag for clock compensation in online games.
 	// Client stamps Date.now()*1e6 into clientTsNs just before the POST fires.
 	lagCompNs := int64(0)
@@ -160,20 +191,18 @@ func applySquareSelection(c *gin.Context, g *game.Game, square uint8) {
 			if promoteWithPiece {
 				signals.ClearPromotion()
 			}
+			// Always send board + notation + signals together in the POST
+			// response. This keeps highlight-clear and piece-move atomic for
+			// the mover, eliminating the perceived lag where the selection
+			// vanished noticeably before the piece appeared in its new
+			// square. The hub broadcast below still fans the same payload
+			// to the opponent (and idempotently re-morphs the mover's
+			// board, which is a no-op visually).
+			if err := broadcastBoard(c, g, signals); err != nil {
+				logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast board")
+			}
 			if g.PlayMeta != nil {
-				// Online: hub fans out board + notation + signals to ALL subscribers
-				// (including the mover's own /events SSE connection). The POST
-				// response only carries a signals patch so DataStar's @post gets a
-				// valid SSE reply — no second board morph on the mover's screen.
 				hubBroadcastBoard(ctx, g, signals)
-				if err := broadcastSignals(c, signals); err != nil {
-					logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast signals (online)")
-				}
-			} else {
-				// Solo: POST response is the only delivery path.
-				if err := broadcastBoard(c, g, signals); err != nil {
-					logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast board")
-				}
 			}
 			return
 		}

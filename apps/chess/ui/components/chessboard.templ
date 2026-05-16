@@ -8,7 +8,13 @@ import (
 templ RenderChessBoard(g *game.Game, routePrefix string) {
 	// data-signals.ifmissing ensures $flipped is only initialised once;
 	// SSE board patches that morph this element will never reset it.
-	<div id="chessboard" data-testid="chessboard" class="contain-layout contain-paint" data-signals.ifmissing='{"flipped":false}'>
+	<div
+		id="chessboard"
+		data-testid="chessboard"
+		class="contain-layout contain-paint"
+		data-signals.ifmissing='{"flipped":false,"selectionSeq":0,"serverSelectionSeq":0,"ackSelectionSeq":0,"pendingSelectedSquare":255,"pendingPossibleMoves":[]}'
+		data-effect="if (($serverSelectionSeq || 0) > ($ackSelectionSeq || 0)) $ackSelectionSeq = $serverSelectionSeq"
+	>
 		<div class="w-full aspect-square">
 			<div
 				class="grid grid-cols-8 grid-rows-8 w-full h-full"

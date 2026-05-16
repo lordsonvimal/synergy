@@ -1,17 +1,52 @@
 package components
 
+// ShareLinksPanel is shown to the game creator while waiting for their opponent
+// to claim the remaining seat. The creator already holds a color, so we only
+// surface the opponent's invite link.
 templ ShareLinksPanel(gameID, whiteToken, blackToken, myRole string) {
-	<div class="bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-3">
-		<p class="text-sm font-medium text-ink">Share invite links with your opponent</p>
-		<div class="flex flex-col gap-2">
-			@shareLinkRow("White player link", "/play/"+gameID+"?token="+whiteToken, myRole == "white")
-			@shareLinkRow("Black player link", "/play/"+gameID+"?token="+blackToken, myRole == "black")
+	{{
+		var myColorLabel, myColorGlyph, oppColorLabel, oppColorGlyph, oppURL string
+		if myRole == "white" {
+			myColorLabel, myColorGlyph = "White", "♔"
+			oppColorLabel, oppColorGlyph = "Black", "♚"
+			oppURL = "/play/" + gameID + "?token=" + blackToken
+		} else {
+			myColorLabel, myColorGlyph = "Black", "♚"
+			oppColorLabel, oppColorGlyph = "White", "♔"
+			oppURL = "/play/" + gameID + "?token=" + whiteToken
+		}
+	}}
+	<section class="bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-3" aria-label="Invite opponent">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<div class="flex flex-col">
+				<h2 class="text-sm font-semibold text-ink">Waiting for your opponent</h2>
+				<p class="text-xs text-ink-muted">Clock starts when both players connect.</p>
+			</div>
+			<div class="flex items-center gap-2 text-xs">
+				@colorBadge(myColorLabel, myColorGlyph, true)
+				<span aria-hidden="true" class="text-ink-muted">vs</span>
+				@colorBadge(oppColorLabel, oppColorGlyph, false)
+			</div>
 		</div>
-		<p class="text-xs text-ink-muted">The clock starts once both players have connected.</p>
-	</div>
+		@opponentLinkRow(oppURL, oppColorLabel)
+	</section>
 }
 
-templ shareLinkRow(label, url string, isMyRole bool) {
+templ colorBadge(label, glyph string, isMe bool) {
+	if isMe {
+		<span class="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-primary-50 border border-primary-200 text-primary font-medium">
+			<span aria-hidden="true" class="text-base leading-none">{ glyph }</span>
+			<span>{ label }</span>
+		</span>
+	} else {
+		<span class="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-surface-3 border border-edge text-ink-subtle font-medium">
+			<span aria-hidden="true" class="text-base leading-none">{ glyph }</span>
+			<span>{ label }</span>
+		</span>
+	}
+}
+
+templ opponentLinkRow(url, oppColorLabel string) {
 	{{
 		copyJS := "(() => {" +
 			"const t = location.origin + '" + url + "';" +
@@ -30,29 +65,24 @@ templ shareLinkRow(label, url string, isMyRole bool) {
 			"} else { fallback(); }" +
 			"})()"
 	}}
-	<div class="flex flex-col gap-2">
-		<span class="text-xs text-ink-subtle">
-			{ label }
-			if isMyRole {
-				<span class="ml-1 text-xs font-medium text-primary">(you)</span>
-			}
-		</span>
-		<div class="flex gap-2 items-center">
-			<input
-				type="text"
-				readonly
-				value={ url }
-				data-attr-value={ templ.JSExpression("location.origin + '" + url + "'") }
-				class="flex-1 min-w-0 text-xs bg-surface-4 border border-edge rounded px-2 py-2 text-ink-subtle select-all"
-			/>
-			<button
-				type="button"
-				aria-label="Copy invite link"
-				class="text-xs px-3 py-2 bg-primary text-on-primary border border-primary rounded cursor-pointer hover:bg-primary-hover hover:border-primary-hover active:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition touch-manipulation select-none"
-				data-on:click={ templ.JSExpression(copyJS) }
-			>
-				Copy
-			</button>
-		</div>
+	<div class="flex gap-2 items-stretch">
+		<input
+			id="opponent-invite-link"
+			type="text"
+			readonly
+			value={ url }
+			data-attr-value={ templ.JSExpression("location.origin + '" + url + "'") }
+			aria-label={ "Invite link for " + oppColorLabel + " player" }
+			class="flex-1 min-w-0 text-xs bg-surface-3 border border-edge rounded px-3 py-2 text-ink-subtle select-all focus:outline-none focus:border-edge-strong"
+			onfocus="this.select()"
+		/>
+		<button
+			type="button"
+			aria-label="Copy opponent invite link"
+			class="text-xs font-medium px-4 py-2 bg-primary text-on-primary border border-primary rounded cursor-pointer hover:bg-primary-hover hover:border-primary-hover active:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition touch-manipulation select-none"
+			data-on:click={ templ.JSExpression(copyJS) }
+		>
+			Copy
+		</button>
 	</div>
 }

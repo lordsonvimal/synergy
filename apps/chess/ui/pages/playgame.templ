@@ -118,6 +118,11 @@ type playSignals struct {
 	RematchProposed    bool   `json:"rematchProposed"`
 	RematchPending     bool   `json:"rematchPending"`
 	RematchSecondsLeft int    `json:"rematchSecondsLeft"`
+	SelectionSeq          int64 `json:"selectionSeq"`          // client-incremented per click
+	ServerSelectionSeq    int64 `json:"serverSelectionSeq"`    // server-echoed
+	AckSelectionSeq       int64 `json:"ackSelectionSeq"`       // monotonic max of serverSelectionSeq; used as freshness gate
+	PendingSelectedSquare int   `json:"pendingSelectedSquare"`
+	PendingPossibleMoves  []int `json:"pendingPossibleMoves"`
 }
 
 func firstMoveDeadlineNsFor(g *game.Game) int64 {
@@ -161,5 +166,10 @@ func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 		RematchProposed:    false,
 		RematchPending:     false,
 		RematchSecondsLeft: 0,
+		SelectionSeq:          0,
+		ServerSelectionSeq:    0,
+		AckSelectionSeq:       0,
+		PendingSelectedSquare: 255,
+		PendingPossibleMoves:  []int{},
 	}
 }
