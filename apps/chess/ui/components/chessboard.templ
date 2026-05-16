@@ -8,7 +8,7 @@ import (
 templ RenderChessBoard(g *game.Game, routePrefix string) {
 	// data-signals.ifmissing ensures $flipped is only initialised once;
 	// SSE board patches that morph this element will never reset it.
-	<div id="chessboard" data-testid="chessboard" data-signals.ifmissing='{"flipped":false}'>
+	<div id="chessboard" data-testid="chessboard" class="contain-layout contain-paint" data-signals.ifmissing='{"flipped":false}'>
 		<div class="w-full aspect-square">
 			<div
 				class="grid grid-cols-8 grid-rows-8 w-full h-full"
@@ -27,7 +27,7 @@ templ RenderChessBoard(g *game.Game, routePrefix string) {
 // RenderHistoryBoard renders a read-only snapshot of the board at a historical position.
 // It is the SSE response target — DataStar morphs #history-board-content with this.
 templ RenderHistoryBoard(board *engine.Board) {
-	<div id="history-board-content" class="w-full h-full">
+	<div id="history-board-content" class="w-full h-full contain-layout contain-paint">
 		<div
 			class="grid grid-cols-8 grid-rows-8 w-full h-full"
 			data-class="{'rotate-180': $flipped}"

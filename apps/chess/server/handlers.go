@@ -198,10 +198,29 @@ func SoloEventsHandler(c *gin.Context) {
 		writeClockSnapshot(c, snap)
 	}
 
+	// Seed keepaliveTs so the client reconnect watchdog (initClock.js) has a
+	// fresh baseline. Without this, the watchdog would auto-reload the page
+	// every ~25s of idle time.
+	writeSignalsDirect(c, map[string]any{"keepaliveTs": time.Now().UnixNano()})
+
+	// Keepalive: comment line every 5s keeps proxies from idle-closing the
+	// stream; every other tick (10s cadence) we push a keepaliveTs signal
+	// patch the client watchdog can observe.
+	keepaliveTicker := time.NewTicker(5 * time.Second)
+	defer keepaliveTicker.Stop()
+	keepaliveTickCount := 0
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-keepaliveTicker.C:
+			c.Writer.WriteString(":\n\n")
+			c.Writer.Flush()
+			keepaliveTickCount++
+			if keepaliveTickCount%2 == 0 {
+				writeSignalsDirect(c, map[string]any{"keepaliveTs": time.Now().UnixNano()})
+			}
 		case msg, open := <-ch:
 			if !open {
 				return

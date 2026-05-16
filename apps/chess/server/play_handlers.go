@@ -320,18 +320,29 @@ func PlayEventsHandler(c *gin.Context) {
 		writeSignalsDirect(c, map[string]any{"rematchProposedBy": proposerRole})
 	}
 
+	// Seed keepaliveTs immediately so the client watchdog has a fresh baseline.
+	writeSignalsDirect(c, map[string]any{"keepaliveTs": time.Now().UnixNano()})
+
+	// Keepalive cadence: a comment line every 5s keeps proxies (Cloudflare,
+	// nginx, ALB) from idle-closing the SSE stream. Every other tick we also
+	// push a keepaliveTs signal patch (10s cadence) so the client's
+	// reconnect watchdog in initClock.js can detect a dead stream without
+	// needing a move to happen.
 	keepaliveTicker := time.NewTicker(5 * time.Second)
 	defer keepaliveTicker.Stop()
+	keepaliveTickCount := 0
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-keepaliveTicker.C:
-			// SSE comment keeps the stream alive through proxies (Cloudflare, nginx)
-			// without being interpreted by Datastar or native EventSource listeners.
 			c.Writer.WriteString(":\n\n")
 			c.Writer.Flush()
+			keepaliveTickCount++
+			if keepaliveTickCount%2 == 0 {
+				writeSignalsDirect(c, map[string]any{"keepaliveTs": time.Now().UnixNano()})
+			}
 		case msg, open := <-ch:
 			if !open {
 				return

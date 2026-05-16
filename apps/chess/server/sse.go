@@ -19,21 +19,44 @@ import (
 
 // broadcastBoard sends an updated board + notation panel HTML and signals patch
 // via DataStar SSE to the requesting player. Route prefix is derived from PlayMeta.
+//
+// All three frames (board HTML, notation HTML, signals JSON) are buffered into
+// one Write so the browser performs at most one layout/paint pass per move
+// instead of three back-to-back morphs.
 func broadcastBoard(c *gin.Context, g *game.Game, signals *ui_store.ChessBoardSignals) error {
-	sse := datastar.NewSSE(c.Writer, c.Request)
 	ctx := c.Request.Context()
-
 	routePrefix := routePrefixFor(g)
+
+	var all []byte
 	buf := new(strings.Builder)
 
 	components.RenderChessBoard(g, routePrefix).Render(ctx, buf)
-	sse.PatchElements(buf.String())
+	all = append(all, datastarPatchElementsFrame(buf.String())...)
 
 	buf.Reset()
 	components.MoveNotationPanel(routePrefix, g.ID, g.History).Render(ctx, buf)
-	sse.PatchElements(buf.String())
+	all = append(all, datastarPatchElementsFrame(buf.String())...)
 
-	return broadcastSignals(c, signals)
+	b, err := json.Marshal(signals)
+	if err != nil {
+		return err
+	}
+	all = append(all, datastarPatchSignalsFrame(b)...)
+
+	// Set SSE headers (datastar-go's NewSSE does this; we mirror it manually
+	// because we are writing pre-formatted frames).
+	h := c.Writer.Header()
+	if h.Get("Content-Type") == "" {
+		h.Set("Content-Type", "text/event-stream")
+		h.Set("Cache-Control", "no-cache")
+		h.Set("Connection", "keep-alive")
+		h.Set("X-Accel-Buffering", "no")
+	}
+	if _, err := c.Writer.Write(all); err != nil {
+		return err
+	}
+	c.Writer.Flush()
+	return nil
 }
 
 // broadcastSignals sends a DataStar signal patch via SSE to the requesting player.
@@ -137,11 +160,20 @@ func applySquareSelection(c *gin.Context, g *game.Game, square uint8) {
 			if promoteWithPiece {
 				signals.ClearPromotion()
 			}
-			if err := broadcastBoard(c, g, signals); err != nil {
-				logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast board")
-			}
 			if g.PlayMeta != nil {
+				// Online: hub fans out board + notation + signals to ALL subscribers
+				// (including the mover's own /events SSE connection). The POST
+				// response only carries a signals patch so DataStar's @post gets a
+				// valid SSE reply — no second board morph on the mover's screen.
 				hubBroadcastBoard(ctx, g, signals)
+				if err := broadcastSignals(c, signals); err != nil {
+					logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast signals (online)")
+				}
+			} else {
+				// Solo: POST response is the only delivery path.
+				if err := broadcastBoard(c, g, signals); err != nil {
+					logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast board")
+				}
 			}
 			return
 		}

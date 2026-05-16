@@ -273,17 +273,3 @@ document.addEventListener("keydown", (e) => {
   }
 })
 
-// ── Auto-scroll move list on new moves ───────────────────────────────────────
-
-const observeList = () => {
-  const panel = document.getElementById("move-notation-panel")
-  if (!panel) return
-  new MutationObserver(() => {
-    const list = document.getElementById("move-list")
-    if (list && !document.querySelector("[data-show='$viewingHistory'][style='']")) {
-      list.scrollTop = list.scrollHeight
-    }
-  }).observe(panel, { childList: true, subtree: true })
-}
-
-observeList()
