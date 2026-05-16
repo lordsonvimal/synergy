@@ -206,6 +206,9 @@ func SoloEventsHandler(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 	c.Header("X-Accel-Buffering", "no")
 
+	// Brotli-encode the stream when the client supports it.
+	defer maybeBrotliSSE(c)()
+
 	ch := g.Hub.Subscribe()
 	defer g.Hub.Unsubscribe(ch)
 

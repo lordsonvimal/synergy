@@ -7,6 +7,7 @@ require github.com/google/uuid v1.6.0
 require (
 	github.com/a-h/templ v0.3.960
 	github.com/air-verse/air v1.63.4
+	github.com/andybalholm/brotli v1.2.0
 	github.com/gin-contrib/requestid v1.0.5
 	github.com/gin-gonic/gin v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -19,7 +20,6 @@ require (
 require (
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/CAFxX/httpcompression v0.0.9 // indirect
-	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect
 	github.com/bep/golibsass v1.2.0 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect

@@ -24,10 +24,13 @@ let gameId = null;
 let routePrefix = null;
 
 function setFen(fen) {
-  if (!fen) { console.debug("[chessleap] setFen skipped: empty fen"); return; }
+  if (!fen) return;
   if (fen === lastFen && chess) return;
   const parsed = parseFen(fen);
   if (parsed.isErr) {
+    // Loud: a malformed FEN from the server leaves the client unable to
+    // validate any move locally. Past offender was the engine emitting "a9"
+    // for no-en-passant; surface anything similar fast.
     console.error("[chessleap] setFen: parseFen failed for", fen, parsed.error);
     return;
   }
@@ -39,7 +42,6 @@ function setFen(fen) {
   }
   chess = built.unwrap();
   lastFen = fen;
-  console.debug("[chessleap] setFen OK", fen, "turn:", chess.turn);
 }
 
 function mySideColor() {
@@ -162,14 +164,10 @@ function applyDom(fromSq, toSq, move) {
 
 function clearSelection() {
   mergePatch({ selectedSquare: NO_SQUARE, possibleMoves: [] });
-  console.debug("[chessleap] clearSelection");
 }
 
 function selectPiece(sq) {
-  const targets = legalDestSquaresFrom(sq);
-  mergePatch({ selectedSquare: sq, possibleMoves: targets });
-  console.debug("[chessleap] selectPiece", sq, "targets:", targets,
-    "→ getPath after merge:", getPath("selectedSquare"));
+  mergePatch({ selectedSquare: sq, possibleMoves: legalDestSquaresFrom(sq) });
 }
 
 function postMove(fromSq, toSq, promotionRole) {
@@ -202,9 +200,6 @@ function postMove(fromSq, toSq, promotionRole) {
 }
 
 function onSquareClick(sq) {
-  console.debug("[chessleap] onSquareClick", sq,
-    "chess?", !!chess, "turn:", chess?.turn,
-    "selected:", getPath("selectedSquare"));
   if (!chess) return;
   if (!isOurTurn()) return;
   if (getPath("promotion")) return; // Promotion modal is open — let its buttons drive.
@@ -313,10 +308,7 @@ function readInitialFen(root) {
 
 function init() {
   const root = document.querySelector("#chessboard");
-  if (!root) {
-    console.debug("[chessleap] init: no #chessboard on this page");
-    return;
-  }
+  if (!root) return; // not a game page — nothing to wire
   const cfg = root.dataset || {};
   gameId      = cfg.gameId || "";
   routePrefix = cfg.routePrefix || "";

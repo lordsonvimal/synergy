@@ -273,6 +273,11 @@ func PlayEventsHandler(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 	c.Header("X-Accel-Buffering", "no")
 
+	// Brotli-encode the stream when the client supports it. Frequent flushes
+	// (every keepalive + every broadcast frame) emit brotli sync flushes so
+	// bytes reach the browser without extra latency.
+	defer maybeBrotliSSE(c)()
+
 	// Subscribe before RecordSSEConnect so this client's channel is present when
 	// the clockUnlocked signal is broadcast — the second player to connect triggers it.
 	ch := g.Hub.Subscribe()
