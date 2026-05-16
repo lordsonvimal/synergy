@@ -17,6 +17,7 @@ type ChessBoardSignals struct {
 	IsCheck        bool           `json:"isCheck"`
 	Winner         engine.Color   `json:"winner"`
 	Timed          bool           `json:"timed"`
+	ClientTsNs     int64          `json:"clientTsNs"` // unix ns set by client on move click; used for lag compensation
 }
 
 func NewChessBoardSignals() *ChessBoardSignals {

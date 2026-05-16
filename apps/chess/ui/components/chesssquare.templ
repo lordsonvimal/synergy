@@ -70,7 +70,7 @@ templ RenderChessSquare(g *game.Game, rank int, file int, routePrefix string) {
 			coordShadow = "[text-shadow:0_1px_2px_rgba(0,0,0,0.5)]"
 		}
 
-		onClick := templ.JSExpression("@post('" + routePrefix + "/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
+		onClick := templ.JSExpression("$clientTsNs = Date.now() * 1000000; @post('" + routePrefix + "/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
 		label := helpers.SquareLabel(sq, color, piece, ok)
 	}}
 	<div

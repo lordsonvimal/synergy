@@ -233,7 +233,7 @@ func RenderChessSquare(g *game.Game, rank int, file int, routePrefix string) tem
 			coordShadow = "[text-shadow:0_1px_2px_rgba(0,0,0,0.5)]"
 		}
 
-		onClick := templ.JSExpression("@post('" + routePrefix + "/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
+		onClick := templ.JSExpression("$clientTsNs = Date.now() * 1000000; @post('" + routePrefix + "/" + g.ID + "/select/" + fmt.Sprint(sq) + "')")
 		label := helpers.SquareLabel(sq, color, piece, ok)
 		var templ_7745c5c3_Var15 = []any{bg, "relative flex items-center justify-center leading-none font-['DejaVu_Sans'] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset text-[clamp(1.25rem,4vw,2.5rem)] select-none"}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var15...)

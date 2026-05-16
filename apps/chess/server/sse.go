@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lordsonvimal/synergy/apps/chess/engine"
@@ -107,6 +108,16 @@ func applySquareSelection(c *gin.Context, g *game.Game, square uint8) {
 	signals := ui_store.NewChessBoardSignals()
 	datastar.ReadSignals(c.Request, signals)
 
+	// Compute one-way network lag for clock compensation in online games.
+	// Client stamps Date.now()*1e6 into clientTsNs just before the POST fires.
+	lagCompNs := int64(0)
+	if g.PlayMeta != nil && signals.ClientTsNs > 0 {
+		const maxLagNs = 200_000_000 // 200 ms ceiling
+		if lag := time.Now().UnixNano() - signals.ClientTsNs; lag > 0 && lag < maxLagNs {
+			lagCompNs = lag
+		}
+	}
+
 	if g.HasSelection() && g.IsTarget(square) {
 		move := engine.Move{From: g.GetSelectionFrom(), To: square, Promotion: engine.NoPiece}
 		promoteWithPiece := signals.Promotion && signals.PromotionPiece != engine.NoPiece
@@ -121,7 +132,7 @@ func applySquareSelection(c *gin.Context, g *game.Game, square uint8) {
 		if promoteWithPiece {
 			move.Promotion = signals.PromotionPiece
 		}
-		if g.ApplyMove(move, 0) {
+		if g.ApplyMove(move, lagCompNs) {
 			signals.UpdateFromGame(g)
 			if promoteWithPiece {
 				signals.ClearPromotion()

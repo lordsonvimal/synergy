@@ -101,6 +101,19 @@ function setupEffects() {
   initIfMissing("firstMoveSecondsLeft", 0)
   initIfMissing("rematchProposedBy", "")
   initIfMissing("rematchAcceptedUrl", "")
+  initIfMissing("keepaliveTs", 0)
+
+  // Reconnect watchdog: server sends keepaliveTs every 10 s. If 25 s pass
+  // without any keepalive the SSE stream is dead — reload to re-establish.
+  let lastKeepAliveMs = Date.now()
+  effect(() => {
+    getPath("keepaliveTs") // register dep
+    lastKeepAliveMs = Date.now()
+  })
+  const reconnectTimer = setInterval(() => {
+    if (Date.now() - lastKeepAliveMs > 25000) window.location.reload()
+  }, 5000)
+  window.addEventListener("beforeunload", () => clearInterval(reconnectTimer))
 
   // First-move countdown: while both players are connected but white hasn't
   // moved yet, the server pushes firstMoveDeadlineNs (unix ns). Tick a local

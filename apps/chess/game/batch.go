@@ -84,18 +84,14 @@ func (b *MoveBatch) loop() {
 	}
 }
 
-// Append adds a move (and its corresponding event) to the batch.
-// If the size threshold is reached, a flush is triggered synchronously.
+// Append adds a move (and its corresponding event) and immediately schedules
+// an async flush so every move reaches the DB without waiting for the ticker.
 func (b *MoveBatch) Append(move PendingMove, event PendingEvent) {
 	b.mu.Lock()
 	b.moves = append(b.moves, move)
 	b.events = append(b.events, event)
-	shouldFlush := len(b.moves) >= batchFlushSize
 	b.mu.Unlock()
-
-	if shouldFlush {
-		b.flush(context.Background())
-	}
+	go b.flush(context.Background())
 }
 
 // FlushAndStop performs a final flush and stops the background ticker.

@@ -320,10 +320,15 @@ func PlayEventsHandler(c *gin.Context) {
 		writeSignalsDirect(c, map[string]any{"rematchProposedBy": proposerRole})
 	}
 
+	keepaliveTicker := time.NewTicker(10 * time.Second)
+	defer keepaliveTicker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-keepaliveTicker.C:
+			writeSignalsDirect(c, map[string]any{"keepaliveTs": time.Now().UnixNano()})
 		case msg, open := <-ch:
 			if !open {
 				return
