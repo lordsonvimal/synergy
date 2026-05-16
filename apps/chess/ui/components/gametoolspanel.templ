@@ -1,12 +1,15 @@
 package components
 
-// GameToolsPanel renders the flip button and game-result row.
-// Pass gameID + role + csrfToken for online play mode to enable claim-victory
-// and propose-rematch buttons; pass empty strings for computer/self game mode.
+// GameToolsPanel — compact icon row beneath the move notation.
+//
+// Layout: [Flip] [spacer] [More menu (Claim / Rematch)]
+// Result text is no longer shown here; the result lives in the ribbon above
+// the board plus the king-square overlays.
 templ GameToolsPanel(gameID, role, csrfToken string) {
 	<div
 		data-testid="game-tools-panel"
-		class="flex items-center gap-2 px-3 py-2 bg-surface-1"
+		data-signals.ifmissing='{"toolsMenuOpen": false}'
+		class="flex items-center gap-1 px-2 py-1 bg-surface-1"
 	>
 		<!-- Flip board (icon only) -->
 		<button
@@ -31,44 +34,59 @@ templ GameToolsPanel(gameID, role, csrfToken string) {
 			</svg>
 		</button>
 
-		<!-- Spacer -->
 		<div class="flex-1"></div>
 
 		if gameID != "" && (role == "white" || role == "black") {
-			<!-- Claim victory: shown when opponent has been disconnected ≥60s -->
-			<button
-				type="button"
-				data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/claim-victory')") }
-				data-show="$claimVictory"
-				style="display:none"
-				class="px-3 py-1.5 text-xs font-medium bg-primary text-on-primary rounded-md hover:bg-primary-hover transition cursor-pointer"
-			>Claim victory</button>
-			<!-- Propose rematch: shown after game ends if no rematch in progress -->
-			<button
-				type="button"
-				data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/rematch')") }
-				data-show="$gameState !== 0 && !$rematchProposed && !$rematchPending"
-				style="display:none"
-				class="px-3 py-1.5 text-xs font-medium border border-edge text-ink rounded-md hover:bg-surface-4 transition cursor-pointer"
-			>Rematch</button>
+			<div class="relative">
+				<!-- Only show the trigger when there's actually something inside the menu
+				     (claim-victory available OR game is over → rematch available). -->
+				<button
+					type="button"
+					aria-label="More game actions"
+					aria-haspopup="menu"
+					data-attr-aria-expanded="$toolsMenuOpen"
+					data-on:click="$toolsMenuOpen = !$toolsMenuOpen"
+					data-show="$claimVictory || ($gameState !== 0 && !$rematchProposed && !$rematchPending)"
+					style="display:none"
+					class="inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-subtle hover:bg-surface-4 hover:text-ink transition-colors duration-150 cursor-pointer shrink-0"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+						<circle cx="5" cy="12" r="1.6"></circle>
+						<circle cx="12" cy="12" r="1.6"></circle>
+						<circle cx="19" cy="12" r="1.6"></circle>
+					</svg>
+				</button>
+				<!-- Click-outside dismiss: backdrop sits behind the menu, transparent. -->
+				<div
+					data-show="$toolsMenuOpen"
+					style="display:none"
+					class="fixed inset-0 z-30"
+					data-on:click="$toolsMenuOpen = false"
+				></div>
+				<div
+					role="menu"
+					data-show="$toolsMenuOpen"
+					style="display:none"
+					class="absolute right-0 bottom-full mb-1 w-44 bg-surface-0 border border-edge rounded-md shadow-md py-1 z-40"
+				>
+					<button
+						type="button"
+						role="menuitem"
+						data-on:click={ templ.JSExpression("$toolsMenuOpen = false; @post('/play/" + gameID + "/claim-victory')") }
+						data-show="$claimVictory"
+						style="display:none"
+						class="w-full text-left px-3 py-1.5 text-xs text-ink hover:bg-surface-4 cursor-pointer"
+					>Claim victory</button>
+					<button
+						type="button"
+						role="menuitem"
+						data-on:click={ templ.JSExpression("$toolsMenuOpen = false; @post('/play/" + gameID + "/rematch')") }
+						data-show="$gameState !== 0 && !$rematchProposed && !$rematchPending"
+						style="display:none"
+						class="w-full text-left px-3 py-1.5 text-xs text-ink hover:bg-surface-4 cursor-pointer"
+					>Propose rematch</button>
+				</div>
+			</div>
 		}
-
-		<!-- Game result — visible only when game ends -->
-		<div
-			class="flex flex-col items-end gap-0.5"
-			data-show="$gameState !== 0"
-			style="display:none"
-		>
-			<span
-				class="text-ink font-semibold text-sm leading-none"
-				data-text={ templ.JSExpression(`
-					$winner === 255 ? 'Draw' : ($winner === 0 ? 'White wins' : 'Black wins')
-				`) }
-			></span>
-			<span
-				class="text-ink-muted text-xs leading-none"
-				data-text="$gameStateText"
-			></span>
-		</div>
 	</div>
 }

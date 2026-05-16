@@ -1,0 +1,54 @@
+package components
+
+// ToastVariant controls the icon + accent color shown on the left of the toast.
+type ToastVariant string
+
+const (
+	ToastInfo    ToastVariant = "info"
+	ToastWarning ToastVariant = "warning"
+	ToastError   ToastVariant = "error"
+	ToastSuccess ToastVariant = "success"
+)
+
+// ToastContainer is the page-level mount point for toasts. Place it as a direct
+// child of <body> (via the page template) so it sits in the toast z-layer (7)
+// per CLAUDE.md. Individual Toast components are placed inside.
+templ ToastContainer() {
+	<aside
+		aria-label="Notifications"
+		class="fixed top-4 right-4 flex flex-col gap-2 pointer-events-none z-50"
+	>
+		{ children... }
+	</aside>
+}
+
+// Toast renders a single notification card. Visibility is driven by a datastar
+// expression passed in `showExpr` (e.g. "$connectionDown"). The toast itself is
+// pointer-events-auto so its inner controls remain clickable while the
+// container stays click-through.
+templ Toast(variant ToastVariant, showExpr, testID string) {
+	{{
+		dotClass := "bg-info"
+		switch variant {
+		case ToastWarning:
+			dotClass = "bg-warning"
+		case ToastError:
+			dotClass = "bg-error"
+		case ToastSuccess:
+			dotClass = "bg-success"
+		}
+	}}
+	<div
+		role="status"
+		aria-live="polite"
+		data-testid={ testID }
+		data-show={ showExpr }
+		style="display:none"
+		class="pointer-events-auto flex items-center gap-2 px-3 py-2 rounded-md border border-edge bg-surface-0 text-ink text-sm shadow-md min-w-56 max-w-80"
+	>
+		<span class={ "inline-block w-2 h-2 rounded-full shrink-0 animate-pulse", dotClass } aria-hidden="true"></span>
+		<div class="flex-1 min-w-0">
+			{ children... }
+		</div>
+	</div>
+}

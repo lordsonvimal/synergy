@@ -29,23 +29,59 @@ let routePrefix = null;
 
 function setFen(fen) {
   if (!fen) return;
-  if (fen === lastFen && chess) return;
-  const parsed = parseFen(fen);
-  if (parsed.isErr) {
-    // Loud: a malformed FEN from the server leaves the client unable to
-    // validate any move locally. Past offender was the engine emitting "a9"
-    // for no-en-passant; surface anything similar fast.
-    console.error("[chessleap] setFen: parseFen failed for", fen, parsed.error);
-    return;
+  // Only rebuild the chess instance when the FEN actually changed — parseFen
+  // and Chess.fromSetup aren't cheap. The derived signals below ALWAYS
+  // republish: applyOptimistic updates lastFen locally before the server's
+  // echo arrives, so this function gets called with fen === lastFen on
+  // every move's server-side confirmation. If we early-returned there, king
+  // squares and check status would never publish for moves the local player
+  // made (incl. the mating move).
+  if (fen !== lastFen || !chess) {
+    const parsed = parseFen(fen);
+    if (parsed.isErr) {
+      // Loud: a malformed FEN from the server leaves the client unable to
+      // validate any move locally. Past offender was the engine emitting "a9"
+      // for no-en-passant; surface anything similar fast.
+      console.error("[chessleap] setFen: parseFen failed for", fen, parsed.error);
+      return;
+    }
+    const setup = parsed.unwrap();
+    const built = Chess.fromSetup(setup);
+    if (built.isErr) {
+      console.error("[chessleap] setFen: Chess.fromSetup failed for", fen, built.error);
+      return;
+    }
+    chess = built.unwrap();
+    lastFen = fen;
   }
-  const setup = parsed.unwrap();
-  const built = Chess.fromSetup(setup);
-  if (built.isErr) {
-    console.error("[chessleap] setFen: Chess.fromSetup failed for", fen, built.error);
-    return;
+  publishBoardDerivedSignals();
+}
+
+// publishBoardDerivedSignals refreshes king-square and check-square signals
+// after each FEN change. The chesssquare data-class bindings read these to
+// paint check + game-end king overlays without needing per-square server data.
+function publishBoardDerivedSignals() {
+  if (!chess) return;
+  const whiteKingSq = firstSquareOf("king", "white");
+  const blackKingSq = firstSquareOf("king", "black");
+  // checkSquare points at the king currently in check (only meaningful while
+  // the game is ongoing — the game-end branch in chesssquare ignores it).
+  let checkSquare = NO_SQUARE;
+  if (chess.isCheck()) {
+    checkSquare = chess.turn === "white" ? whiteKingSq : blackKingSq;
   }
-  chess = built.unwrap();
-  lastFen = fen;
+  mergePatch({ whiteKingSq, blackKingSq, checkSquare });
+}
+
+function firstSquareOf(role, color) {
+  // chessops board iteration: scan 0..63 and return the first match.
+  // Boards always have exactly one king per side, so this is O(64) once
+  // per FEN change — cheaper than maintaining a cached lookup.
+  for (let sq = 0; sq < 64; sq++) {
+    const p = chess.board.get(sq);
+    if (p && p.role === role && p.color === color) return sq;
+  }
+  return NO_SQUARE;
 }
 
 function mySideColor() {
@@ -267,6 +303,10 @@ function applyOptimistic(fromSq, toSq, promotionRole) {
   if (promotionRole) move.promotion = promotionRole;
   chess.play(move);
   lastFen = makeFen(chess.toSetup());
+  // Local move can change king position (castling) or put the opponent in
+  // check — both must reflect in the highlight signals immediately, since
+  // the server's fen echo will short-circuit setFen (fen === lastFen).
+  publishBoardDerivedSignals();
 
   clearSelection();
   postMove(fromSq, toSq, promotionRole);

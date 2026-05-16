@@ -12,7 +12,7 @@ templ RenderChessBoard(g *game.Game, routePrefix string) {
 		id="chessboard"
 		data-testid="chessboard"
 		class="contain-layout contain-paint"
-		data-signals.ifmissing='{"flipped":false}'
+		data-signals.ifmissing='{"flipped":false,"whiteKingSq":64,"blackKingSq":64,"checkSquare":64}'
 		data-game-id={ g.ID }
 		data-route-prefix={ routePrefix }
 	>

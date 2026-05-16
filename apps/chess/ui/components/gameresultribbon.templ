@@ -1,0 +1,41 @@
+package components
+
+// GameResultRibbon shows the winner + reason directly above the board once a
+// game ends. It is non-blocking (no buttons, no backdrop) and pairs with the
+// king-square overlays on the board itself.
+//
+// The icon, accent color and label all derive from $winner / $gameState
+// signals so the same component handles checkmate, stalemate, resign, timeout,
+// draws and abandonment without server-side branching.
+templ GameResultRibbon() {
+	<div
+		data-show="$gameState !== 0"
+		style="display:none"
+		role="status"
+		aria-live="polite"
+		data-testid="game-result-ribbon"
+		class="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-surface-0 border-b border-edge text-sm"
+	>
+		<span
+			aria-hidden="true"
+			class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold"
+			data-class={ templ.JSExpression(`{
+				'bg-error text-on-error':   $winner !== 255 && ($gameState === 1 || $gameState === 3),
+				'bg-accent text-on-accent': $winner !== 255 && $gameState === 2,
+				'bg-neutral-200 text-ink':  $winner === 255,
+			}`) }
+			data-text={ templ.JSExpression(`(() => {
+				if ($winner === 255) return '½';
+				if ($gameState === 1) return '#';
+				if ($gameState === 2) return '⚑';
+				if ($gameState === 3) return '⏱';
+				return '✓';
+			})()`) }
+		></span>
+		<span
+			class="font-semibold text-ink"
+			data-text={ templ.JSExpression(`$winner === 255 ? 'Draw' : ($winner === 0 ? 'White wins' : 'Black wins')`) }
+		></span>
+		<span class="text-ink-muted" data-text="'· ' + $gameStateText"></span>
+	</div>
+}

@@ -1,0 +1,32 @@
+package components
+
+// Modal renders an overlay backdrop + centered card.
+//
+// Visibility is driven by `showExpr` (datastar expression). When the expression
+// is truthy the backdrop fades in and traps clicks; clicking the backdrop runs
+// `closeExpr` (pass "" to disable backdrop-dismiss for required decisions like
+// rematch prompts). Modal contents are passed as children.
+//
+// Z-layer: modals (layer 6 per CLAUDE.md). Pages should ensure only one modal
+// renders at a time so backdrops don't stack.
+templ Modal(showExpr, closeExpr, ariaLabel, testID string) {
+	<div
+		role="dialog"
+		aria-modal="true"
+		aria-label={ ariaLabel }
+		data-testid={ testID }
+		data-show={ showExpr }
+		style="display:none"
+		class="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/40"
+		if closeExpr != "" {
+			data-on:click={ templ.JSExpression("event.target === event.currentTarget && (" + closeExpr + ")") }
+		}
+	>
+		<div
+			class="w-full max-w-md bg-surface-0 rounded-lg shadow-xl border border-edge"
+			data-on:click="event.stopPropagation()"
+		>
+			{ children... }
+		</div>
+	</div>
+}

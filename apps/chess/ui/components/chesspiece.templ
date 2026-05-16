@@ -13,7 +13,7 @@ templ RenderChessPiece(color engine.Color, piece engine.Piece) {
 			pieceClass = "chess-piece-black"
 		}
 	}}
-	<span aria-label={ label } role="img" class={ pieceClass }>
+	<span aria-label={ label } role="img" class={ pieceClass, "relative z-10" }>
 		if color == engine.White {
 			switch piece {
 				case engine.Pawn:

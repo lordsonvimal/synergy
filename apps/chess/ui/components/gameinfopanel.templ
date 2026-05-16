@@ -69,6 +69,15 @@ templ WhitePlayerCard() {
 			style="display:none"
 			aria-hidden="true"
 		></span>
+		<!-- First-move countdown: only shown while waiting for white's first move.
+		     Lives inside the white card so it never shifts the board layout. -->
+		<span
+			data-testid="first-move-countdown"
+			class="text-accent text-xs font-mono tabular-nums font-semibold"
+			data-show="$firstMoveDeadlineNs > 0 && $gameState === 0"
+			style="display:none"
+			data-text="'first move: ' + $firstMoveSecondsLeft + 's'"
+		></span>
 		<span
 			id="white-clock"
 			data-testid="clock-white"

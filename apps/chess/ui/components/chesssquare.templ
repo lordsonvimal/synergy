@@ -13,7 +13,7 @@ templ coordLabels(rank, file int, coordColor, coordShadow string) {
 	// Rank label (White view): top-left corner of every a-file square.
 	if file == 0 {
 		<span
-			class={ coordColor, coordShadow, "absolute top-0.5 left-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
+			class={ coordColor, coordShadow, "absolute top-0.5 left-0.5 text-xs font-bold leading-none pointer-events-none select-none z-20" }
 			data-show="!$flipped"
 			aria-hidden="true"
 		>{ fmt.Sprintf("%d", rank+1) }</span>
@@ -21,7 +21,7 @@ templ coordLabels(rank, file int, coordColor, coordShadow string) {
 	// Rank label (Black view): top-left corner of every h-file square after flip.
 	if file == 7 {
 		<span
-			class={ coordColor, coordShadow, "absolute top-0.5 left-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
+			class={ coordColor, coordShadow, "absolute top-0.5 left-0.5 text-xs font-bold leading-none pointer-events-none select-none z-20" }
 			data-show="$flipped"
 			style="display: none"
 			aria-hidden="true"
@@ -30,7 +30,7 @@ templ coordLabels(rank, file int, coordColor, coordShadow string) {
 	// File label (White view): bottom-right corner of each first-rank square.
 	if rank == 0 {
 		<span
-			class={ coordColor, coordShadow, "absolute bottom-0.5 right-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
+			class={ coordColor, coordShadow, "absolute bottom-0.5 right-0.5 text-xs font-bold leading-none pointer-events-none select-none z-20" }
 			data-show="!$flipped"
 			aria-hidden="true"
 		>{ string(rune('a' + file)) }</span>
@@ -38,7 +38,7 @@ templ coordLabels(rank, file int, coordColor, coordShadow string) {
 	// File label (Black view): bottom-right corner of each eighth-rank square after flip.
 	if rank == 7 {
 		<span
-			class={ coordColor, coordShadow, "absolute bottom-0.5 right-0.5 text-xs font-bold leading-none pointer-events-none select-none" }
+			class={ coordColor, coordShadow, "absolute bottom-0.5 right-0.5 text-xs font-bold leading-none pointer-events-none select-none z-20" }
 			data-show="$flipped"
 			style="display: none"
 			aria-hidden="true"
@@ -80,33 +80,113 @@ templ RenderChessSquare(g *game.Game, rank int, file int, routePrefix string) {
 		label := helpers.SquareLabel(sq, color, piece, ok)
 		_ = routePrefix // routePrefix is read from #chessboard data-* by board.js
 	}}
+	{{
+		// Dot/ring color depends on the square's own light/dark tone so the
+		// indicator reads on both. Computed once at render time.
+		isDark := (rank+file)%2 == 0
+		dotBg := "bg-black/20"
+		ringBg := "bg-[radial-gradient(circle,transparent_58%,rgb(0_0_0/0.22)_62%)]"
+		if isDark {
+			dotBg = "bg-white/25"
+			ringBg = "bg-[radial-gradient(circle,transparent_58%,rgb(255_255_255/0.28)_62%)]"
+		}
+		// Per-square reactive conditions, evaluated once and reused below.
+		// Dot-vs-ring branches on the server-side `ok` flag — the board is
+		// morphed via SSE after every move, so occupancy stays in sync.
+		isSelected := fmt.Sprintf("$selectedSquare === %d", sq)
+		hasMoves := "($possibleMoves || []).length > 0"
+		isTarget := fmt.Sprintf("($possibleMoves || []).includes(%d) && $selectedSquare !== %d", sq, sq)
+		ended := "$gameState !== 0"
+		isWhiteKing := fmt.Sprintf("%d === $whiteKingSq", sq)
+		isBlackKing := fmt.Sprintf("%d === $blackKingSq", sq)
+	}}
 	<div
 		id={ id }
 		data-testid={ id }
 		role="button"
 		tabindex="0"
 		aria-label={ label }
-		class={ bg, "relative flex items-center justify-center leading-none font-['DejaVu_Sans'] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset text-[clamp(1.25rem,4vw,2.5rem)] select-none" }
+		class={ bg, "relative isolate flex items-center justify-center leading-none font-['DejaVu_Sans'] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset text-[clamp(1.25rem,4vw,2.5rem)] select-none" }
 		data-on:click={ onClick }
 		data-on:keydown={ onKey }
-		data-class={ templ.JSExpression(fmt.Sprintf(`
-		(() => {
-			const square = %d;
-			const isSelected = $selectedSquare === square;
-			const isTarget   = ($possibleMoves || []).includes(square);
-			return {
-				'chess-sq-target':   isTarget && !isSelected,
-				'chess-sq-selected': isSelected,
-				'rotate-180':        $flipped,
-			};
-		})()
-		`, sq)) }
+		data-class="{'rotate-180': $flipped}"
 	>
+		<!-- Selection overlays (mutually exclusive). -->
+		<div
+			class="absolute inset-0 pointer-events-none bg-[rgb(255_213_79_/_0.55)]"
+			data-show={ isSelected + " && " + hasMoves }
+			style="display:none"
+		></div>
+		<div
+			class="absolute inset-0 pointer-events-none shadow-[inset_0_0_0_2px_rgb(255_213_79_/_0.9)]"
+			data-show={ isSelected + " && !(" + hasMoves + ")" }
+			style="display:none"
+		></div>
+
+		<!-- Legal-move target dot (empty square) / ring (capture). -->
+		if !ok {
+			<div
+				class={ "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28%] h-[28%] rounded-full pointer-events-none", dotBg }
+				data-show={ isTarget }
+				style="display:none"
+			></div>
+		} else {
+			<div
+				class={ "absolute inset-0 pointer-events-none", ringBg }
+				data-show={ isTarget }
+				style="display:none"
+			></div>
+		}
+
+		<!-- Check overlay (live game only). -->
+		<div
+			class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle,rgb(220_38_38/0.65)_0%,rgb(220_38_38/0.15)_60%,transparent_80%)]"
+			data-show={ "!(" + ended + ") && $checkSquare === " + fmt.Sprintf("%d", sq) }
+			style="display:none"
+		></div>
+
+		<!-- Game-end king overlays (mutually exclusive). -->
+		<div
+			class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle,rgb(220_38_38/0.75)_0%,rgb(220_38_38/0.25)_65%,transparent_85%)]"
+			data-show={ ended + " && $winner !== 255 && ((" + isBlackKing + " && $winner === 0) || (" + isWhiteKing + " && $winner === 1))" }
+			style="display:none"
+		></div>
+		<div
+			class="absolute inset-0 pointer-events-none shadow-[inset_0_0_0_3px_rgb(217_119_6/0.9)]"
+			data-show={ ended + " && $winner !== 255 && ((" + isWhiteKing + " && $winner === 0) || (" + isBlackKing + " && $winner === 1))" }
+			style="display:none"
+		></div>
+		<div
+			class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle,rgb(148_163_184/0.55)_0%,rgb(148_163_184/0.15)_65%,transparent_85%)]"
+			data-show={ ended + " && $winner === 255 && (" + isWhiteKing + " || " + isBlackKing + ")" }
+			style="display:none"
+		></div>
+
 		if ok {
 			@RenderChessPiece(color, piece)
 		}
 		@coordLabels(rank, file, coordColor, coordShadow)
+		@endGlyph(sq, isWhiteKing, isBlackKing, ended)
 	</div>
+}
+
+// endGlyph renders the corner status mark (#, ½, ⚐, ⏱) that appears on the
+// affected king square once the game ends. Hidden during play.
+templ endGlyph(sq uint8, isWhiteKing, isBlackKing, ended string) {
+	<span
+		aria-hidden="true"
+		class="absolute bottom-0.5 left-0.5 text-xs font-bold leading-none text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.6)] pointer-events-none z-20"
+		data-show={ ended + " && (" + isWhiteKing + " || " + isBlackKing + ")" }
+		style="display:none"
+		data-class="{'rotate-180': $flipped}"
+		data-text={ templ.JSExpression(`(() => {
+			if ($gameState === 1) return '#';
+			if ($gameState === 2) return '⚐';
+			if ($gameState === 3) return '⏱';
+			if ($winner === 255) return '½';
+			return '';
+		})()`) }
+	></span>
 }
 
 // RenderReadOnlyChessSquare renders a non-interactive history board square
