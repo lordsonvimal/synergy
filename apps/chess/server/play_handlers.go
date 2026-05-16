@@ -320,7 +320,7 @@ func PlayEventsHandler(c *gin.Context) {
 		writeSignalsDirect(c, map[string]any{"rematchProposedBy": proposerRole})
 	}
 
-	keepaliveTicker := time.NewTicker(10 * time.Second)
+	keepaliveTicker := time.NewTicker(5 * time.Second)
 	defer keepaliveTicker.Stop()
 
 	for {
@@ -328,7 +328,10 @@ func PlayEventsHandler(c *gin.Context) {
 		case <-ctx.Done():
 			return
 		case <-keepaliveTicker.C:
-			writeSignalsDirect(c, map[string]any{"keepaliveTs": time.Now().UnixNano()})
+			// SSE comment keeps the stream alive through proxies (Cloudflare, nginx)
+			// without being interpreted by Datastar or native EventSource listeners.
+			c.Writer.WriteString(":\n\n")
+			c.Writer.Flush()
 		case msg, open := <-ch:
 			if !open {
 				return
