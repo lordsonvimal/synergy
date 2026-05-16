@@ -17,6 +17,10 @@ const ROLE_TO_PIECE   = { pawn: 0, knight: 1, bishop: 2, rook: 3, queen: 4, king
 // wrong sentinel here silently breaks every "do I have a selection?" check
 // because getPath("selectedSquare") returns 64 in the unselected state.
 const NO_SQUARE = 64;
+// engine.NoPiece is 255. Pawn is 0, so a `!getPath('promotionPiece')` check
+// would both miss the unset state (255 is truthy) and wrongly treat a Pawn
+// (0) as unset. Always compare against this sentinel explicitly.
+const NO_PIECE = 255;
 
 let chess = null;
 let lastFen = null;
@@ -138,13 +142,22 @@ function applyDom(fromSq, toSq, move) {
     captured?.remove();
   }
 
-  // Move the piece span. For promotion we swap in a placeholder; the server's
-  // board morph will replace it with the correct SVG for the promoted piece.
+  // Move the piece span. For promotion, swap in the SVG of the chosen piece
+  // (cloned from the promotion overlay button the user just clicked). We can't
+  // rely on a server morph filling this in — in solo mode the move POST's
+  // response body isn't parsed by datastar, so the dest square would stay
+  // empty until the next full board re-render.
   if (pieceSpan) {
     if (move.promotion) {
-      // Strip the SVG content; promotion piece is settled by the server morph.
-      // Keep the span so the square still looks occupied to the user.
-      pieceSpan.innerHTML = "";
+      const btnPiece = document.querySelector(
+        `[data-testid="promotion-button-${move.promotion}"] span[role="img"]`
+      );
+      if (btnPiece) {
+        pieceSpan.innerHTML = btnPiece.innerHTML;
+        pieceSpan.className = btnPiece.className;
+        const label = btnPiece.getAttribute("aria-label");
+        if (label) pieceSpan.setAttribute("aria-label", label);
+      }
     }
     toEl.appendChild(pieceSpan);
   }
@@ -227,7 +240,7 @@ function onSquareClick(sq) {
   const fromSq = selected;
   const toSq = sq;
 
-  if (isPromotion(fromSq, toSq) && !getPath("promotionPiece")) {
+  if (isPromotion(fromSq, toSq) && getPath("promotionPiece") === NO_PIECE) {
     // Open the overlay; deciding the piece routes back through resumeAfterPromotion.
     mergePatch({ promotion: true, promotedSquare: toSq });
     return;
@@ -267,7 +280,7 @@ function resumeAfterPromotion(pieceCode) {
   const fromSq = (selectedSq !== undefined && selectedSq !== NO_SQUARE)
     ? selectedSq
     : findPromotionFrom(toSq);
-  mergePatch({ promotion: false, promotedSquare: NO_SQUARE, promotionPiece: 0 });
+  mergePatch({ promotion: false, promotedSquare: NO_SQUARE, promotionPiece: NO_PIECE });
   if (fromSq === undefined || fromSq === NO_SQUARE) return;
   applyOptimistic(fromSq, toSq, role);
 }

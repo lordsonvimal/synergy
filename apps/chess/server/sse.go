@@ -75,17 +75,26 @@ func broadcastSignals(c *gin.Context, signals *ui_store.ChessBoardSignals) error
 }
 
 // hubBroadcastBoard pushes board + notation + signals as DataStar SSE frames to
-// every hub subscriber. Called after a move is applied in play mode so the
-// opponent's board updates in real time via the /play/:id/events endpoint.
+// every hub subscriber. Called after every applied move so the always-on
+// /events SSE delivers the morph to the moving player (and the opponent, in
+// play mode).
 func hubBroadcastBoard(ctx context.Context, g *game.Game, signals *ui_store.ChessBoardSignals) {
+	routePrefix := routePrefixFor(g)
 	var all []byte
 
 	buf := new(strings.Builder)
-	components.RenderChessBoard(g, "/play").Render(ctx, buf)
+	components.RenderChessBoard(g, routePrefix).Render(ctx, buf)
 	all = append(all, datastarPatchElementsFrame(buf.String())...)
 
 	buf.Reset()
-	components.MoveNotationPanel("/play", g.ID, g.History).Render(ctx, buf)
+	components.MoveNotationPanel(routePrefix, g.ID, g.History).Render(ctx, buf)
+	all = append(all, datastarPatchElementsFrame(buf.String())...)
+
+	// Re-render the promotion overlay so its buttons reflect the new
+	// sideToMove (the player about to make the next move). Without this, a
+	// black promotion would still show white piece SVGs from page load.
+	buf.Reset()
+	components.RenderPromotionOverlay(g, routePrefix).Render(ctx, buf)
 	all = append(all, datastarPatchElementsFrame(buf.String())...)
 
 	if b, err := json.Marshal(signals); err == nil {
@@ -193,9 +202,11 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 	if err := broadcastBoard(c, g, signals); err != nil {
 		logger.Error(ctx).Err(err).Msg("applyMoveRequest: broadcast board")
 	}
-	if g.PlayMeta != nil {
-		hubBroadcastBoard(ctx, g, signals)
-	}
+	// Push the same frames over the always-on /events SSE. The plain fetch()
+	// in board.js drains the POST response without parsing the SSE frames, so
+	// without this the move-notation panel and any post-move signals never
+	// reach the client in solo mode (and only reach the opponent in play).
+	hubBroadcastBoard(ctx, g, signals)
 }
 
 // writeClockSnapshot writes a single datastar signal patch carrying the given
