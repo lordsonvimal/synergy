@@ -287,7 +287,7 @@ func PlayEventsHandler(c *gin.Context) {
 	ch := g.Hub.Subscribe()
 	defer g.Hub.Unsubscribe(ch)
 
-	bothJustConnected := g.PlayMeta.RecordSSEConnect(role)
+	bothFirstConnected, shouldArmClock := g.PlayMeta.RecordSSEConnect(role)
 	defer func() {
 		g.PlayMeta.RecordSSEDisconnect(role)
 		whiteOnline, blackOnline := g.PlayMeta.OnlineStatus()
@@ -296,13 +296,24 @@ func PlayEventsHandler(c *gin.Context) {
 		})
 	}()
 
-	if bothJustConnected && g.IsOngoing() {
-		deadline := time.Now().Add(20 * time.Second)
-		g.StartPlayClock(deadline)
-		g.Hub.BroadcastSignals(map[string]any{
-			"clockUnlocked":       true,
-			"firstMoveDeadlineNs": deadline.UnixNano(),
-		})
+	if g.IsOngoing() {
+		switch {
+		case bothFirstConnected:
+			// Brand-new game, both players just arrived for the first time.
+			// Start the 20s first-move countdown for white.
+			deadline := time.Now().Add(20 * time.Second)
+			g.StartPlayClock(deadline)
+			g.Hub.BroadcastSignals(map[string]any{
+				"clockUnlocked":       true,
+				"firstMoveDeadlineNs": deadline.UnixNano(),
+			})
+		case shouldArmClock:
+			// Game already had at least one move (or BothPlayersConnectedOnce
+			// was preserved from a prior session). Resume the side-to-move
+			// clock from its persisted remaining time — downtime is not
+			// billed to either player.
+			g.ResumeClockForActiveSide()
+		}
 	}
 
 	// Initial state for this connection: board snapshot + current clock + any
@@ -684,12 +695,20 @@ func loadPlayGameFromDB(ctx context.Context, dbRepo db.Repository, gameID string
 		restoredIncNs = *core.dbGame.IncrementNs
 	}
 
+	// BothPlayersConnectedOnce is true if the game already has moves (it must
+	// have been "started" before — both players were online to allow the first
+	// move) or if it's finished (gating doesn't matter). For an ongoing game
+	// with no moves yet, leave it false so the first-move flow runs when both
+	// players reconnect.
+	bothConnectedBefore := core.state != game.GameOngoing || len(core.history) > 0
 	meta := &game.PlayMeta{
-		SessionID:            core.dbGame.SessionID,
-		OriginalMode:         game.GameMode{TimeNs: timeCtrlNs, Increment: restoredIncNs, Variant: core.dbGame.Variant, Timed: timeCtrlNs > 0},
-		RematchProposedBy:    engine.NoColor,
-		ClaimVictoryFor:      engine.NoColor,
-		BothPlayersConnectedOnce: core.state != game.GameOngoing,
+		SessionID:                core.dbGame.SessionID,
+		OriginalMode:             game.GameMode{TimeNs: timeCtrlNs, Increment: restoredIncNs, Variant: core.dbGame.Variant, Timed: timeCtrlNs > 0},
+		RematchProposedBy:        engine.NoColor,
+		ClaimVictoryFor:          engine.NoColor,
+		BothPlayersConnectedOnce: bothConnectedBefore,
+		// ClockArmedAfterLoad stays false so the first reconnect-pair after
+		// the restart re-starts the side-to-move clock from its saved value.
 	}
 	for _, p := range participants {
 		switch p.Role {

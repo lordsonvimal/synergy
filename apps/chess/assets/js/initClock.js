@@ -102,17 +102,33 @@ function setupEffects() {
   initIfMissing("rematchProposedBy", "")
   initIfMissing("rematchAcceptedUrl", "")
   initIfMissing("keepaliveTs", 0)
+  initIfMissing("connectionDown", false)
 
-  // Reconnect watchdog: server sends keepaliveTs every 10 s. If 25 s pass
-  // without any keepalive the SSE stream is dead — reload to re-establish.
+  // Reconnect watchdog: server sends keepaliveTs every 10s. If the gap
+  // exceeds DOWN_MS we show the "Reconnecting" banner (Datastar is already
+  // auto-retrying the SSE). If the gap exceeds RELOAD_MS we assume the
+  // page state is unrecoverable and reload as a last resort.
+  const DOWN_MS = 12000
+  const RELOAD_MS = 120000
   let lastKeepAliveMs = Date.now()
+  let bannerShown = false
   effect(() => {
     getPath("keepaliveTs") // register dep
     lastKeepAliveMs = Date.now()
+    if (bannerShown) {
+      bannerShown = false
+      mergePatch({ connectionDown: false })
+    }
   })
   const reconnectTimer = setInterval(() => {
-    if (Date.now() - lastKeepAliveMs > 25000) window.location.reload()
-  }, 5000)
+    const gap = Date.now() - lastKeepAliveMs
+    if (gap > RELOAD_MS) {
+      window.location.reload()
+    } else if (gap > DOWN_MS && !bannerShown) {
+      bannerShown = true
+      mergePatch({ connectionDown: true })
+    }
+  }, 2000)
   window.addEventListener("beforeunload", () => clearInterval(reconnectTimer))
 
   // First-move countdown: while both players are connected but white hasn't

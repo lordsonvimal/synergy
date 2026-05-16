@@ -38,6 +38,12 @@ type PlayMeta struct {
 	BothPlayersConnectedOnce bool
 	FirstMoveDeadline        *time.Time // 30s after both first connect
 
+	// ClockArmedAfterLoad tracks whether we've started the side-to-move clock
+	// since this game was loaded into memory. Reset to false on each fresh
+	// load (e.g. after a server restart) so the clock is re-armed when both
+	// players reconnect — and not penalised for the downtime.
+	ClockArmedAfterLoad bool
+
 	// ClaimVictoryFor is set when a player has been disconnected ≥60s.
 	ClaimVictoryFor engine.Color
 
@@ -47,8 +53,14 @@ type PlayMeta struct {
 }
 
 // RecordSSEConnect notes a new SSE connection for the given role.
-// Returns true the first time both white and black are simultaneously online.
-func (m *PlayMeta) RecordSSEConnect(role string) (bothNowConnected bool) {
+// Returns:
+//   - bothFirstConnected: true the first time ever both white and black are
+//     simultaneously online (drives the initial first-move countdown).
+//   - shouldArmClock: true when both sides are online and the clock has not
+//     yet been armed since this game was loaded into memory. Used after a
+//     server restart to resume an in-progress game's clock without
+//     penalising either player for the downtime.
+func (m *PlayMeta) RecordSSEConnect(role string) (bothFirstConnected, shouldArmClock bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -67,14 +79,19 @@ func (m *PlayMeta) RecordSSEConnect(role string) (bothNowConnected bool) {
 			m.blackDisconnectAt = nil
 		}
 	default:
-		return false
+		return false, false
 	}
 
-	if !m.BothPlayersConnectedOnce && m.whiteConns > 0 && m.blackConns > 0 {
+	bothOnline := m.whiteConns > 0 && m.blackConns > 0
+	if !m.BothPlayersConnectedOnce && bothOnline {
 		m.BothPlayersConnectedOnce = true
-		return true
+		bothFirstConnected = true
 	}
-	return false
+	if bothOnline && !m.ClockArmedAfterLoad {
+		m.ClockArmedAfterLoad = true
+		shouldArmClock = true
+	}
+	return bothFirstConnected, shouldArmClock
 }
 
 // RecordSSEDisconnect notes a dropped SSE connection for the given role.

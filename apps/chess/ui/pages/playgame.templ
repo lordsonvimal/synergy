@@ -22,6 +22,22 @@ templ PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) {
 		>
 			@components.GameStatusBanner()
 
+			<!-- Reconnecting banner: shown while the SSE stream is silent
+			     (set by the keepaliveTs watchdog in initClock.js). Datastar
+			     auto-retries the connection; the banner clears as soon as a
+			     keepalive arrives. -->
+			<div
+				class="w-[min(100%,calc(100vh-16rem),540px)] flex items-center gap-2 px-4 py-2.5 rounded-sm border border-edge bg-surface-2 text-ink text-sm"
+				data-show="$connectionDown"
+				style="display:none"
+				role="status"
+				aria-live="polite"
+				data-testid="reconnecting-banner"
+			>
+				<span class="inline-block w-2 h-2 rounded-full bg-warning animate-pulse" aria-hidden="true"></span>
+				<span>Reconnecting&hellip; your clock is paused.</span>
+			</div>
+
 			<!-- First-move countdown: visible only while waiting for white's first move
 			     after both players have connected. Hidden once white plays or expires. -->
 			<div
@@ -121,6 +137,7 @@ type playSignals struct {
 	RematchPending     bool   `json:"rematchPending"`
 	RematchSecondsLeft int    `json:"rematchSecondsLeft"`
 	Fen                string `json:"fen"` // authoritative FEN; board.js re-anchors chessops on change
+	ConnectionDown     bool   `json:"connectionDown"`
 }
 
 func firstMoveDeadlineNsFor(g *game.Game) int64 {
@@ -165,5 +182,6 @@ func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 		RematchPending:     false,
 		RematchSecondsLeft: 0,
 		Fen:                base.Fen,
+		ConnectionDown:     false,
 	}
 }

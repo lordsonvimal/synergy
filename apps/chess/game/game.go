@@ -186,6 +186,24 @@ func (g *Game) IsOngoing() bool {
 	return g.State == GameOngoing
 }
 
+// ResumeClockForActiveSide arms the side-to-move clock from its persisted
+// remaining time. Used after a server restart when both players have
+// reconnected: the game has at least one move on the board, so the clock
+// must already have been running for whoever is on the move. We start the
+// clock from "now" with the saved remaining time, freezing the downtime
+// rather than billing it to the side that was to move.
+//
+// No-op if the game has no moves yet (the first-move flow takes over),
+// is no longer ongoing, or has no timing.
+func (g *Game) ResumeClockForActiveSide() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if !g.Timed || g.State != GameOngoing || len(g.History) == 0 {
+		return
+	}
+	g.Clock.Start(g.Board.SideToMove)
+}
+
 // StartPlayClock is called by PlayEventsHandler the first time both players
 // simultaneously have an SSE connection. It records the first-move deadline
 // on PlayMeta. The white clock is NOT started here — it only begins ticking
