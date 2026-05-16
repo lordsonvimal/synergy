@@ -19,6 +19,12 @@ else
   RSYNC_SSH="rsync -avz --delete"
 fi
 
+echo "==> Ensuring node dependencies are installed..."
+# --immutable fails fast if yarn.lock is out of date, so a deploy never ships
+# from a half-installed state. Run from the workspace root since that's where
+# the lockfile and yarn config live.
+(cd ../../ && yarn install --immutable)
+
 echo "==> Generating templ files..."
 templ generate
 
@@ -39,8 +45,11 @@ echo "==> Uploading binary to staging path..."
 scp ${SSH_KEY:+-i "$SSH_KEY"} /tmp/chess-server "$REMOTE:/tmp/chess-server.new"
 
 echo "==> Uploading static assets..."
-eval "$RSYNC_SSH" dist/  "$REMOTE:$REMOTE_DIR/dist/"
-eval "$RSYNC_SSH" assets/ "$REMOTE:$REMOTE_DIR/assets/"
+# Only dist/ ships: every served file (CSS, JS, favicon, fonts) is produced
+# by `yarn build` with content-hashed filenames + .gz siblings. The Go server
+# no longer serves /assets/* (only /static/* → ./dist/), so the source assets
+# directory is build-time only.
+eval "$RSYNC_SSH" dist/ "$REMOTE:$REMOTE_DIR/dist/"
 
 echo "==> Swapping binary and restarting service..."
 $SSH "$REMOTE" "sudo systemctl stop chess && \
