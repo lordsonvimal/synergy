@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -55,7 +56,18 @@ type Game struct {
 	mu             sync.RWMutex
 	legalMoveCache map[engine.Color]bool // cache per side
 	stopCh         chan struct{}          // closed to stop the watchdog
+	lastActivityNs atomic.Int64           // wall-clock ns of last move; used by solo idle eviction
 }
+
+// IsSolo reports whether this is a single-player (non-online) game.
+// Solo games have no PlayMeta and are subject to idle-TTL eviction.
+func (g *Game) IsSolo() bool { return g.PlayMeta == nil }
+
+// LastActivityNs returns the wall-clock unix-ns of the most recent move
+// (or game creation, if no moves have been made).
+func (g *Game) LastActivityNs() int64 { return g.lastActivityNs.Load() }
+
+func (g *Game) touchActivity() { g.lastActivityNs.Store(time.Now().UnixNano()) }
 
 func NewGame(mode *GameMode) *Game {
 	board := engine.NewBoard()
@@ -77,6 +89,7 @@ func NewGame(mode *GameMode) *Game {
 		stopCh:        make(chan struct{}),
 	}
 
+	g.touchActivity()
 	if mode.Timed {
 		g.startWatchdog()
 	}
@@ -104,6 +117,7 @@ func NewPlayGame(mode *GameMode, meta *PlayMeta) *Game {
 		InitialTimeNs: mode.TimeNs,
 		stopCh:        make(chan struct{}),
 	}
+	g.touchActivity()
 	g.startWatchdog()
 	return g
 }
@@ -149,7 +163,7 @@ func NewRestoredGame(
 	if state != GameOngoing {
 		close(stopCh)
 	}
-	return &Game{
+	g := &Game{
 		ID:            id,
 		Board:         board,
 		Clock:         clock,
@@ -162,6 +176,8 @@ func NewRestoredGame(
 		InitialTimeNs: initialTimeNs,
 		stopCh:        stopCh,
 	}
+	g.touchActivity()
+	return g
 }
 
 
@@ -293,6 +309,7 @@ func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
 	if !g.Board.MakeMove(m) {
 		return false
 	}
+	g.touchActivity()
 
 	g.History = append(g.History, MoveRecord{
 		SAN:        san,

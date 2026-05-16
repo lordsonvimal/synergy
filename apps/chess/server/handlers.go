@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/lordsonvimal/synergy/apps/chess/db"
 	"github.com/lordsonvimal/synergy/apps/chess/engine"
 	"github.com/lordsonvimal/synergy/apps/chess/game"
@@ -55,15 +54,9 @@ func ShowSolo(c *gin.Context) {
 	gameID := c.Param("gameID")
 	g, ok := repo.Get(gameID)
 	if !ok {
-		if dbRepo, dbOk := store.GetDBRepoFromContext(ctx); dbOk {
-			if restored, err := loadSoloGameFromDB(ctx, dbRepo, gameID); err == nil {
-				repo.Add(restored)
-				g = restored
-				ok = true
-			}
-		}
-	}
-	if !ok {
+		// Solo games live only in memory; if the entry is gone, the game
+		// either never existed, the server restarted, or the idle sweeper
+		// evicted it. Either way, send the user back to start a new one.
 		c.Redirect(http.StatusSeeOther, "/?error=game_not_found")
 		return
 	}
@@ -89,53 +82,7 @@ func CreateSolo(c *gin.Context) {
 	g := game.NewGame(&gm)
 	repo.Add(g)
 
-	if dbRepo, ok := store.GetDBRepoFromContext(ctx); ok {
-		persistSoloGame(ctx, dbRepo, g, &gm)
-	}
-
 	c.Redirect(http.StatusSeeOther, "/solo/"+g.ID)
-}
-
-func persistSoloGame(ctx context.Context, dbRepo db.Repository, g *game.Game, mode *game.GameMode) {
-	now := time.Now().UnixNano()
-	sessionID := uuid.New().String()
-	timeCtrlNs := mode.TimeNs
-	incNs := mode.Increment
-
-	if err := dbRepo.Sessions().Create(ctx, &db.Session{
-		ID:          sessionID,
-		SessionType: "solo",
-		Status:      "active",
-		CreatedAt:   now,
-		StartedAt:   &now,
-	}); err != nil {
-		logger.Error(ctx).Err(err).Msg("persistSoloGame: create session")
-		return
-	}
-
-	if err := dbRepo.Games().Create(ctx, &db.Game{
-		ID:            g.ID,
-		SessionID:     sessionID,
-		TimeControlNs: &timeCtrlNs,
-		IncrementNs:   &incNs,
-		Variant:       mode.Variant,
-		Status:        "ongoing",
-		CreatedAt:     now,
-	}); err != nil {
-		logger.Error(ctx).Err(err).Msg("persistSoloGame: create game")
-		return
-	}
-
-	if err := dbRepo.GameEvents().InsertBatch(ctx, []*db.GameEvent{{
-		GameID:     g.ID,
-		SessionID:  sessionID,
-		EventType:  "game_started",
-		OccurredAt: now,
-	}}); err != nil {
-		logger.Error(ctx).Err(err).Msg("persistSoloGame: game_started event")
-	}
-
-	initGameBatch(g, sessionID, dbRepo)
 }
 
 // SoloMove handles POST /solo/:gameID/move/:from/:to[?promo=N]
@@ -441,7 +388,8 @@ type gameCore struct {
 }
 
 // loadGameCore fetches a game and its moves from the DB and reconstructs the
-// shared fields used by both loadSoloGameFromDB and loadPlayGameFromDB.
+// shared fields used by loadPlayGameFromDB. (Solo games are no longer
+// persisted — they live only in memory and are evicted after an idle TTL.)
 func loadGameCore(ctx context.Context, dbRepo db.Repository, gameID string) (*gameCore, error) {
 	dbGame, err := dbRepo.Games().Get(ctx, gameID)
 	if err != nil {
@@ -508,19 +456,6 @@ func loadGameCore(ctx context.Context, dbRepo db.Repository, gameID string) (*ga
 		winner:  winner,
 		seq:     seq,
 	}, nil
-}
-
-func loadSoloGameFromDB(ctx context.Context, dbRepo db.Repository, id string) (*game.Game, error) {
-	core, err := loadGameCore(ctx, dbRepo, id)
-	if err != nil {
-		return nil, err
-	}
-	var initialTimeNs int64
-	if core.dbGame.TimeControlNs != nil {
-		initialTimeNs = *core.dbGame.TimeControlNs
-	}
-	timed := initialTimeNs > 0
-	return game.NewRestoredGame(id, core.board, core.clock, core.history, core.seq, core.state, core.winner, timed, initialTimeNs), nil
 }
 
 // initGameBatch wires up the DB flush callbacks shared by solo and play games.
