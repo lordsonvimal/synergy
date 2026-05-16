@@ -26,3 +26,4 @@ logs
 *.wal
 *.db-shm
 *.db-wal
+*_templ.go
