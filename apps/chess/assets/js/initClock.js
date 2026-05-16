@@ -105,11 +105,12 @@ function setupEffects() {
   initIfMissing("connectionDown", false)
 
   // Reconnect watchdog: server sends keepaliveTs every 10s. If the gap
-  // exceeds DOWN_MS we show the "Reconnecting" banner (Datastar is already
-  // auto-retrying the SSE). If the gap exceeds RELOAD_MS we assume the
-  // page state is unrecoverable and reload as a last resort.
+  // exceeds DOWN_MS we show the "Reconnecting" banner and freeze the local
+  // clock display (Datastar is already auto-retrying the SSE). If the gap
+  // exceeds RELOAD_MS we assume Datastar's retry isn't recovering and
+  // reload as a last resort.
   const DOWN_MS = 12000
-  const RELOAD_MS = 120000
+  const RELOAD_MS = 30000
   let lastKeepAliveMs = Date.now()
   let bannerShown = false
   effect(() => {
@@ -118,6 +119,9 @@ function setupEffects() {
     if (bannerShown) {
       bannerShown = false
       mergePatch({ connectionDown: false })
+      // Clock running-state is restored by the next clkTs patch, which
+      // arrives moments after a fresh SSE connection finishes its initial
+      // sync. Nothing to do here.
     }
   })
   const reconnectTimer = setInterval(() => {
@@ -127,6 +131,15 @@ function setupEffects() {
     } else if (gap > DOWN_MS && !bannerShown) {
       bannerShown = true
       mergePatch({ connectionDown: true })
+      // Freeze the local clock display — no fresh ticks are arriving and
+      // we don't want to keep counting down against a player who is in
+      // effect not playing. The next clkTs patch (post-reconnect) calls
+      // sync() which restores .running from the server's authoritative
+      // snapshot.
+      if (isTimed) {
+        clocks.white.stop()
+        clocks.black.stop()
+      }
     }
   }, 2000)
   window.addEventListener("beforeunload", () => clearInterval(reconnectTimer))
