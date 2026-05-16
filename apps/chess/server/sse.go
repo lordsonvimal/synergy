@@ -211,7 +211,7 @@ func writeSignalsDirect(c *gin.Context, signals map[string]any) {
 
 // syncDatastarBoard pushes the current board state to a Datastar SSE connection.
 // Called on every new Datastar connection so reconnects recover any missed move.
-func syncDatastarBoard(ctx context.Context, c *gin.Context, g *game.Game) {
+func syncDatastarBoard(ctx context.Context, c *gin.Context, g *game.Game, role string) {
 	var all []byte
 
 	buf := new(strings.Builder)
@@ -223,6 +223,11 @@ func syncDatastarBoard(ctx context.Context, c *gin.Context, g *game.Game) {
 	all = append(all, datastarPatchElementsFrame(buf.String())...)
 
 	signals := ui_store.ChessBoardSignalsFromGame(g)
+	// Don't replay the side-to-move's pending selection to the opponent on
+	// (re)connect — it's their private pre-move state.
+	if !ui_store.RoleMatchesSide(role, signals.SideToMove) {
+		signals.ClearSelection()
+	}
 	if b, err := json.Marshal(signals); err == nil {
 		all = append(all, datastarPatchSignalsFrame(b)...)
 	}

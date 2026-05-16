@@ -12,7 +12,25 @@ templ ShareLinksPanel(gameID, whiteToken, blackToken, myRole string) {
 }
 
 templ shareLinkRow(label, url string, isMyRole bool) {
-	<div class="flex flex-col gap-1">
+	{{
+		copyJS := "(() => {" +
+			"const t = location.origin + '" + url + "';" +
+			"const b = event.currentTarget;" +
+			"const done = () => { const o = b.dataset.origLabel || b.textContent; b.dataset.origLabel = o; b.textContent = 'Copied'; setTimeout(() => { b.textContent = o; }, 1500); };" +
+			"const fallback = () => {" +
+			"  const ta = document.createElement('textarea');" +
+			"  ta.value = t; ta.setAttribute('readonly', '');" +
+			"  ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';" +
+			"  document.body.appendChild(ta); ta.focus(); ta.select();" +
+			"  try { document.execCommand('copy'); done(); } catch (e) {}" +
+			"  document.body.removeChild(ta);" +
+			"};" +
+			"if (navigator.clipboard && window.isSecureContext) {" +
+			"  navigator.clipboard.writeText(t).then(done).catch(fallback);" +
+			"} else { fallback(); }" +
+			"})()"
+	}}
+	<div class="flex flex-col gap-2">
 		<span class="text-xs text-ink-subtle">
 			{ label }
 			if isMyRole {
@@ -25,12 +43,13 @@ templ shareLinkRow(label, url string, isMyRole bool) {
 				readonly
 				value={ url }
 				data-attr-value={ templ.JSExpression("location.origin + '" + url + "'") }
-				class="flex-1 text-xs bg-surface-4 border border-edge rounded px-2 py-1 text-ink-subtle select-all"
+				class="flex-1 min-w-0 text-xs bg-surface-4 border border-edge rounded px-2 py-2 text-ink-subtle select-all"
 			/>
 			<button
 				type="button"
-				class="text-xs px-2 py-1 bg-primary text-on-primary rounded hover:bg-primary-hover transition"
-				data-on:click={ templ.JSExpression("navigator.clipboard.writeText(location.origin + '" + url + "')") }
+				aria-label="Copy invite link"
+				class="text-xs px-3 py-2 bg-primary text-on-primary border border-primary rounded cursor-pointer hover:bg-primary-hover hover:border-primary-hover active:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition touch-manipulation select-none"
+				data-on:click={ templ.JSExpression(copyJS) }
 			>
 				Copy
 			</button>

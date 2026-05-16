@@ -132,6 +132,12 @@ func firstMoveDeadlineNsFor(g *game.Game) int64 {
 
 func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 	base := ui_store.ChessBoardSignalsFromGame(g)
+	// Don't leak the opponent's selection/highlights to the player whose turn it
+	// isn't. Selection state is per-mover and meaningless (and confusing) to the
+	// other side.
+	if !ui_store.RoleMatchesSide(role, base.SideToMove) {
+		base.ClearSelection()
+	}
 	return &playSignals{
 		SelectedSquare:  int(base.SelectedSquare),
 		SideToMove:      int(base.SideToMove),

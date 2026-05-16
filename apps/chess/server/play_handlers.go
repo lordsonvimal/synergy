@@ -300,7 +300,7 @@ func PlayEventsHandler(c *gin.Context) {
 	// Initial state for this connection: board snapshot + current clock + any
 	// pending rematch + current online status. Written directly so the new
 	// client gets correct values without waiting for a hub broadcast.
-	syncDatastarBoard(ctx, c, g)
+	syncDatastarBoard(ctx, c, g, role)
 	if g.Timed {
 		writeClockSnapshot(c, g.ClockTickSnapshot())
 	}

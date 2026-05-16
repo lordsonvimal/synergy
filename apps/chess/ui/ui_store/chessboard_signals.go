@@ -45,6 +45,18 @@ func ChessBoardSignalsFromGame(g *game.Game) *ChessBoardSignals {
 	return s
 }
 
+// RoleMatchesSide returns true when the given UI role ("white"/"black") is the
+// side currently on move. Spectators and unknown roles return false.
+func RoleMatchesSide(role string, side engine.Color) bool {
+	switch role {
+	case "white":
+		return side == engine.White
+	case "black":
+		return side == engine.Black
+	}
+	return false
+}
+
 func (s *ChessBoardSignals) ClearSelection() {
 	s.SelectedSquare = 255
 	s.PossibleMoves = []int{}
