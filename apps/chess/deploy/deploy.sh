@@ -28,14 +28,25 @@ npx @tailwindcss/cli -i ./ui/styles/style.css -o ./dist/style.css --minify
 echo "==> Cross-compiling for linux/amd64..."
 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /tmp/chess-server .
 
-echo "==> Uploading binary and static assets..."
-$SSH "$REMOTE" "sudo mkdir -p $REMOTE_DIR && sudo chown \$(whoami) $REMOTE_DIR"
-scp ${SSH_KEY:+-i "$SSH_KEY"} /tmp/chess-server "$REMOTE:$REMOTE_DIR/chess-server"
+echo "==> Preparing remote directory..."
+# Recursive chown so files left over from previous deploys (possibly owned by
+# root or a different user) can be overwritten by rsync/scp under our user.
+$SSH "$REMOTE" "sudo mkdir -p $REMOTE_DIR && sudo chown -R \$(whoami) $REMOTE_DIR"
+
+echo "==> Uploading binary to staging path..."
+# Upload to /tmp first, then sudo-move into place after stopping the service.
+# This avoids ETXTBSY on running binaries and keeps the swap atomic.
+scp ${SSH_KEY:+-i "$SSH_KEY"} /tmp/chess-server "$REMOTE:/tmp/chess-server.new"
+
+echo "==> Uploading static assets..."
 eval "$RSYNC_SSH" dist/  "$REMOTE:$REMOTE_DIR/dist/"
 eval "$RSYNC_SSH" assets/ "$REMOTE:$REMOTE_DIR/assets/"
 
-echo "==> Restarting service..."
-$SSH "$REMOTE" "sudo systemctl restart chess"
+echo "==> Swapping binary and restarting service..."
+$SSH "$REMOTE" "sudo systemctl stop chess && \
+  sudo mv /tmp/chess-server.new $REMOTE_DIR/chess-server && \
+  sudo chmod +x $REMOTE_DIR/chess-server && \
+  sudo systemctl start chess"
 
 echo "==> Done. Checking status..."
 $SSH "$REMOTE" "sudo systemctl status chess --no-pager"
