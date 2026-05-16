@@ -1,11 +1,23 @@
 package server
 
 import (
+	"net/http"
 	"strings"
+	"time"
 
 	"github.com/andybalholm/brotli"
 	"github.com/gin-gonic/gin"
 )
+
+// disableSSETimeouts clears the per-request read/write deadlines for the
+// current connection. The base http.Server has a 1-minute WriteTimeout to
+// protect normal endpoints from slow clients; without clearing it on SSE
+// handlers, every long-lived stream is killed at the 60-second mark.
+func disableSSETimeouts(c *gin.Context) {
+	rc := http.NewResponseController(c.Writer)
+	_ = rc.SetWriteDeadline(time.Time{})
+	_ = rc.SetReadDeadline(time.Time{})
+}
 
 // brotliSSEWriter wraps gin.ResponseWriter so all Write/WriteString/Flush calls
 // flow through a brotli encoder. Flush() emits a brotli sync flush so the

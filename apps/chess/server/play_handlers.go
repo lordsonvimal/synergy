@@ -273,6 +273,10 @@ func PlayEventsHandler(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 	c.Header("X-Accel-Buffering", "no")
 
+	// Clear the per-request write deadline — the base server's WriteTimeout
+	// would otherwise kill this long-lived SSE stream at 60s.
+	disableSSETimeouts(c)
+
 	// Brotli-encode the stream when the client supports it. Frequent flushes
 	// (every keepalive + every broadcast frame) emit brotli sync flushes so
 	// bytes reach the browser without extra latency.
