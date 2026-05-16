@@ -1,0 +1,21 @@
+[Unit]
+Description=Chess App
+After=network.target
+
+[Service]
+Type=simple
+User=chess
+WorkingDirectory=/opt/chess
+EnvironmentFile=/opt/chess/.env
+ExecStart=/opt/chess/chess-server
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/chess
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
