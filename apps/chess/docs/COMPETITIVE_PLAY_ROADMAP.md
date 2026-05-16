@@ -1,6 +1,6 @@
 # Competitive Play Roadmap
 
-This document tracks the improvements needed to make the chess app viable for rated competitive play across regions. The three quick wins (lag compensation, SSE reconnect, per-move DB writes) have already been implemented.
+This document tracks the improvements needed to make the chess app viable for rated competitive play across regions.
 
 ---
 
@@ -11,23 +11,27 @@ This document tracks the improvements needed to make the chess app viable for ra
 | 1 | **Lag compensation** — client stamps `clientTsNs` on each move POST; server subtracts one-way transit time (capped at 200 ms) from the mover's clock via `Clock.Stop` | `ui_store/chessboard_signals.go`, `chesssquare.templ`, `server/sse.go` |
 | 2 | **SSE reconnect watchdog** — server sends a `keepaliveTs` signal every 10 s per connection; client reloads the page if 25 s pass without one | `server/play_handlers.go`, `assets/js/initClock.js` |
 | 3 | **Per-move DB writes** — `Batch.Append` now spawns an immediate goroutine flush; every move hits SQLite within milliseconds, not up to 30 s later | `game/batch.go` |
+| 4 | **Optimistic move UI (was P0)** — chessops bundled into `assets/js/board.js` handles selection highlights and move preview entirely client-side; piece DOM is moved before the POST fires, then the server's board morph reconciles (idempotent on the common case). Castling/en-passant/promotion all handled. The 150–250 ms RTT freeze on the mover's piece is gone. | `assets/js/board.js`, `engine/board.go` (FEN), `ui/ui_store/chessboard_signals.go` (Fen field), `server/sse.go` (`applyMoveRequest`, atomic POST response), `server/routes.go` (new `/move/:from/:to`) |
+| 5 | **Atomic move delivery to mover (online)** — POST response now carries the full board HTML + notation + signals in one SSE write (was: signals on POST + board via hub). Removes the perceived gap between "highlight clears" and "piece appears in new square". | `server/sse.go::broadcastBoard` / `applyMoveRequest` |
+| 6 | **Content-hashed asset pipeline + gzip** — `dist/` is built by esbuild (`scripts/build-js.mjs`) plus a small asset hasher (`scripts/build-assets.mjs`). `dist/manifest.json` maps logical names → fingerprinted filenames; `helpers.Asset()` resolves them in templ; `server/static.go` serves precompressed `.gz` siblings when the client accepts gzip and sets `immutable` cache headers on hashed names. Importmap lets every bundle share one datastar runtime. | `scripts/build-{js,assets}.mjs`, `ui/helpers/assets.go`, `server/static.go`, `ui/layouts/layout.templ`, `apps/chess/package.json` |
+| 7 | **Hot manifest reload** — `helpers.LoadAssetManifest` re-reads on mtime change, so an asset rebuild against a running dev server no longer strands hashed URLs that no longer exist on disk. | `ui/helpers/assets.go` |
+
+### Bug fixes (during the optimistic-UI rollout)
+
+| # | Bug | Where |
+|---|---|---|
+| B1 | **Castling rights cleared for the wrong colour** — `ApplyMove`'s rook-corner switch mapped white squares to black bits and vice-versa, so moving black's h8 rook silently revoked white's kingside right (and the inverse: moving your own rook left the bit set, allowing a "castle" with a missing rook). | `engine/board.go::ApplyMove` |
+| B2 | **`UnapplyMove` corrupted the board on castling undo** — same colour-swap pattern AND wrote to the wrong colour's rook bitboard, producing impossible positions (e.g. white rook on h8) on every castle-then-undo. Latent in production (no callers undo) but breaks search/perft and any future analysis path. | `engine/board.go::UnapplyMove` |
+| B3 | **FEN emitted `a9` instead of `-` for no-en-passant** — sentinel comparison was against `255`, but `engine.NoSquare == 64`; `64 / 8 = 8 → '9'`, producing invalid squares that chessops rejected with `ERR_EP_SQUARE`. Surfaced as "selection stops working after first moves" because the client left its position unanchored. | `engine/board.go::FEN`, `engine/board.go::Reset` |
+| B4 | **Selection flicker / move latency under fast clicks** — fixed via the new optimistic UI; the earlier `selectionSeq` defence-in-depth machinery (server gate, freshness gate, pending state) was removed since selection is now fully local. | `assets/js/board.js`, `server/sse.go` |
+
+Engine regression tests for B1–B3 live in `engine/engine_test.go` (`TestRookMove*`, `TestCastleAndUndoRoundTrip_*`, `TestFEN*`).
 
 ---
 
 ## Remaining improvements
 
 ### P0 — Required for rated competitive play
-
-#### Optimistic move UI
-**What:** Client predicts and renders the resulting board position immediately on click, before the server round-trip completes. If the server rejects the move (race condition, illegal move), the client reverts.
-
-**Why it matters:** At 150–250 ms RTT, the mover currently sees their piece freeze in place for 250–500 ms. This is the single biggest UX difference versus chess.com / Lichess.
-
-**Implementation sketch:**
-- Port the core move application logic from `engine/` to WebAssembly (Go → WASM) or re-implement move validation in JS using the FEN from the last server-confirmed state.
-- On click: speculatively apply the move client-side and render the new board; simultaneously POST to server.
-- On server SSE response: if the server board matches the speculative board, keep it. If not, hard-reset from the server-authoritative board HTML.
-- Complexity: **high** (requires a JS/WASM chess engine or duplicated move logic).
 
 #### Periodic NTP re-sync mid-game
 **What:** `measureClockOffset` in `assets/js/sync.js` runs once at page load. If RTT changes mid-game (route flaps, proxy changes), the measured offset becomes stale and clock display drifts.
@@ -48,10 +52,12 @@ This document tracks the improvements needed to make the chess app viable for ra
 
 **Why it matters:** On slow links (mobile cross-region), 5–10 KB per move adds visible latency. Over a 60-move blitz game both players exchange ~600–800 KB of HTML. Delta payloads would cut this to ~200–500 bytes per move.
 
+**Status update:** the gzip layer added with the asset pipeline doesn't apply to SSE board patches (gzip + SSE breaks streaming on many proxies). So the 5–10 KB/move is wire-true. Optimistic UI hides the latency for the *mover* but the opponent still waits on full HTML.
+
 **Implementation sketch:**
-- Replace `hubBroadcastBoard` with a signal patch carrying `{from, to, promo, san, fen}`.
-- Client JS applies the move to the DOM directly: swap piece elements on from/to squares, append notation row.
-- Complexity: **medium** — requires client-side DOM manipulation to replace templ rendering for moves.
+- Replace `hubBroadcastBoard` with a signal patch carrying `{from, to, promo, san, fen}`. Client already has chessops loaded (see "Optimistic move UI") — `assets/js/board.js::applyDom` already does the DOM swap, just route the opponent's incoming move through the same path.
+- Notation row can be a small element-patch appending one `<tr>` instead of re-rendering the whole panel.
+- Complexity: **low–medium** now that the client engine exists.
 
 #### Bound the in-memory game store
 **What:** `store/gamestore.go` holds all active games in an unbounded map. Games are never evicted.

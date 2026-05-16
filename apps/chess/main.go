@@ -16,6 +16,7 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
 	"github.com/lordsonvimal/synergy/apps/chess/server"
 	"github.com/lordsonvimal/synergy/apps/chess/store"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
 	"github.com/rs/zerolog/log"
 )
 
@@ -59,9 +60,16 @@ func main() {
 	router.Use(store.DBRepoContext(dbRepo))                            // Add db repository to context
 	router.Use(server.CSRFMiddleware())
 
-	router.Static("/static", "./dist")
-	router.Static("/assets", "./assets")
-	router.StaticFile("/favicon.svg", "assets/favicon.svg")
+	// Asset pipeline: dist/ is produced by `yarn build` and contains
+	// content-hashed files plus a manifest. Load the manifest once at startup
+	// so helpers.Asset can map logical names to served paths.
+	if err := helpers.LoadAssetManifest("./dist"); err != nil {
+		logger.Fatal(ctx).Err(err).Msg("Cannot load asset manifest (run `yarn build`)")
+	}
+	router.GET("/static/*filepath", server.ServeStatic("./dist"))
+	router.GET("/favicon.svg", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, helpers.Asset("favicon.svg"))
+	})
 
 	server.InitRoutes(router)
 

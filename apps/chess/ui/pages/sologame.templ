@@ -2,13 +2,15 @@ package pages
 
 import "github.com/lordsonvimal/synergy/apps/chess/game"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/components"
+import "github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/layouts"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 
 templ SoloGamePage(g *game.Game) {
 	@layouts.Layout("ChessLeap", true) {
-		<script type="module" src="/assets/datastar.js"></script>
-		<script type="module" src="/assets/js/initClock.js"></script>
+		<!-- datastar runtime is loaded once in layouts.Layout via the importmap -->
+		<script type="module" src={ helpers.Asset("js/initClock.js") }></script>
+		<script type="module" src={ helpers.Asset("js/board.js") }></script>
 		<!-- data-init opens a persistent datastar @get to /events. All clock
 		     ticks, game-over and history-clock signals arrive over this single
 		     SSE connection (replaces the former native EventSource). -->

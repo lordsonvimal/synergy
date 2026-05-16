@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -76,13 +77,6 @@ func broadcastSignals(c *gin.Context, signals *ui_store.ChessBoardSignals) error
 // hubBroadcastBoard pushes board + notation + signals as DataStar SSE frames to
 // every hub subscriber. Called after a move is applied in play mode so the
 // opponent's board updates in real time via the /play/:id/events endpoint.
-//
-// The serverSelectionSeq field is intentionally stripped from the broadcast:
-// it is a per-mover acknowledgement and would otherwise advance the opponent's
-// $ackSelectionSeq past their own $selectionSeq, breaking the freshness gate
-// on the opponent's board (selection highlights would freeze on their previous
-// pending state and they'd have to click many times before highlights worked
-// again). The mover still receives the seq via the POST response.
 func hubBroadcastBoard(ctx context.Context, g *game.Game, signals *ui_store.ChessBoardSignals) {
 	var all []byte
 
@@ -94,26 +88,11 @@ func hubBroadcastBoard(ctx context.Context, g *game.Game, signals *ui_store.Ches
 	components.MoveNotationPanel("/play", g.ID, g.History).Render(ctx, buf)
 	all = append(all, datastarPatchElementsFrame(buf.String())...)
 
-	if b, err := marshalSignalsForHub(signals); err == nil {
+	if b, err := json.Marshal(signals); err == nil {
 		all = append(all, datastarPatchSignalsFrame(b)...)
 	}
 
 	g.Hub.Broadcast(all)
-}
-
-// marshalSignalsForHub marshals signals but drops serverSelectionSeq so the
-// per-mover ack doesn't leak to other subscribers via the hub.
-func marshalSignalsForHub(signals *ui_store.ChessBoardSignals) ([]byte, error) {
-	b, err := json.Marshal(signals)
-	if err != nil {
-		return nil, err
-	}
-	var m map[string]any
-	if err := json.Unmarshal(b, &m); err != nil {
-		return nil, err
-	}
-	delete(m, "serverSelectionSeq")
-	return json.Marshal(m)
 }
 
 // routePrefixFor returns "/play" for online games, "/solo" for solo games.
@@ -146,24 +125,29 @@ func datastarPatchSignalsFrame(b []byte) []byte {
 	return buf.Bytes()
 }
 
-// applySquareSelection processes a square click for both solo and play modes.
-// Auth and turn enforcement are the caller's responsibility.
-func applySquareSelection(c *gin.Context, g *game.Game, square uint8) {
+// applyMoveRequest is the authoritative move handler for both solo and play
+// modes. Selection is now driven entirely client-side by chessops (see
+// assets/js/board.js); this endpoint receives only an attempted move and
+// applies it after re-validating with the Go engine.
+//
+// Auth, turn enforcement, and game-existence checks are the caller's job.
+func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine.Piece) {
 	ctx := c.Request.Context()
 
 	signals := ui_store.NewChessBoardSignals()
 	datastar.ReadSignals(c.Request, signals)
 
-	// Drop stale selections: when the client rapidly fires multiple clicks, only
-	// the highest-seq one is processed. Older seqs return empty (no SSE body) so
-	// they can never overwrite a newer selection on the wire.
-	if !g.TryAdvanceSelectionSeq(signals.SelectionSeq) {
-		c.Status(http.StatusNoContent)
-		return
+	// clientTsNs may also arrive in the query string for plain fetch() POSTs
+	// from board.js (which can't easily set the Datastar signals body).
+	if signals.ClientTsNs == 0 {
+		if v := c.Query("clientTsNs"); v != "" {
+			if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+				signals.ClientTsNs = n
+			}
+		}
 	}
 
-	// Compute one-way network lag for clock compensation in online games.
-	// Client stamps Date.now()*1e6 into clientTsNs just before the POST fires.
+	// One-way network lag → clock compensation for online play.
 	lagCompNs := int64(0)
 	if g.PlayMeta != nil && signals.ClientTsNs > 0 {
 		const maxLagNs = 200_000_000 // 200 ms ceiling
@@ -172,46 +156,45 @@ func applySquareSelection(c *gin.Context, g *game.Game, square uint8) {
 		}
 	}
 
-	if g.HasSelection() && g.IsTarget(square) {
-		move := engine.Move{From: g.GetSelectionFrom(), To: square, Promotion: engine.NoPiece}
-		promoteWithPiece := signals.Promotion && signals.PromotionPiece != engine.NoPiece
+	move := engine.Move{From: from, To: to, Promotion: promo}
 
-		if g.IsPromotionMove(move) && !promoteWithPiece {
-			signals.EnablePromotion(square)
-			if err := broadcastSignals(c, signals); err != nil {
-				logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast promotion")
-			}
-			return
-		}
-		if promoteWithPiece {
-			move.Promotion = signals.PromotionPiece
-		}
-		if g.ApplyMove(move, lagCompNs) {
-			signals.UpdateFromGame(g)
-			if promoteWithPiece {
-				signals.ClearPromotion()
-			}
-			// Always send board + notation + signals together in the POST
-			// response. This keeps highlight-clear and piece-move atomic for
-			// the mover, eliminating the perceived lag where the selection
-			// vanished noticeably before the piece appeared in its new
-			// square. The hub broadcast below still fans the same payload
-			// to the opponent (and idempotently re-morphs the mover's
-			// board, which is a no-op visually).
-			if err := broadcastBoard(c, g, signals); err != nil {
-				logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast board")
-			}
-			if g.PlayMeta != nil {
-				hubBroadcastBoard(ctx, g, signals)
-			}
-			return
-		}
+	// Server-side selection state has to be in sync with the attempted move
+	// or ApplyMove will reject. Plant a temporary selection from the move's
+	// source so the existing IsTarget/IsPromotionMove checks keep working.
+	g.SelectSquare(ctx, from)
+	if !g.HasSelection() || g.GetSelectionFrom() != from || !g.IsTarget(to) {
+		// Illegal move: clear selection, signal the rejection by pushing the
+		// authoritative state so the client can hard-reset its DOM.
+		g.ClearSelection()
+		signals.UpdateFromGame(g)
+		_ = broadcastBoard(c, g, signals)
+		c.Status(http.StatusOK)
+		return
 	}
 
-	g.SelectSquare(ctx, square)
+	if g.IsPromotionMove(move) && promo == engine.NoPiece {
+		// Client should have settled promotion before POSTing. Treat as
+		// rejection and let the client reconcile from the morph.
+		g.ClearSelection()
+		signals.UpdateFromGame(g)
+		_ = broadcastBoard(c, g, signals)
+		return
+	}
+
+	if !g.ApplyMove(move, lagCompNs) {
+		g.ClearSelection()
+		signals.UpdateFromGame(g)
+		_ = broadcastBoard(c, g, signals)
+		return
+	}
+
 	signals.UpdateFromGame(g)
-	if err := broadcastSignals(c, signals); err != nil {
-		logger.Error(ctx).Err(err).Msg("applySquareSelection: broadcast selection")
+	signals.ClearPromotion()
+	if err := broadcastBoard(c, g, signals); err != nil {
+		logger.Error(ctx).Err(err).Msg("applyMoveRequest: broadcast board")
+	}
+	if g.PlayMeta != nil {
+		hubBroadcastBoard(ctx, g, signals)
 	}
 }
 

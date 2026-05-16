@@ -1,5 +1,5 @@
 import { clocks, measureClockOffset, getClockOffset } from "./sync.js"
-import { effect, getPath, mergePatch } from "/assets/datastar.js"
+import { effect, getPath, mergePatch } from "datastar"
 
 // All server→client communication on game pages goes through ONE datastar SSE
 // connection (opened by the data-init div in the page template). Every event

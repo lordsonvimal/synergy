@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -353,8 +352,8 @@ func PlayEventsHandler(c *gin.Context) {
 	}
 }
 
-// PlaySelectSquare handles POST /play/:gameID/select/:square.
-func PlaySelectSquare(c *gin.Context) {
+// PlayMove handles POST /play/:gameID/move/:from/:to[?promo=N].
+func PlayMove(c *gin.Context) {
 	ctx := c.Request.Context()
 	repo, ok := store.GetRepoFromContext(ctx)
 	if !ok {
@@ -362,13 +361,11 @@ func PlaySelectSquare(c *gin.Context) {
 	}
 
 	gameID, _ := c.Params.Get("gameID")
-	squareParam, _ := c.Params.Get("square")
-	squareUInt64, err := strconv.ParseUint(squareParam, 10, 8)
+	from, to, promo, err := parseMoveParams(c)
 	if err != nil {
 		c.Status(http.StatusBadRequest)
 		return
 	}
-	square := uint8(squareUInt64)
 
 	g, ok := repo.Get(gameID)
 	if !ok || g.PlayMeta == nil {
@@ -395,8 +392,7 @@ func PlaySelectSquare(c *gin.Context) {
 		return
 	}
 
-	applySquareSelection(c, g, square)
-	_ = ctx
+	applyMoveRequest(c, g, from, to, promo)
 }
 
 // ClaimVictory handles POST /play/:gameID/claim-victory.

@@ -342,3 +342,278 @@ func TestMultipleMoveUndo(t *testing.T) {
 		t.Errorf("FEN after undoing 3 moves does not match starting position")
 	}
 }
+
+// ---- Castling rights bookkeeping -----------------------------------------
+//
+// Regression coverage for a colour-swap bug in ApplyMove: moving (or
+// capturing) a rook on one corner used to clear the castling bit for the
+// *opposite* colour. So black's h8 rook moving would silently revoke
+// white's kingside castle, and white could later "castle" with a missing
+// rook because its own bit was never cleared.
+
+const (
+	bitWK = 0b0001 // white kingside
+	bitWQ = 0b0010 // white queenside
+	bitBK = 0b0100 // black kingside
+	bitBQ = 0b1000 // black queenside
+)
+
+// castlingPosition returns a board where both kings and all four rooks are
+// on their starting squares and nothing else is in the way. Side-to-move is
+// configurable. Used as the starting point for every rook-side test below
+// so the test stays focused on the bit being toggled.
+func castlingPosition(side engine.Color) *engine.Board {
+	b := buildBoard(side,
+		pieceEntry{engine.White, engine.King, sq(4, 0)},
+		pieceEntry{engine.White, engine.Rook, sq(0, 0)},
+		pieceEntry{engine.White, engine.Rook, sq(7, 0)},
+		pieceEntry{engine.Black, engine.King, sq(4, 7)},
+		pieceEntry{engine.Black, engine.Rook, sq(0, 7)},
+		pieceEntry{engine.Black, engine.Rook, sq(7, 7)},
+	)
+	b.Castling = bitWK | bitWQ | bitBK | bitBQ
+	return b
+}
+
+func TestRookMoveRevokesOnlyOwnSide_WhiteKingside(t *testing.T) {
+	b := castlingPosition(engine.White)
+	if !b.MakeMove(engine.MoveFromUCI("h1h3")) {
+		t.Fatal("Rh1-h3 should be legal")
+	}
+	if b.Castling&bitWK != 0 {
+		t.Error("white kingside right must be revoked after Rh1 moves")
+	}
+	if b.Castling&bitBK == 0 {
+		t.Error("black kingside right must NOT be revoked when white moves its own rook")
+	}
+}
+
+func TestRookMoveRevokesOnlyOwnSide_WhiteQueenside(t *testing.T) {
+	b := castlingPosition(engine.White)
+	if !b.MakeMove(engine.MoveFromUCI("a1a3")) {
+		t.Fatal("Ra1-a3 should be legal")
+	}
+	if b.Castling&bitWQ != 0 {
+		t.Error("white queenside right must be revoked after Ra1 moves")
+	}
+	if b.Castling&bitBQ == 0 {
+		t.Error("black queenside right must NOT be revoked when white moves its own rook")
+	}
+}
+
+func TestRookMoveRevokesOnlyOwnSide_BlackKingside(t *testing.T) {
+	b := castlingPosition(engine.Black)
+	if !b.MakeMove(engine.MoveFromUCI("h8h6")) {
+		t.Fatal("Rh8-h6 should be legal")
+	}
+	if b.Castling&bitBK != 0 {
+		t.Error("black kingside right must be revoked after Rh8 moves")
+	}
+	if b.Castling&bitWK == 0 {
+		t.Error("white kingside right must NOT be revoked when black moves its own rook")
+	}
+}
+
+func TestRookMoveRevokesOnlyOwnSide_BlackQueenside(t *testing.T) {
+	b := castlingPosition(engine.Black)
+	if !b.MakeMove(engine.MoveFromUCI("a8a6")) {
+		t.Fatal("Ra8-a6 should be legal")
+	}
+	if b.Castling&bitBQ != 0 {
+		t.Error("black queenside right must be revoked after Ra8 moves")
+	}
+	if b.Castling&bitWQ == 0 {
+		t.Error("white queenside right must NOT be revoked when black moves its own rook")
+	}
+}
+
+// Castling availability after the *other* colour shuffles a rook in/out —
+// the exact scenario that triggered the original bug report.
+func TestWhiteCanStillCastleAfterBlackMovesItsRook(t *testing.T) {
+	// Full starting position so every prep move is legal.
+	b := engine.NewBoard()
+	playMoves(t, b,
+		"e2e4", "e7e5",
+		"g1f3", "g8f6", // both knights off g-file
+		"f1c4", "f8c5", // both light-square bishops off f-file
+		"a2a3", "h8g8", // black shuffles h-rook out
+		"a3a4", "g8h8", // and back to its starting corner
+	)
+	// White to move; under the pre-fix code, black's rook shuffle silently
+	// revoked white's KS bit, so this castle would have been rejected.
+	if !b.MakeMove(engine.MoveFromUCI("e1g1")) {
+		t.Fatal("white kingside castling should still be legal — black's rook movement must not have revoked white's right")
+	}
+}
+
+// ---- Castling rights on rook capture --------------------------------------
+
+func TestRookCaptureRevokesCapturedSide(t *testing.T) {
+	// White bishop on a3 captures black rook on a8 — black queenside right
+	// must vanish; white queenside right must remain (white's own rook is
+	// untouched on a1).
+	b := buildBoard(engine.White,
+		pieceEntry{engine.White, engine.King, sq(4, 0)},
+		pieceEntry{engine.White, engine.Rook, sq(0, 0)},
+		pieceEntry{engine.White, engine.Bishop, sq(0, 2)}, // Ba3
+		pieceEntry{engine.Black, engine.King, sq(4, 7)},
+		pieceEntry{engine.Black, engine.Rook, sq(0, 7)},
+	)
+	b.Castling = bitWK | bitWQ | bitBK | bitBQ
+	if !b.MakeMove(engine.MoveFromUCI("a3a8")) {
+		t.Fatal("Bxa8 should be legal")
+	}
+	if b.Castling&bitBQ != 0 {
+		t.Error("black queenside right must be revoked after Rxa8")
+	}
+	if b.Castling&bitWQ == 0 {
+		t.Error("white queenside right must NOT be revoked when only the black rook is captured")
+	}
+}
+
+// ---- Castling and undo round-trip -----------------------------------------
+//
+// Regression for the UnapplyMove rook-restore bug: castling and then
+// undoing it must round-trip the FEN exactly, with the correct colour rook
+// landing back on the correct corner.
+
+func TestCastleAndUndoRoundTrip_WhiteKingside(t *testing.T) {
+	b := engine.NewBoard()
+	playMoves(t, b, "e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "a7a6")
+	fenBefore := b.FEN()
+
+	if !b.MakeMove(engine.MoveFromUCI("e1g1")) {
+		t.Fatal("white O-O should be legal")
+	}
+	b.UnapplyMove()
+
+	if b.FEN() != fenBefore {
+		t.Errorf("FEN mismatch after undoing white O-O:\n  before: %s\n  after:  %s", fenBefore, b.FEN())
+	}
+	// The rook must be back on h1, not on f1 or some other corner.
+	c, p, ok := b.PieceAt(sq(7, 0))
+	if !ok || c != engine.White || p != engine.Rook {
+		t.Errorf("h1 should hold white rook after undo, got color=%v piece=%v ok=%v", c, p, ok)
+	}
+}
+
+func TestCastleAndUndoRoundTrip_BlackKingside(t *testing.T) {
+	b := engine.NewBoard()
+	playMoves(t, b,
+		"e2e4", "e7e5",
+		"g1f3", "g8f6",
+		"f1c4", "f8c5",
+		"a2a3",
+	)
+	fenBefore := b.FEN()
+
+	if !b.MakeMove(engine.MoveFromUCI("e8g8")) {
+		t.Fatal("black O-O should be legal")
+	}
+	b.UnapplyMove()
+
+	if b.FEN() != fenBefore {
+		t.Errorf("FEN mismatch after undoing black O-O:\n  before: %s\n  after:  %s", fenBefore, b.FEN())
+	}
+	c, p, ok := b.PieceAt(sq(7, 7))
+	if !ok || c != engine.Black || p != engine.Rook {
+		t.Errorf("h8 should hold black rook after undo, got color=%v piece=%v ok=%v", c, p, ok)
+	}
+}
+
+func TestCastleAndUndoRoundTrip_WhiteQueenside(t *testing.T) {
+	b := engine.NewBoard()
+	playMoves(t, b,
+		"d2d4", "d7d5",
+		"d1d3", "c8g4",
+		"c1e3", "b8c6",
+		"b1c3", "a7a6",
+	)
+	fenBefore := b.FEN()
+
+	if !b.MakeMove(engine.MoveFromUCI("e1c1")) {
+		t.Fatal("white O-O-O should be legal")
+	}
+	b.UnapplyMove()
+
+	if b.FEN() != fenBefore {
+		t.Errorf("FEN mismatch after undoing white O-O-O:\n  before: %s\n  after:  %s", fenBefore, b.FEN())
+	}
+	c, p, ok := b.PieceAt(sq(0, 0))
+	if !ok || c != engine.White || p != engine.Rook {
+		t.Errorf("a1 should hold white rook after undo, got color=%v piece=%v ok=%v", c, p, ok)
+	}
+}
+
+func TestCastleAndUndoRoundTrip_BlackQueenside(t *testing.T) {
+	// Clear black's b8/c8/d8: knight develops, white captures on d5 so the
+	// black queen recaptures and clears d8, and the bishop swings out to g4.
+	b := engine.NewBoard()
+	playMoves(t, b,
+		"d2d4", "d7d5",
+		"c2c4", "b8c6", // Nc6 clears b8
+		"c4d5", "d8d5", // pawn capture then Qxd5 — clears d8
+		"b1c3", "c8g4", // Nc3 (white tempo); Bg4 clears c8
+		"g1f3", // another white tempo so black is to move
+	)
+	fenBefore := b.FEN()
+
+	if !b.MakeMove(engine.MoveFromUCI("e8c8")) {
+		t.Fatal("black O-O-O should be legal")
+	}
+	b.UnapplyMove()
+
+	if b.FEN() != fenBefore {
+		t.Errorf("FEN mismatch after undoing black O-O-O:\n  before: %s\n  after:  %s", fenBefore, b.FEN())
+	}
+	c, p, ok := b.PieceAt(sq(0, 7))
+	if !ok || c != engine.Black || p != engine.Rook {
+		t.Errorf("a8 should hold black rook after undo, got color=%v piece=%v ok=%v", c, p, ok)
+	}
+}
+
+// ---- FEN serialization edge cases -----------------------------------------
+
+func TestFENEmitsDashWhenNoEnPassant(t *testing.T) {
+	// Regression: the FEN serializer compared EnPassant against 255 but the
+	// sentinel is NoSquare (64), producing impossible squares like "a9" that
+	// chessops on the client correctly rejected with ERR_EP_SQUARE.
+	b := engine.NewBoard()
+	playMoves(t, b, "g1f3") // knight move — should not set an en-passant square
+	fen := b.FEN()
+	// Field 4 (0-indexed 3) of the FEN is the en-passant square.
+	parts := splitFields(fen)
+	if len(parts) < 4 {
+		t.Fatalf("FEN has too few fields: %q", fen)
+	}
+	if parts[3] != "-" {
+		t.Errorf("en-passant field after a knight move should be \"-\", got %q (full FEN: %q)", parts[3], fen)
+	}
+}
+
+func TestFENEmitsEnPassantSquareAfterDoublePush(t *testing.T) {
+	b := engine.NewBoard()
+	playMoves(t, b, "e2e4")
+	parts := splitFields(b.FEN())
+	if len(parts) < 4 {
+		t.Fatalf("FEN has too few fields: %q", b.FEN())
+	}
+	if parts[3] != "e3" {
+		t.Errorf("en-passant field after 1.e4 should be \"e3\", got %q", parts[3])
+	}
+}
+
+// splitFields returns FEN fields separated by spaces.
+func splitFields(fen string) []string {
+	var out []string
+	start := 0
+	for i := 0; i <= len(fen); i++ {
+		if i == len(fen) || fen[i] == ' ' {
+			if i > start {
+				out = append(out, fen[start:i])
+			}
+			start = i + 1
+		}
+	}
+	return out
+}

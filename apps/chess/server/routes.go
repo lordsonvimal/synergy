@@ -11,7 +11,7 @@ func InitRoutes(r *gin.Engine) {
 	r.GET("/solo/:gameID/events", SoloEventsHandler)
 	r.GET("/solo/:gameID/board-at/:halfMoveIdx", BoardAtHistoryHandler)
 	r.POST("/solo", CreateSolo)
-	r.POST("/solo/:gameID/select/:square", SoloSelectSquare)
+	r.POST("/solo/:gameID/move/:from/:to", SoloMove)
 	r.POST("/solo/:gameID/history/navigate", NavigateHistoryHandler)
 
 	// Online play routes.
@@ -19,7 +19,7 @@ func InitRoutes(r *gin.Engine) {
 	r.GET("/play/:gameID", ShowPlayGame)
 	r.GET("/play/:gameID/events", PlayEventsHandler)
 	r.GET("/play/:gameID/board-at/:halfMoveIdx", BoardAtHistoryHandler)
-	r.POST("/play/:gameID/select/:square", PlaySelectSquare)
+	r.POST("/play/:gameID/move/:from/:to", PlayMove)
 	r.POST("/play/:gameID/history/navigate", NavigateHistoryHandler)
 	r.POST("/play/:gameID/claim-victory", ClaimVictory)
 	r.POST("/play/:gameID/rematch", ProposeRematch)

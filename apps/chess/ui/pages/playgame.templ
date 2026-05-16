@@ -3,14 +3,16 @@ package pages
 import (
 	"github.com/lordsonvimal/synergy/apps/chess/game"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/components"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/layouts"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 )
 
 templ PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) {
 	@layouts.Layout("ChessLeap — Play", true) {
-		<script type="module" src="/assets/datastar.js"></script>
-		<script type="module" src="/assets/js/initClock.js"></script>
+		<!-- datastar runtime is loaded once in layouts.Layout via the importmap -->
+		<script type="module" src={ helpers.Asset("js/initClock.js") }></script>
+		<script type="module" src={ helpers.Asset("js/board.js") }></script>
 		<!-- data-init fires when DataStar mounts this element, opening a persistent
 		     @get to /events so board patches from hubBroadcastBoard are received. -->
 		<div class="hidden" data-init={ "@get('/play/" + g.ID + "/events')" }></div>
@@ -118,11 +120,7 @@ type playSignals struct {
 	RematchProposed    bool   `json:"rematchProposed"`
 	RematchPending     bool   `json:"rematchPending"`
 	RematchSecondsLeft int    `json:"rematchSecondsLeft"`
-	SelectionSeq          int64 `json:"selectionSeq"`          // client-incremented per click
-	ServerSelectionSeq    int64 `json:"serverSelectionSeq"`    // server-echoed
-	AckSelectionSeq       int64 `json:"ackSelectionSeq"`       // monotonic max of serverSelectionSeq; used as freshness gate
-	PendingSelectedSquare int   `json:"pendingSelectedSquare"`
-	PendingPossibleMoves  []int `json:"pendingPossibleMoves"`
+	Fen                string `json:"fen"` // authoritative FEN; board.js re-anchors chessops on change
 }
 
 func firstMoveDeadlineNsFor(g *game.Game) int64 {
@@ -166,10 +164,6 @@ func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 		RematchProposed:    false,
 		RematchPending:     false,
 		RematchSecondsLeft: 0,
-		SelectionSeq:          0,
-		ServerSelectionSeq:    0,
-		AckSelectionSeq:       0,
-		PendingSelectedSquare: 255,
-		PendingPossibleMoves:  []int{},
+		Fen:                base.Fen,
 	}
 }

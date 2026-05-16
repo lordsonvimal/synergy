@@ -17,6 +17,10 @@ live/sync_assets:
 	air -c .air.assets.toml
 
 # start all 4 watch processes in parallel.
+# Seed dist/ first so the Go server's manifest loader has something to read on
+# startup. Dev mode skips hashing/gzip so subsequent rebuilds reuse stable
+# filenames and no server restart is needed.
 live:
 	@mkdir -p tmp/assets
+	@CHESS_BUILD_DEV=1 yarn build --silent
 	make -j4 live/templ live/server live/tailwind live/sync_assets

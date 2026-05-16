@@ -130,7 +130,7 @@ func (b *Board) Reset() {
 
 	b.SideToMove = White
 	b.Castling = 0b1111
-	b.EnPassant = 255
+	b.EnPassant = NoSquare
 	b.HalfMoveClock = 0
 	b.FullMoveNumber = 1
 }
@@ -266,27 +266,34 @@ func (b *Board) ApplyMove(m Move) {
 		}
 	}
 
-	if moved == Rook || captured == Rook {
-		switch m.From {
-		case 63:
-			b.Castling &^= 0b0001
-		case 56:
-			b.Castling &^= 0b0010
+	// Castling bits (per rules.go):
+	//   0b0001 = white kingside  (rook on h1 = 7)
+	//   0b0010 = white queenside (rook on a1 = 0)
+	//   0b0100 = black kingside  (rook on h8 = 63)
+	//   0b1000 = black queenside (rook on a8 = 56)
+	//
+	// Revoke the right for any rook starting-square that is vacated (rook
+	// moved off it) OR landed on (captured rook there). We always run both
+	// the From and To checks, regardless of whether the moving piece is the
+	// rook — a non-rook piece capturing a rook on its corner must still
+	// invalidate that side's castling.
+	clearCastleBitFor := func(sq uint8) {
+		switch sq {
 		case 7:
-			b.Castling &^= 0b0100
+			b.Castling &^= 0b0001
 		case 0:
+			b.Castling &^= 0b0010
+		case 63:
+			b.Castling &^= 0b0100
+		case 56:
 			b.Castling &^= 0b1000
 		}
-		switch m.To {
-		case 63:
-			b.Castling &^= 0b0001
-		case 56:
-			b.Castling &^= 0b0010
-		case 7:
-			b.Castling &^= 0b0100
-		case 0:
-			b.Castling &^= 0b1000
-		}
+	}
+	if moved == Rook {
+		clearCastleBitFor(m.From)
+	}
+	if captured != NoPiece {
+		clearCastleBitFor(m.To)
 	}
 
 	// --------------------
@@ -360,21 +367,25 @@ func (b *Board) UnapplyMove() {
 		}
 	}
 
-	// 4. Restore rook for castling
+	// 4. Restore rook for castling. state.To is the king's destination square;
+	// it identifies which side castled and on which colour. The previous
+	// implementation had the color/square mappings swapped (e.g. it modified
+	// White's rook bitboard when undoing a Black castle), silently corrupting
+	// the board on any undo of a castle.
 	if state.Flags&MoveCastle != 0 {
 		switch state.To {
-		case 62: // White kingside
-			b.Pieces[White][Rook] &^= 1 << 61
-			b.Pieces[White][Rook] |= 1 << 63
-		case 58: // White queenside
-			b.Pieces[White][Rook] &^= 1 << 59
-			b.Pieces[White][Rook] |= 1 << 56
-		case 6: // Black kingside
-			b.Pieces[Black][Rook] &^= 1 << 5
-			b.Pieces[Black][Rook] |= 1 << 7
-		case 2: // Black queenside
-			b.Pieces[Black][Rook] &^= 1 << 3
-			b.Pieces[Black][Rook] |= 1 << 0
+		case 6: // White kingside: rook f1 (5) -> h1 (7)
+			b.Pieces[White][Rook] &^= 1 << 5
+			b.Pieces[White][Rook] |= 1 << 7
+		case 2: // White queenside: rook d1 (3) -> a1 (0)
+			b.Pieces[White][Rook] &^= 1 << 3
+			b.Pieces[White][Rook] |= 1 << 0
+		case 62: // Black kingside: rook f8 (61) -> h8 (63)
+			b.Pieces[Black][Rook] &^= 1 << 61
+			b.Pieces[Black][Rook] |= 1 << 63
+		case 58: // Black queenside: rook d8 (59) -> a8 (56)
+			b.Pieces[Black][Rook] &^= 1 << 59
+			b.Pieces[Black][Rook] |= 1 << 56
 		}
 	}
 
@@ -555,8 +566,11 @@ func (b *Board) FEN() string {
 	fen.WriteString(castling)
 	fen.WriteByte(' ')
 
-	// 5. En-passant square
-	if b.EnPassant != 255 {
+	// 5. En-passant square. Compare against NoSquare (64), not 255 — using
+	// the wrong sentinel produced invalid squares like "a9" (file=64%8=0,
+	// rank='1'+64/8='9'), which chessops on the client correctly rejected
+	// with ERR_EP_SQUARE and left its local position unanchored.
+	if b.EnPassant != NoSquare {
 		file := b.EnPassant % 8
 		rank := b.EnPassant / 8
 		fen.WriteByte('a' + file)

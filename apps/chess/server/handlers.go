@@ -138,25 +138,45 @@ func persistSoloGame(ctx context.Context, dbRepo db.Repository, g *game.Game, mo
 	initGameBatch(g, sessionID, dbRepo)
 }
 
-func SoloSelectSquare(c *gin.Context) {
+// SoloMove handles POST /solo/:gameID/move/:from/:to[?promo=N]
+// where promo is an engine.Piece value (e.g. 5 = Queen).
+func SoloMove(c *gin.Context) {
 	repo, ok := store.GetRepoFromContext(c.Request.Context())
 	if !ok {
 		return
 	}
-
-	squareUInt64, err := strconv.ParseUint(c.Param("square"), 10, 8)
+	from, to, promo, err := parseMoveParams(c)
 	if err != nil {
 		c.Status(http.StatusBadRequest)
 		return
 	}
-
 	g, ok := repo.Get(c.Param("gameID"))
 	if !ok {
 		c.Status(http.StatusNotFound)
 		return
 	}
+	applyMoveRequest(c, g, from, to, promo)
+}
 
-	applySquareSelection(c, g, uint8(squareUInt64))
+// parseMoveParams extracts :from, :to, and ?promo= from a /move request.
+func parseMoveParams(c *gin.Context) (from, to uint8, promo engine.Piece, err error) {
+	fromU, err := strconv.ParseUint(c.Param("from"), 10, 8)
+	if err != nil || fromU >= 64 {
+		return 0, 0, engine.NoPiece, http.ErrAbortHandler
+	}
+	toU, err := strconv.ParseUint(c.Param("to"), 10, 8)
+	if err != nil || toU >= 64 {
+		return 0, 0, engine.NoPiece, http.ErrAbortHandler
+	}
+	promo = engine.NoPiece
+	if v := c.Query("promo"); v != "" {
+		p, perr := strconv.ParseUint(v, 10, 8)
+		if perr != nil {
+			return 0, 0, engine.NoPiece, http.ErrAbortHandler
+		}
+		promo = engine.Piece(p)
+	}
+	return uint8(fromU), uint8(toU), promo, nil
 }
 
 // PingHandler returns the server's current Unix nanosecond timestamp.

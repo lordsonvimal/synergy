@@ -22,8 +22,8 @@ fi
 echo "==> Generating templ files..."
 templ generate
 
-echo "==> Building Tailwind CSS..."
-npx @tailwindcss/cli -i ./ui/styles/style.css -o ./dist/style.css --minify
+echo "==> Building assets (CSS, JS bundles, manifest, gzip variants)..."
+yarn build
 
 echo "==> Cross-compiling for linux/amd64..."
 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /tmp/chess-server .

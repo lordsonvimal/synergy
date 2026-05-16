@@ -9,7 +9,7 @@ import (
 
 templ GameModesPage(onlineGroups []game.GameModeGroup, unlimitedMode game.GameMode, csrfToken string, errMsg string, existingGameID string, existingGameRole string) {
 	@layouts.Layout("ChessLeap", false) {
-		<script type="module" src="/assets/datastar.js"></script>
+		<!-- datastar runtime is loaded once in layouts.Layout via the importmap -->
 		<div data-signals="{loadingMode: '', activeTab: 'online'}" class="flex items-center justify-center min-h-full">
 			<div class="w-full max-w-2xl px-4 py-6 sm:px-6">
 				if errMsg != "" {

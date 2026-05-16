@@ -1,6 +1,9 @@
 package layouts
 
-import "github.com/lordsonvimal/synergy/apps/chess/ui/components"
+import (
+	"github.com/lordsonvimal/synergy/apps/chess/ui/components"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
+)
 
 templ Layout(title string, showBack bool) {
 	<!DOCTYPE html>
@@ -9,8 +12,13 @@ templ Layout(title string, showBack bool) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<title>{ title }</title>
-			<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
-			<link href="/static/style.css" rel="stylesheet"/>
+			<link rel="icon" type="image/svg+xml" href={ helpers.Asset("favicon.svg") }/>
+			<link href={ helpers.Asset("style.css") } rel="stylesheet"/>
+			<!-- One copy of the datastar runtime per page, exposed via importmap
+			     so bundles like initClock.js and board.js can `import ... from "datastar"`
+			     without each shipping its own runtime. -->
+			@datastarImportMap()
+			<script type="module" src={ helpers.Asset("js/datastar.js") }></script>
 			<script>
 				(function() {
 					const t = localStorage.getItem("theme");
@@ -33,7 +41,7 @@ templ Layout(title string, showBack bool) {
 						</a>
 					}
 					<a href="/" class="flex items-center gap-2 text-lg font-semibold text-ink tracking-tight">
-						<img src="/favicon.svg" alt="ChessLeap logo" width="28" height="28" class="rounded-md"/>
+						<img src={ helpers.Asset("favicon.svg") } alt="ChessLeap logo" width="28" height="28" class="rounded-md"/>
 						ChessLeap
 					</a>
 				</div>
@@ -112,4 +120,8 @@ templ Layout(title string, showBack bool) {
 			</footer>
 		</body>
 	</html>
+}
+
+templ datastarImportMap() {
+	@templ.Raw(`<script type="importmap">` + datastarImportMapJSON() + `</script>`)
 }

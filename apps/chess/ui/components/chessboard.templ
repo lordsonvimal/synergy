@@ -12,8 +12,9 @@ templ RenderChessBoard(g *game.Game, routePrefix string) {
 		id="chessboard"
 		data-testid="chessboard"
 		class="contain-layout contain-paint"
-		data-signals.ifmissing='{"flipped":false,"selectionSeq":0,"serverSelectionSeq":0,"ackSelectionSeq":0,"pendingSelectedSquare":255,"pendingPossibleMoves":[]}'
-		data-effect="if (($serverSelectionSeq || 0) > ($ackSelectionSeq || 0)) $ackSelectionSeq = $serverSelectionSeq"
+		data-signals.ifmissing='{"flipped":false}'
+		data-game-id={ g.ID }
+		data-route-prefix={ routePrefix }
 	>
 		<div class="w-full aspect-square">
 			<div
