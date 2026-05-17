@@ -34,7 +34,7 @@ templ PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) {
 			}
 
 			<div class="w-full sm:w-[min(100%,calc(100vh-16rem),540px)] flex flex-col sm:rounded-sm overflow-hidden sm:shadow-2xl">
-				@components.GameStatusRibbon()
+				@components.GameStatusRibbon(g)
 				<div class="flex flex-col">
 					@components.BlackPlayerCard()
 					<section class="relative w-full">

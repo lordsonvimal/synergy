@@ -8,7 +8,7 @@ templ BlackPlayerCard() {
 	<div
 		data-testid="player-card-black"
 		data-signals.ifmissing='{"blackOnline": false, "clockUnlocked": false}'
-		class="flex items-center gap-3 px-3 py-2.5 bg-neutral-950 border-transparent transition-colors duration-150"
+		class="flex items-center gap-3 h-[40px] px-3 bg-neutral-950 border-transparent transition-colors duration-150"
 		data-class={ templ.JSExpression(`{'order-last': $flipped}`) }
 	>
 		<!-- Fixed chess-domain color: black piece -->
@@ -45,7 +45,7 @@ templ WhitePlayerCard() {
 	<div
 		data-testid="player-card-white"
 		data-signals.ifmissing='{"whiteOnline": false, "clockUnlocked": false}'
-		class="flex items-center gap-3 px-3 py-2.5 bg-neutral-950 border-transparent transition-colors duration-150"
+		class="flex items-center gap-3 h-[40px] px-3 bg-neutral-950 border-transparent transition-colors duration-150"
 		data-class={ templ.JSExpression(`{'order-first': $flipped}`) }
 	>
 		<!-- Fixed chess-domain color: white piece -->

@@ -1,5 +1,10 @@
 package components
 
+import (
+	"github.com/lordsonvimal/synergy/apps/chess/engine"
+	"github.com/lordsonvimal/synergy/apps/chess/game"
+)
+
 // GameStatusRibbon is the always-visible strip above the board.
 //
 // While the game is in progress it shows the side to move (with a small
@@ -7,24 +12,70 @@ package components
 // ends it switches to the winner + reason, paired with the king-square
 // overlays painted on the board itself.
 //
-// Mode is driven by `$gameState` (0 = ongoing); side/winner by `$sideToMove`
-// / `$winner`. Switching is purely reactive — no server branching needed.
-templ GameStatusRibbon() {
+// Initial visibility and label text are rendered server-side from `g` so the
+// post-hydration data-show / data-text passes don't cause a visible swap
+// (e.g. "Black's turn" briefly appearing because `undefined === 0` is false).
+templ GameStatusRibbon(g *game.Game) {
+	{{
+		inProgress := g.State == game.GameOngoing
+		whiteToMove := g.Board.SideToMove == engine.White
+		initialTurn := "Black's turn"
+		if whiteToMove {
+			initialTurn = "White's turn"
+		}
+		initialDotClass := "bg-[#1A1A1A]"
+		if whiteToMove {
+			initialDotClass = "bg-[#F5F5F5]"
+		}
+		// End-state initial label + reason (only rendered when !inProgress
+		// so the SSR'd text matches the data-text expression's first eval).
+		initialResult := "Draw"
+		if g.Winner == engine.White {
+			initialResult = "White wins"
+		} else if g.Winner == engine.Black {
+			initialResult = "Black wins"
+		}
+		initialReason := ""
+		switch g.State {
+		case game.GameCheckmate:
+			initialReason = "Checkmate"
+		case game.GameResigned:
+			initialReason = "Resigned"
+		case game.GameClockFlagged:
+			initialReason = "Clock flagged"
+		case game.GameDrawStalemate:
+			initialReason = "Stalemate"
+		case game.GameDrawFiftyMove:
+			initialReason = "Fifty-move rule"
+		case game.GameDrawAgreement:
+			initialReason = "Draw by agreement"
+		case game.GameDrawThreefoldRepetition:
+			initialReason = "Threefold repetition"
+		case game.GameDrawInsufficientMaterial:
+			initialReason = "Insufficient material"
+		case game.GameAbandoned:
+			initialReason = "Abandoned"
+		case game.GameDisconnected:
+			initialReason = "Disconnected"
+		}
+	}}
 	<div
 		role="status"
 		aria-live="polite"
 		data-testid="game-status-ribbon"
-		class="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-surface-0 border-b border-edge text-sm"
+		class="w-full h-[35px] flex items-center justify-center gap-2 px-3 bg-surface-0 border-b border-edge text-sm"
 	>
 		<!-- IN-PROGRESS: side-to-move dot + label, with optional "Check" badge. -->
 		<div
 			class="flex items-center gap-2"
 			data-show="$gameState === 0"
-			style="display:none"
+			if !inProgress {
+				style="display:none"
+			}
 		>
 			<span
 				aria-hidden="true"
-				class="inline-block w-3 h-3 rounded-full border border-edge"
+				class={ "inline-block w-3 h-3 rounded-full border border-edge", initialDotClass }
 				data-class={ templ.JSExpression(`{
 					'bg-[#F5F5F5]': $sideToMove === 0,
 					'bg-[#1A1A1A]': $sideToMove === 1,
@@ -33,7 +84,7 @@ templ GameStatusRibbon() {
 			<span
 				class="font-semibold text-ink"
 				data-text={ templ.JSExpression(`$sideToMove === 0 ? "White's turn" : "Black's turn"`) }
-			></span>
+			>{ initialTurn }</span>
 			<span
 				class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[0.7rem] font-bold uppercase tracking-wide bg-error/10 text-error"
 				data-show="$checkSquare !== 64"
@@ -45,7 +96,9 @@ templ GameStatusRibbon() {
 		<div
 			class="flex items-center gap-2"
 			data-show="$gameState !== 0"
-			style="display:none"
+			if inProgress {
+				style="display:none"
+			}
 		>
 			<span
 				aria-hidden="true"
@@ -66,8 +119,11 @@ templ GameStatusRibbon() {
 			<span
 				class="font-semibold text-ink"
 				data-text={ templ.JSExpression(`$winner === 255 ? 'Draw' : ($winner === 0 ? 'White wins' : 'Black wins')`) }
-			></span>
-			<span class="text-ink-muted" data-text="'· ' + $gameStateText"></span>
+			>{ initialResult }</span>
+			<span
+				class="text-ink-muted"
+				data-text="'· ' + $gameStateText"
+			>{ "· " + initialReason }</span>
 		</div>
 	</div>
 }
