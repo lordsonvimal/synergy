@@ -10,7 +10,11 @@ templ RenderPromotionOverlay(g *game.Game, routePrefix string) {
 		class="absolute inset-0 bg-black/40 flex items-center justify-center z-50 hidden"
 		data-class={ templ.JSExpression(`{ 'hidden': !$promotion }`) }
 	>
-		<div class="bg-surface-0 rounded-xl shadow-xl border border-edge p-2 sm:p-3 flex gap-2 sm:gap-3">
+		<!-- Background is a fixed chess-domain light surface (not the themed
+		     surface-0) because the piece SVGs use hardcoded fill="#000" — on
+		     a dark themed surface the black piece options become invisible.
+		     Matches the convention used by player dots in gameinfopanel. -->
+		<div class="bg-[#F5F5F5] rounded-xl shadow-xl border border-[#1A1A1A]/20 p-2 sm:p-3 flex gap-2 sm:gap-3">
 			@PromotionButton(g, engine.Queen, routePrefix)
 			@PromotionButton(g, engine.Rook, routePrefix)
 			@PromotionButton(g, engine.Bishop, routePrefix)
