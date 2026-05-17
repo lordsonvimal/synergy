@@ -23,7 +23,7 @@
     "build:assets": "node ./scripts/build-assets.mjs",
     "build": "rm -rf dist && yarn build:css && yarn build:js && yarn build:assets",
     "build:dev": "CHESS_BUILD_DEV=1 yarn build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.18",
@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "chessops": "^0.15.0",
-    "esbuild": "^0.27.7"
+    "esbuild": "^0.27.7",
+    "vitest": "^4.1.6"
   }
 }

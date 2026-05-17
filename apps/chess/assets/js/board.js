@@ -9,6 +9,7 @@ import { Chess } from "chessops/chess";
 import { parseFen, makeFen } from "chessops/fen";
 import { effect, getPath, mergePatch } from "datastar";
 import { playMove, playGameEnd } from "./sound.js";
+import { shouldApplyIncomingSeq, predictNextSeq, createPostMoveQueue } from "./move-sync.js";
 
 // Mirror of engine.Piece (iota from Pawn=0 .. King=5) so we can plumb
 // promotion choices through HTTP/URL params without a per-direction enum.
@@ -30,6 +31,16 @@ let routePrefix = null;
 // Set true inside applyOptimistic so the subsequent fen echo from the server
 // doesn't double-play the move sound (we already played it on the local hop).
 let lastMoveBySelf = false;
+// Highest game.Seq we have applied locally. -1 means "not yet observed".
+// Server signals carry `seq`; any incoming patch with seq < lastAppliedSeq is
+// a stale echo (late delivery, dropped buffer recovery, etc.) and must be
+// ignored — otherwise the board snaps back to an older position, which is the
+// "moves applied then suddenly reverted" symptom on low-connectivity clients.
+let lastAppliedSeq = -1;
+// Serial queue for client move POSTs. Move N+1's POST cannot reach the server
+// before move N's response has been observed — eliminates same-client
+// out-of-order delivery (e.g. HTTP/2 streams, rapid promotion clicks).
+const enqueueMovePost = createPostMoveQueue();
 // Tracks gameState across the gameState effect so a true Ongoing→terminal
 // transition only fires the end sound once. Seeded on first observe so a
 // page load into an already-finished game stays silent.
@@ -68,8 +79,11 @@ function setFen(fen) {
       const cls = classifyTransition(prevChess, chess);
       playMove({ ...cls, isOpponent: true });
     }
-    lastMoveBySelf = false;
   }
+  // Clear unconditionally: the self-echo arrives with FEN === lastFen and
+  // skips the rebuild branch above, so leaving the clear inside that branch
+  // left lastMoveBySelf stuck true and muted the next opponent move's sound.
+  lastMoveBySelf = false;
   publishBoardDerivedSignals();
 }
 
@@ -281,10 +295,18 @@ function selectPiece(sq) {
 }
 
 function postMove(fromSq, toSq, promotionRole) {
+  // Serialize so move N+1 cannot overtake move N on the wire. Without this,
+  // two rapid moves from the same client can hit the server in reverse order
+  // — the server's turn check still passes for the second arriving move
+  // (turn hasn't flipped yet) and the moves get applied in inverted order.
+  return enqueueMovePost(() => sendMove(fromSq, toSq, promotionRole));
+}
+
+function sendMove(fromSq, toSq, promotionRole) {
   const params = new URLSearchParams();
   params.set("clientTsNs", String(Date.now() * 1_000_000));
   if (promotionRole) params.set("promo", String(ROLE_TO_PIECE[promotionRole]));
-  fetch(`${routePrefix}/${gameId}/move/${fromSq}/${toSq}?${params.toString()}`, {
+  return fetch(`${routePrefix}/${gameId}/move/${fromSq}/${toSq}?${params.toString()}`, {
     method: "POST",
     headers: {
       "Accept": "text/event-stream",
@@ -371,6 +393,10 @@ function applyOptimistic(fromSq, toSq, promotionRole) {
   if (promotionRole) move.promotion = promotionRole;
   chess.play(move);
   lastFen = makeFen(chess.toSetup());
+  // Predict the next authoritative seq so our own server echo (carrying the
+  // same seq) doesn't get classified as stale, and a late-arriving prior
+  // broadcast (seq < current) gets dropped instead of rewinding the board.
+  lastAppliedSeq = predictNextSeq(lastAppliedSeq);
   lastMoveBySelf = true;
   playMove({
     capture,
@@ -456,9 +482,22 @@ function init() {
   // registering the effect.
   const armEffect = () => {
     if (getPath("fen") === undefined) { setTimeout(armEffect, 16); return; }
+    // Seed lastAppliedSeq from the initial signals so we have a real baseline
+    // (page-load seq is the authoritative starting point). Without seeding,
+    // the very first SSE patch would skip our stale-guard.
+    const seedSeq = Number(getPath("seq"));
+    if (Number.isFinite(seedSeq)) lastAppliedSeq = seedSeq;
     effect(() => {
       const fen = getPath("fen");
-      if (typeof fen === "string" && fen.length > 0) setFen(fen);
+      if (typeof fen !== "string" || fen.length === 0) return;
+      const incomingSeq = Number(getPath("seq"));
+      if (!shouldApplyIncomingSeq(lastAppliedSeq, incomingSeq)) {
+        // Stale patch — server has already advanced past this state on our
+        // side. Ignore to avoid rewinding the board.
+        return;
+      }
+      if (Number.isFinite(incomingSeq)) lastAppliedSeq = incomingSeq;
+      setFen(fen);
     });
   };
   armEffect();
@@ -502,6 +541,7 @@ function init() {
       mergePatch,
       chess: () => chess,
       lastFen: () => lastFen,
+      lastAppliedSeq: () => lastAppliedSeq,
     },
   };
 }
