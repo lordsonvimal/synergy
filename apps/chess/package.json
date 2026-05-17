@@ -18,10 +18,10 @@
   "type": "module",
   "scripts": {
     "dev": "make live",
-    "build:css": "npx @tailwindcss/cli -i ./ui/styles/style.css -o ./dist/style.css --minify",
-    "build:js": "node ./scripts/build-js.mjs",
+    "build:css": "npx @tailwindcss/cli -i ./ui/styles/style.css -o ./dist/style.css --minify && node ./scripts/build-assets.mjs",
+    "build:js": "node ./scripts/build-js.mjs && node ./scripts/build-assets.mjs",
     "build:assets": "node ./scripts/build-assets.mjs",
-    "build": "rm -rf dist && yarn build:css && yarn build:js && yarn build:assets",
+    "build": "rm -rf dist && yarn build:css && yarn build:js",
     "build:dev": "CHESS_BUILD_DEV=1 yarn build",
     "test": "vitest run"
   },

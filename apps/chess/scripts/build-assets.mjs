@@ -48,7 +48,27 @@ async function* walk(root, prefix) {
   }
 }
 
-const manifest = {};
+// Start from the existing manifest so partial rebuilds (e.g. running just
+// `yarn build:js` after iterating on a JS file) preserve entries from the
+// last full build instead of dropping them — without this, the Go server's
+// manifest loader would 404 on whichever subsystem we didn't rebuild this
+// pass (CSS, fonts, favicon, etc.).
+let manifest = {};
+if (existsSync("dist/manifest.json")) {
+  try {
+    manifest = JSON.parse(await readFile("dist/manifest.json", "utf8"));
+  } catch {
+    manifest = {}; // corrupted manifest — start fresh rather than crash
+  }
+}
+
+// Drop any entries pointing at files that no longer exist on disk so a stale
+// hash from a previous build doesn't keep showing up after the source went
+// away (this is the cleanup other passes already implicitly did by wiping
+// the whole map).
+for (const [logical, file] of Object.entries(manifest)) {
+  if (!existsSync(join("dist", file))) delete manifest[logical];
+}
 
 // 1. CSS (Tailwind's output already exists at dist/style.css thanks to build:css).
 if (existsSync("dist/style.css")) {

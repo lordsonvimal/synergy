@@ -24,3 +24,9 @@ live:
 	@mkdir -p tmp/assets
 	@CHESS_BUILD_DEV=1 yarn build --silent
 	make -j4 live/templ live/server live/tailwind live/sync_assets
+
+# Wipe build artifacts. Useful if dist/manifest.json gets out of sync with the
+# files on disk (rare — partial `yarn build:js` / `build:css` now keep it
+# consistent automatically — but a clean rebuild is the surest fix).
+clean:
+	rm -rf dist tmp
