@@ -109,8 +109,13 @@ func (r *Runner) run(ctx context.Context, jobKey, gameID, fen string, whiteToMov
 	}()
 
 	// Announce that a job started so the UI can show a spinner even before
-	// the first depth iteration completes.
-	startSnap := r.latestOrNewForFen(fen)
+	// the first depth iteration completes. Seed visible fields from the
+	// FEN cache (re-analysing a known position), then the game's latest
+	// snapshot (the previous position's eval kept as a continuity
+	// placeholder), then neutral defaults. Without a seed the snapshot
+	// would ship empty-string EvalBlackHeight/EvalDisplay and the bar
+	// would render as full-white nothingness.
+	startSnap := r.seedSnapshot(gameID, fen)
 	startSnap.EvalAnalyzing = true
 	r.cache(gameID, fen, startSnap)
 	onUpdate(startSnap)
@@ -188,13 +193,23 @@ func (r *Runner) cache(gameID, fen string, snap EvalSnapshot) {
 	r.mu.Unlock()
 }
 
-func (r *Runner) latestOrNewForFen(fen string) EvalSnapshot {
+func (r *Runner) seedSnapshot(gameID, fen string) EvalSnapshot {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if s, ok := r.fenCache[fen]; ok {
 		return s
 	}
-	return EvalSnapshot{}
+	if gameID != "" {
+		if s, ok := r.gameLatest[gameID]; ok {
+			return s
+		}
+	}
+	return EvalSnapshot{
+		EvalWp:          50,
+		EvalDisplay:     "0.00",
+		EvalBlackHeight: "50%",
+		EvalTextColor:   "#404040",
+	}
 }
 
 func toSnapshot(u uci.Update, whiteToMove bool) EvalSnapshot {
@@ -204,13 +219,16 @@ func toSnapshot(u uci.Update, whiteToMove bool) EvalSnapshot {
 		if !whiteToMove {
 			mate = -mate
 		}
+		// UCI `score mate N` reports N in full moves (per spec), so no
+		// ply→move conversion here. Sign is from side-to-move POV before the
+		// whiteToMove flip above.
 		snap.EvalMate = mate
 		if mate > 0 {
 			snap.EvalWp = 100
-			snap.EvalDisplay = fmt.Sprintf("M%d", (mate+1)/2)
+			snap.EvalDisplay = fmt.Sprintf("M%d", mate)
 		} else {
 			snap.EvalWp = 0
-			snap.EvalDisplay = fmt.Sprintf("-M%d", (-mate+1)/2)
+			snap.EvalDisplay = fmt.Sprintf("-M%d", -mate)
 		}
 		snap.EvalBlackHeight = fmt.Sprintf("%.1f%%", 100-snap.EvalWp)
 		snap.EvalTextColor = textColorForWp(snap.EvalWp)

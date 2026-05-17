@@ -62,7 +62,13 @@ func main() {
 	if pool, err := uci.NewPool(ctx, uci.PoolConfig{}); err != nil {
 		logger.Warn(ctx).Err(err).Msg("Stockfish unavailable; game analysis disabled")
 	} else {
-		analysisRunner = analysis.NewRunner(pool, analysis.Options{})
+		// Depth 22 / 5s movetime tracks chess.com / Lichess shallow-eval-bar
+		// numbers reasonably well on a single core. Stockfish stops at whichever
+		// cap hits first.
+		analysisRunner = analysis.NewRunner(pool, analysis.Options{
+			Depth:    22,
+			Movetime: 5 * time.Second,
+		})
 		defer pool.Close()
 	}
 
