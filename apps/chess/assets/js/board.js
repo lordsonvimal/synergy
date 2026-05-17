@@ -8,6 +8,7 @@
 import { Chess } from "chessops/chess";
 import { parseFen, makeFen } from "chessops/fen";
 import { effect, getPath, mergePatch } from "datastar";
+import { playMove, playGameEnd } from "./sound.js";
 
 // Mirror of engine.Piece (iota from Pawn=0 .. King=5) so we can plumb
 // promotion choices through HTTP/URL params without a per-direction enum.
@@ -26,6 +27,13 @@ let chess = null;
 let lastFen = null;
 let gameId = null;
 let routePrefix = null;
+// Set true inside applyOptimistic so the subsequent fen echo from the server
+// doesn't double-play the move sound (we already played it on the local hop).
+let lastMoveBySelf = false;
+// Tracks gameState across the gameState effect so a true Ongoing→terminal
+// transition only fires the end sound once. Seeded on first observe so a
+// page load into an already-finished game stays silent.
+let lastGameStateSeen = null;
 
 function setFen(fen) {
   if (!fen) return;
@@ -51,10 +59,59 @@ function setFen(fen) {
       console.error("[chessleap] setFen: Chess.fromSetup failed for", fen, built.error);
       return;
     }
+    const prevChess = chess;
     chess = built.unwrap();
     lastFen = fen;
+    // Sound for the transition. Self moves were already sounded in
+    // applyOptimistic — skip the echo. First-load (no prevChess) is silent.
+    if (prevChess && !lastMoveBySelf) {
+      const cls = classifyTransition(prevChess, chess);
+      playMove({ ...cls, isOpponent: true });
+    }
+    lastMoveBySelf = false;
   }
   publishBoardDerivedSignals();
+}
+
+// classifyTransition diffs two chessops positions to infer what kind of
+// move happened. Used for opponent moves arriving via SSE where we don't
+// have the move object itself — only the new FEN.
+function classifyTransition(prev, next) {
+  let prevTotal = 0, nextTotal = 0;
+  let prevPawnsMover = 0, nextPawnsMover = 0;
+  const moverColor = prev.turn; // the side that just moved is whoever's turn it WAS
+  for (let sq = 0; sq < 64; sq++) {
+    const p = prev.board.get(sq);
+    if (p) {
+      prevTotal++;
+      if (p.role === "pawn" && p.color === moverColor) prevPawnsMover++;
+    }
+    const n = next.board.get(sq);
+    if (n) {
+      nextTotal++;
+      if (n.role === "pawn" && n.color === moverColor) nextPawnsMover++;
+    }
+  }
+  const capture = nextTotal < prevTotal;
+  const promotion = nextPawnsMover < prevPawnsMover;
+  // Castle detection: king of moverColor moved exactly 2 files between prev
+  // and next, with no capture. We locate the king in both positions.
+  let castle = false;
+  if (!capture) {
+    let prevKingSq = -1, nextKingSq = -1;
+    for (let sq = 0; sq < 64; sq++) {
+      const pp = prev.board.get(sq);
+      if (pp && pp.role === "king" && pp.color === moverColor) prevKingSq = sq;
+      const nn = next.board.get(sq);
+      if (nn && nn.role === "king" && nn.color === moverColor) nextKingSq = sq;
+    }
+    if (prevKingSq >= 0 && nextKingSq >= 0 &&
+        Math.abs((prevKingSq & 7) - (nextKingSq & 7)) === 2 &&
+        (prevKingSq >> 3) === (nextKingSq >> 3)) {
+      castle = true;
+    }
+  }
+  return { capture, castle, promotion, check: next.isCheck() };
 }
 
 // publishBoardDerivedSignals refreshes king-square and check-square signals
@@ -297,12 +354,27 @@ function applyOptimistic(fromSq, toSq, promotionRole) {
                    Math.abs((toSq & 7) - (fromSq & 7)) === 2;
   const chessopsTo = isCastle ? castlingRookSquareFor(fromSq, toSq) : toSq;
 
+  // Capture detection BEFORE play(): destination occupied (non-castle), or
+  // pawn diagonal onto an empty square (en-passant).
+  const destPiece = chess.board.get(toSq);
+  const isEnPassant = piece && piece.role === "pawn" &&
+                      (fromSq & 7) !== (toSq & 7) && !destPiece;
+  const capture = !isCastle && (!!destPiece || isEnPassant);
+
   applyDom(fromSq, toSq, { from: fromSq, to: toSq, promotion: promotionRole, isCastle });
 
   const move = { from: fromSq, to: chessopsTo };
   if (promotionRole) move.promotion = promotionRole;
   chess.play(move);
   lastFen = makeFen(chess.toSetup());
+  lastMoveBySelf = true;
+  playMove({
+    capture,
+    castle: isCastle,
+    promotion: !!promotionRole,
+    check: chess.isCheck(),
+    isOpponent: false,
+  });
   // Local move can change king position (castling) or put the opponent in
   // check — both must reflect in the highlight signals immediately, since
   // the server's fen echo will short-circuit setFen (fen === lastFen).
@@ -386,6 +458,35 @@ function init() {
     });
   };
   armEffect();
+
+  // Game-end sound: fire once per Ongoing→terminal transition.
+  // GameOngoing == 0 (see game.GameState iota). Seeded on first observe to
+  // stay silent if the page loaded directly into a finished game.
+  const armGameEndEffect = () => {
+    if (getPath("gameState") === undefined) { setTimeout(armGameEndEffect, 16); return; }
+    effect(() => {
+      const state = getPath("gameState");
+      if (state === undefined) return;
+      if (lastGameStateSeen === null) { lastGameStateSeen = state; return; }
+      if (state === lastGameStateSeen) return;
+      const wasOngoing = lastGameStateSeen === 0;
+      lastGameStateSeen = state;
+      if (!wasOngoing || state === 0) return;
+      // Winner is a server-side engine.Color: White=0, Black=1, NoColor=2.
+      // Map to win/lose/draw from this client's perspective.
+      const winner = getPath("winner");
+      const me = mySideColor();
+      let outcome = "draw";
+      if (winner === 0 || winner === 1) {
+        const winnerColor = winner === 0 ? "white" : "black";
+        if (me && me === winnerColor) outcome = "win";
+        else if (me) outcome = "lose";
+        else outcome = "draw"; // spectator
+      }
+      playGameEnd({ outcome });
+    });
+  };
+  armGameEndEffect();
 
   window.__chessleap = {
     onSquareClick,

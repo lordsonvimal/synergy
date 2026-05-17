@@ -34,6 +34,9 @@ templ GameToolsPanel(gameID, role, csrfToken string) {
 			</svg>
 		</button>
 
+		<!-- Sound on/off (icon only) -->
+		@SoundToggle()
+
 		<div class="flex-1"></div>
 
 		if gameID != "" && (role == "white" || role == "black") {

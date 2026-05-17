@@ -78,6 +78,18 @@ if (existsSync("assets/fonts")) {
   }
 }
 
+// 3b. Sounds — copied verbatim to dist/sounds/ (no hashing). sound.js loads
+// them by stable URL (/static/sounds/<name>.ogg); browser cache headers
+// from the static handler are good enough for files that change rarely.
+if (existsSync("assets/sounds")) {
+  for await (const { logical, abs } of walk("assets/sounds", "sounds")) {
+    const buf = await readFile(abs);
+    const out = join("dist", logical);
+    await mkdir(dirname(out), { recursive: true });
+    await writeFile(out, buf);
+  }
+}
+
 // 4. JS manifest produced by build-js.mjs.
 if (existsSync("dist/js-manifest.json")) {
   const jsManifest = JSON.parse(await readFile("dist/js-manifest.json", "utf8"));
