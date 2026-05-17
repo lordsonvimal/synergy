@@ -30,6 +30,7 @@ func InitRoutes(r *gin.Engine) {
 	r.POST("/play/:gameID/draw", ProposeDraw)
 	r.POST("/play/:gameID/draw/accept", AcceptDraw)
 	r.POST("/play/:gameID/draw/decline", DeclineDraw)
+	r.POST("/play/:gameID/claim-draw", ClaimDraw)
 	r.POST("/play/:gameID/takeback", ProposeTakeback)
 	r.POST("/play/:gameID/takeback/accept", AcceptTakeback)
 	r.POST("/play/:gameID/takeback/decline", DeclineTakeback)

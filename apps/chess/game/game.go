@@ -32,11 +32,19 @@ const (
 	GameDrawStalemate                      // stalemate
 	GameDrawFiftyMove                      // fifty-move rule
 	GameDrawAgreement                      // mutual agreement
-	GameDrawThreefoldRepetition            // threefold repetition
+	GameDrawThreefoldRepetition            // threefold repetition (automatic)
 	GameDrawInsufficientMaterial           // insufficient material
 	GameAbandoned                          // player left the game
 	GameDisconnected                       // network error causing game to stop
 	GameInvalid                            // invalid state
+	GameDraw75Move                         // 75-move rule (automatic)
+)
+
+// Halfmove-clock thresholds (in plies). FIDE counts 50 / 75 full moves
+// without a pawn move or capture, which is twice as many plies.
+const (
+	fiftyMoveClaimPlies = 100
+	seventyFiveMovePlies = 150
 )
 
 type Game struct {
@@ -58,7 +66,115 @@ type Game struct {
 	legalMoveCache map[engine.Color]bool // cache per side
 	stopCh         chan struct{}          // closed to stop the watchdog
 	lastActivityNs atomic.Int64           // wall-clock ns of last move; used by solo idle eviction
+
+	// positionCounts counts how often each board position has occurred for
+	// threefold/fivefold-repetition detection. Key is the FIDE position
+	// signature (FEN minus halfmove/fullmove counters). Always non-nil for
+	// live games; rebuilt from history on restore.
+	positionCounts map[string]int
 }
+
+// positionKey returns the first four space-separated fields of a FEN
+// (placement, side, castling, en passant) — the FIDE repetition signature.
+func positionKey(fen string) string {
+	n := 0
+	for i := 0; i < len(fen); i++ {
+		if fen[i] == ' ' {
+			n++
+			if n == 4 {
+				return fen[:i]
+			}
+		}
+	}
+	return fen
+}
+
+// startingPositionKey is the repetition key for the standard initial position;
+// used to seed positionCounts so a player who shuffles knights back to the
+// start triggers the third-rep check on the third occurrence of the start
+// position, not the fourth.
+func startingPositionKey() string {
+	return positionKey(engine.NewBoard().FEN())
+}
+
+// rebuildPositionCounts reconstructs the repetition map from move history.
+// Used on game restore from DB.
+func rebuildPositionCounts(history []MoveRecord) map[string]int {
+	m := make(map[string]int, len(history)+1)
+	m[startingPositionKey()] = 1
+	for _, mr := range history {
+		m[positionKey(mr.FEN)]++
+	}
+	return m
+}
+
+func newPositionCounts() map[string]int {
+	m := make(map[string]int, 64)
+	m[startingPositionKey()] = 1
+	return m
+}
+
+// noteCurrentPositionLocked must be called with g.mu held after a move has
+// been applied to g.Board. Increments the count for the resulting position.
+func (g *Game) noteCurrentPositionLocked() {
+	if g.positionCounts == nil {
+		g.positionCounts = newPositionCounts()
+	}
+	g.positionCounts[positionKey(g.Board.FEN())]++
+}
+
+// forgetCurrentPositionLocked must be called with g.mu held BEFORE reverting
+// the board to the previous position. Decrements the count for the position
+// that is being undone.
+func (g *Game) forgetCurrentPositionLocked() {
+	if g.positionCounts == nil {
+		return
+	}
+	key := positionKey(g.Board.FEN())
+	if c, ok := g.positionCounts[key]; ok {
+		if c <= 1 {
+			delete(g.positionCounts, key)
+		} else {
+			g.positionCounts[key] = c - 1
+		}
+	}
+}
+
+// IsThreefoldRepetition reports whether the current position has occurred at
+// least three times in this game (including the present occurrence). Caller
+// must hold g.mu (read or write).
+func (g *Game) isThreefoldRepetitionLocked() bool {
+	if g.positionCounts == nil {
+		return false
+	}
+	return g.positionCounts[positionKey(g.Board.FEN())] >= 3
+}
+
+// CanClaimFiftyMove reports whether the side to move could currently invoke
+// the 50-move rule (≥ 50 full moves since the last pawn move or capture).
+// The window closes the moment a pawn move or capture happens, because
+// Board.HalfMoveClock resets to 0.
+func (g *Game) CanClaimFiftyMove() bool {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.State == GameOngoing && g.Board.HalfMoveClock >= fiftyMoveClaimPlies
+}
+
+// ClaimFiftyMoveDraw ends the game as a fifty-move draw if currently valid.
+// Returns false if the claim is no longer eligible (clock was reset by a
+// pawn move or capture before the request landed).
+func (g *Game) ClaimFiftyMoveDraw() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.State != GameOngoing || g.Board.HalfMoveClock < fiftyMoveClaimPlies {
+		return false
+	}
+	g.State = GameDrawFiftyMove
+	g.Winner = engine.NoColor
+	g.signalGameOver()
+	return true
+}
+
 
 // IsSolo reports whether this is a single-player (non-online) game.
 // Solo games have no PlayMeta and are subject to idle-TTL eviction.
@@ -85,9 +201,10 @@ func NewGame(mode *GameMode) *Game {
 		Seq:           0,
 		State:         GameOngoing,
 		Winner:        engine.NoColor,
-		Timed:         mode.Timed,
-		InitialTimeNs: mode.TimeNs,
-		stopCh:        make(chan struct{}),
+		Timed:          mode.Timed,
+		InitialTimeNs:  mode.TimeNs,
+		stopCh:         make(chan struct{}),
+		positionCounts: newPositionCounts(),
 	}
 
 	g.touchActivity()
@@ -113,10 +230,11 @@ func NewPlayGame(mode *GameMode, meta *PlayMeta) *Game {
 		Seq:           0,
 		State:         GameOngoing,
 		Winner:        engine.NoColor,
-		PlayMeta:      meta,
-		Timed:         mode.Timed,
-		InitialTimeNs: mode.TimeNs,
-		stopCh:        make(chan struct{}),
+		PlayMeta:       meta,
+		Timed:          mode.Timed,
+		InitialTimeNs:  mode.TimeNs,
+		stopCh:         make(chan struct{}),
+		positionCounts: newPositionCounts(),
 	}
 	g.touchActivity()
 	g.startWatchdog()
@@ -143,10 +261,11 @@ func NewRestoredPlayGame(
 		Seq:           seq,
 		State:         state,
 		Winner:        winner,
-		PlayMeta:      meta,
-		Timed:         meta.OriginalMode.Timed,
-		InitialTimeNs: meta.OriginalMode.TimeNs,
-		stopCh:        stopCh,
+		PlayMeta:       meta,
+		Timed:          meta.OriginalMode.Timed,
+		InitialTimeNs:  meta.OriginalMode.TimeNs,
+		stopCh:         stopCh,
+		positionCounts: rebuildPositionCounts(history),
 	}
 	if state == GameOngoing {
 		g.startWatchdog()
@@ -173,9 +292,10 @@ func NewRestoredGame(
 		Seq:           seq,
 		State:         state,
 		Winner:        winner,
-		Timed:         timed,
-		InitialTimeNs: initialTimeNs,
-		stopCh:        stopCh,
+		Timed:          timed,
+		InitialTimeNs:  initialTimeNs,
+		stopCh:         stopCh,
+		positionCounts: rebuildPositionCounts(history),
 	}
 	g.touchActivity()
 	return g
@@ -253,6 +373,10 @@ func (g *Game) RevertLastPly() bool {
 
 	// Side that made the reverted move is the opposite of current side-to-move.
 	mover := g.Board.SideToMove ^ 1
+
+	// Decrement repetition counter for the position being undone *before*
+	// the board changes.
+	g.forgetCurrentPositionLocked()
 
 	if len(g.History) == 1 {
 		g.Board = engine.NewBoard()
@@ -446,16 +570,17 @@ func (r MoveResult) String() string {
 // reading g.Board/g.Seq/g.State to build the broadcast — which previously
 // allowed a hub frame to carry seq=N+1 paired with the FEN from seq=N.
 type SignalsSnapshot struct {
-	Timed            bool
-	SideToMove       engine.Color
-	Fen              string
-	Seq              uint64
-	IsCheck          bool
-	State            GameState
-	Winner           engine.Color
-	HasSelection     bool
-	SelectionFrom    uint8
-	SelectionTargets []uint8
+	Timed              bool
+	SideToMove         engine.Color
+	Fen                string
+	Seq                uint64
+	IsCheck            bool
+	State              GameState
+	Winner             engine.Color
+	CanClaimFiftyMove  bool
+	HasSelection       bool
+	SelectionFrom      uint8
+	SelectionTargets   []uint8
 }
 
 // SignalsSnapshot takes a read lock and returns an atomic view suitable for
@@ -471,13 +596,14 @@ func (g *Game) ReadSignalsSnapshot() SignalsSnapshot {
 // signalsSnapshotLocked must be called with g.mu held (read or write).
 func (g *Game) signalsSnapshotLocked() SignalsSnapshot {
 	snap := SignalsSnapshot{
-		Timed:      g.Timed,
-		SideToMove: g.Board.SideToMove,
-		Fen:        g.Board.FEN(),
-		Seq:        g.Seq,
-		IsCheck:    g.Board.IsKingInCheck(g.Board.SideToMove),
-		State:      g.State,
-		Winner:     g.Winner,
+		Timed:             g.Timed,
+		SideToMove:        g.Board.SideToMove,
+		Fen:               g.Board.FEN(),
+		Seq:               g.Seq,
+		IsCheck:           g.Board.IsKingInCheck(g.Board.SideToMove),
+		State:             g.State,
+		Winner:            g.Winner,
+		CanClaimFiftyMove: g.State == GameOngoing && g.Board.HalfMoveClock >= fiftyMoveClaimPlies,
 	}
 	if g.Selection != nil {
 		snap.HasSelection = true
@@ -573,6 +699,7 @@ func (g *Game) applyMoveLocked(m engine.Move, lagCompNs int64) bool {
 		return false
 	}
 	g.touchActivity()
+	g.noteCurrentPositionLocked()
 
 	g.History = append(g.History, MoveRecord{
 		SAN:        san,
@@ -682,15 +809,25 @@ func (g *Game) UpdateGameState() {
 		return
 	}
 
-	// 3. Threefold repetition
-	if g.Board.IsThreefoldRepetition() {
+	// 3. Threefold repetition (automatic — house rule choice; FIDE would
+	//    require a claim, but lichess / chess.com style is auto-draw).
+	if g.isThreefoldRepetitionLocked() {
 		g.State = GameDrawThreefoldRepetition
 		g.Winner = engine.NoColor
 		g.signalGameOver()
 		return
 	}
 
-	// 4. Insufficient material
+	// 4. 75-move rule (automatic). 75 full moves without a pawn move or
+	//    capture = 150 plies on the halfmove clock.
+	if g.Board.HalfMoveClock >= seventyFiveMovePlies {
+		g.State = GameDraw75Move
+		g.Winner = engine.NoColor
+		g.signalGameOver()
+		return
+	}
+
+	// 5. Insufficient material
 	if g.Board.IsInsufficientMaterial() {
 		g.State = GameDrawInsufficientMaterial
 		g.Winner = engine.NoColor
@@ -750,6 +887,8 @@ func gameStateDBStatus(s GameState) string {
 		return "draw_stalemate"
 	case GameDrawFiftyMove:
 		return "draw_fifty_move"
+	case GameDraw75Move:
+		return "draw_75_move"
 	case GameDrawAgreement:
 		return "draw_agreement"
 	case GameDrawThreefoldRepetition:
@@ -777,6 +916,8 @@ func gameStateText(s GameState) string {
 		return "Stalemate"
 	case GameDrawFiftyMove:
 		return "Fifty-move rule"
+	case GameDraw75Move:
+		return "Seventy-five-move rule"
 	case GameDrawAgreement:
 		return "Draw by agreement"
 	case GameDrawThreefoldRepetition:

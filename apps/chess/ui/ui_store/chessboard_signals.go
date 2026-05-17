@@ -30,6 +30,10 @@ type ChessBoardSignals struct {
 	// rate-limited offers (draw / takeback) to know whether the offer lock
 	// (`lastDrawSeqWhite` etc.) still applies at the current position.
 	Seq uint64 `json:"seq"`
+	// CanClaimFiftyMove is true when ≥ 50 full moves have passed since the
+	// last pawn move or capture and the game is still ongoing. Clients use
+	// this to enable the "Claim draw (50-move)" button.
+	CanClaimFiftyMove bool `json:"canClaimFiftyMove"`
 }
 
 func NewChessBoardSignals() *ChessBoardSignals {
@@ -105,6 +109,7 @@ func (s *ChessBoardSignals) UpdateFromSnapshot(snap game.SignalsSnapshot) {
 	s.Seq = snap.Seq
 	s.IsCheck = snap.IsCheck
 	s.GameState = snap.State
+	s.CanClaimFiftyMove = snap.CanClaimFiftyMove
 	if snap.State != game.GameOngoing && snap.Winner != engine.NoColor {
 		s.Winner = snap.Winner
 	} else {
@@ -125,6 +130,8 @@ func (s *ChessBoardSignals) UpdateFromSnapshot(snap game.SignalsSnapshot) {
 		s.GameStateText = "Stalemate"
 	case game.GameDrawFiftyMove:
 		s.GameStateText = "Fifty-move rule"
+	case game.GameDraw75Move:
+		s.GameStateText = "Seventy-five-move rule"
 	case game.GameDrawAgreement:
 		s.GameStateText = "Draw by agreement"
 	case game.GameDrawThreefoldRepetition:

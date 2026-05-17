@@ -140,6 +140,7 @@ type playSignals struct {
 	Fen                string `json:"fen"` // authoritative FEN; board.js re-anchors chessops on change
 	Seq                uint64 `json:"seq"`
 	ConnectionDown     bool   `json:"connectionDown"`
+	CanClaimFiftyMove  bool   `json:"canClaimFiftyMove"`
 }
 
 func drawSeq(g *game.Game, idx int) int64 {
@@ -223,5 +224,6 @@ func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 		Fen:                base.Fen,
 		Seq:                base.Seq,
 		ConnectionDown:     false,
+		CanClaimFiftyMove:  base.CanClaimFiftyMove,
 	}
 }

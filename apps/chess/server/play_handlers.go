@@ -566,6 +566,40 @@ func ClaimVictory(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// ClaimDraw handles POST /play/:gameID/claim-draw. Currently the only
+// player-claimable draw is the 50-move rule (threefold and 75-move both
+// auto-trigger in UpdateGameState). Returns 409 if the claim is no longer
+// valid — typically because a pawn move or capture reset the halfmove clock
+// between the client deciding to claim and the request landing.
+func ClaimDraw(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok || g.PlayMeta == nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	claims, err := GetPlaySession(c.Request)
+	if err != nil || claims.GameID != gameID || (claims.Role != "white" && claims.Role != "black") {
+		c.Status(http.StatusForbidden)
+		return
+	}
+
+	if !g.ClaimFiftyMoveDraw() {
+		c.Status(http.StatusConflict)
+		return
+	}
+	_ = ctx
+	c.Status(http.StatusNoContent)
+}
+
 // ProposeRematch handles POST /play/:gameID/rematch.
 func ProposeRematch(c *gin.Context) {
 	ctx := c.Request.Context()
