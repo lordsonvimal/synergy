@@ -82,6 +82,12 @@ func CreateSolo(c *gin.Context) {
 	g := game.NewGame(&gm)
 	repo.Add(g)
 
+	// Pre-warm the eval for the initial position so the bar isn't empty when
+	// the SSE connection opens. Fire-and-forget; the snapshot is cached in
+	// the runner and replayed in SoloEventsHandler on connect.
+	snap := g.ReadSignalsSnapshot()
+	triggerSoloAnalysis(ctx, g, snap.Fen, whiteToMove(snap.SideToMove))
+
 	c.Redirect(http.StatusSeeOther, "/solo/"+g.ID)
 }
 
@@ -177,6 +183,11 @@ func SoloEventsHandler(c *gin.Context) {
 	// every ~25s of idle time.
 	writeSignalsDirect(c, map[string]any{"keepaliveTs": time.Now().UnixNano()})
 
+	// Replay the latest cached eval (if any) to this fresh connection so the
+	// eval bar reflects current state immediately rather than waiting for the
+	// next analysis update.
+	seedSoloAnalysisOnConnect(ctx, g.ID, func(m map[string]any) { writeSignalsDirect(c, m) })
+
 	// Keepalive: comment line every 5s keeps proxies from idle-closing the
 	// stream; every other tick (10s cadence) we push a keepaliveTs signal
 	// patch the client watchdog can observe.
@@ -235,6 +246,15 @@ func BoardAtHistoryHandler(c *gin.Context) {
 	if idxParam == "live" {
 		b, _ := json.Marshal(historyNavSignals{HistoryIdx: -1, ViewingHistory: false})
 		sse.PatchSignals(b)
+		// Restore the eval bar to the live game's current evaluation. The
+		// runner cache holds it; if for some reason it's missing, leave the
+		// current client state untouched.
+		liveSnap := g.ReadSignalsSnapshot()
+		pushEvalForFenDirect(ctx, liveSnap.Fen, func(m map[string]any) {
+			if bb, err := json.Marshal(m); err == nil {
+				sse.PatchSignals(bb)
+			}
+		})
 		return
 	}
 
@@ -268,6 +288,16 @@ func BoardAtHistoryHandler(c *gin.Context) {
 	}
 	b, _ := json.Marshal(signals)
 	sse.PatchSignals(b)
+
+	// Show eval for the historical position. Push any cached snapshot
+	// immediately; if missing, kick off analysis — its updates flow via the
+	// hub and reach this client over the always-on /events stream.
+	pushEvalForFenDirect(ctx, rec.FEN, func(m map[string]any) {
+		if bb, err := json.Marshal(m); err == nil {
+			sse.PatchSignals(bb)
+		}
+	})
+	triggerHistoryAnalysis(ctx, g.ID, rec.FEN, board.SideToMove == engine.White, g.Hub)
 }
 
 // NavigateHistoryHandler handles POST /{solo|play}/:gameID/history/navigate.
@@ -331,12 +361,19 @@ func NavigateHistoryHandler(c *gin.Context) {
 	if targetIdx >= total {
 		b, _ := json.Marshal(historyNavSignals{HistoryIdx: -1, ViewingHistory: false})
 		sse.PatchSignals(b)
+		liveSnap := g.ReadSignalsSnapshot()
+		pushEvalForFenDirect(ctx, liveSnap.Fen, func(m map[string]any) {
+			if bb, err := json.Marshal(m); err == nil {
+				sse.PatchSignals(bb)
+			}
+		})
 		return
 	}
 
 	if targetIdx < 0 {
+		startBoard := engine.NewBoard()
 		buf := new(strings.Builder)
-		components.RenderHistoryBoard(engine.NewBoard()).Render(ctx, buf)
+		components.RenderHistoryBoard(startBoard).Render(ctx, buf)
 		sse.PatchElements(buf.String())
 		signals := historyNavSignals{HistoryIdx: -1, ViewingHistory: true}
 		if g.Timed {
@@ -345,6 +382,13 @@ func NavigateHistoryHandler(c *gin.Context) {
 		}
 		b, _ := json.Marshal(signals)
 		sse.PatchSignals(b)
+		startFen := startBoard.FEN()
+		pushEvalForFenDirect(ctx, startFen, func(m map[string]any) {
+			if bb, err := json.Marshal(m); err == nil {
+				sse.PatchSignals(bb)
+			}
+		})
+		triggerHistoryAnalysis(ctx, g.ID, startFen, true, g.Hub)
 		return
 	}
 
@@ -372,6 +416,13 @@ func NavigateHistoryHandler(c *gin.Context) {
 	}
 	b, _ := json.Marshal(signals)
 	sse.PatchSignals(b)
+
+	pushEvalForFenDirect(ctx, rec.FEN, func(m map[string]any) {
+		if bb, err := json.Marshal(m); err == nil {
+			sse.PatchSignals(bb)
+		}
+	})
+	triggerHistoryAnalysis(ctx, g.ID, rec.FEN, board.SideToMove == engine.White, g.Hub)
 }
 
 // ── Shared DB helpers ────────────────────────────────────────────────────────

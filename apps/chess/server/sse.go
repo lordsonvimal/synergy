@@ -231,6 +231,11 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 		}
 	}
 	signals.UpdateFromSnapshot(snap)
+	// Preserve the eval bar across the broadcast: without this, every move
+	// (and especially game-over) would ship the default 50/50 eval and
+	// overwrite the client's signal store. The runner cache holds the most
+	// recent analysis for this game.
+	copyEvalIntoSignals(ctx, g.ID, signals)
 
 	// On a cache hit we already broadcast the outcome the first time around
 	// and the global state may have moved on since; suppress the rebroadcast
@@ -265,6 +270,9 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 		// never reach the client in solo mode (and only reach the opponent in
 		// play).
 		hubBroadcastBoard(ctx, g, signals)
+		// Kick off (or restart) engine analysis for the new position.
+		// Solo-only; play games are policy-blocked during the game.
+		triggerSoloAnalysis(ctx, g, snap.Fen, whiteToMove(snap.SideToMove))
 		return
 
 	case game.MoveSeqConflict:

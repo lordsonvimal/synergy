@@ -10,7 +10,15 @@ SERVICE_USER="chess"
 
 echo "==> Updating packages..."
 sudo apt-get update -q
-sudo apt-get install -y nginx certbot python3-certbot-nginx ufw
+sudo apt-get install -y nginx certbot python3-certbot-nginx ufw stockfish
+
+echo "==> Verifying stockfish..."
+stockfish_path="$(command -v stockfish || true)"
+if [ -z "$stockfish_path" ]; then
+  echo "ERROR: stockfish not on PATH after install" >&2
+  exit 1
+fi
+echo "    stockfish at $stockfish_path"
 
 echo "==> Creating app user and directories..."
 sudo useradd --system --no-create-home --shell /usr/sbin/nologin "$SERVICE_USER" || true

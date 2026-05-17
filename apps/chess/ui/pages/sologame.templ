@@ -25,18 +25,21 @@ templ SoloGamePage(g *game.Game) {
 				@components.GameStatusRibbon(g)
 				<div class="flex flex-col">
 					@components.BlackPlayerCard()
-					<section class="relative w-full">
-						@components.RenderChessBoard(g, "/solo")
-						@components.RenderPromotionOverlay(g, "/solo")
-						<div
-							class="absolute inset-0 z-10"
-							data-show="$viewingHistory"
-							data-signals.ifmissing='{"historyIdx": -1, "viewingHistory": false}'
-							style="display:none"
-						>
-							<div id="history-board-content" class="w-full h-full"></div>
-						</div>
-					</section>
+					<div class="flex flex-row items-stretch w-full">
+						@components.EvalBar()
+						<section class="relative flex-1 min-w-0">
+							@components.RenderChessBoard(g, "/solo")
+							@components.RenderPromotionOverlay(g, "/solo")
+							<div
+								class="absolute inset-0 z-10"
+								data-show="$viewingHistory"
+								data-signals.ifmissing='{"historyIdx": -1, "viewingHistory": false}'
+								style="display:none"
+							>
+								<div id="history-board-content" class="w-full h-full"></div>
+							</div>
+						</section>
+					</div>
 					@components.WhitePlayerCard()
 				</div>
 				@components.MoveNotationPanel("/solo", g.ID, g.History)

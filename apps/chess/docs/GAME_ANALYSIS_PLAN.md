@@ -19,7 +19,8 @@ Provide a chess.com/Lichess-style "Game Review" experience covering:
 | 1 | Engine backend | **Bundle Stockfish** as a sidecar UCI process per platform |
 | 2 | "Plans" / commentary | **Both**: rule-based summary shown by default, LLM commentary on user request |
 | 3 | Live policy for online play | **Off until game ends** for players. Spectators may opt in mid-game. Solo / vs-bot games always on once enabled in settings |
-| 4 | Solo game persistence | Persist completed solo games to existing `games`/`moves` tables (prerequisite — analysis can't outlive a tab otherwise) |
+| 4 | Solo game persistence | **Not persisted.** Solo analysis is in-memory only and dies with the tab/session. |
+| 5 | Analysis source of truth | **In-memory game state first, DB as fallback** for play games whose in-memory `Game` has been evicted. |
 
 ---
 
@@ -72,7 +73,9 @@ Provide a chess.com/Lichess-style "Game Review" experience covering:
 
 ## Data model
 
-New migration `db/migrations/000003_analysis.up.sql`:
+New migration `db/migrations/000004_analysis.up.sql` (000003 is taken by the 75-move-rule migration):
+
+All analysis tables are **play-game only**. Solo games never produce rows here — their analysis is ephemeral, streamed straight from the worker to the SSE client.
 
 ```sql
 CREATE TABLE move_analyses (
@@ -142,10 +145,20 @@ Notes:
 - `engine_version` lets a future Stockfish bump invalidate cleanly without dropping old rows.
 - `move_analyses` has 5 rows per ply (MultiPV); `move_classifications` has 1.
 
-### Solo game persistence (prerequisite)
+### Source of truth: in-memory first, DB fallback
 
-- Today `g.Batch` is nil for solo games (`game.go:357`). Extend `NewGame` to call `InitBatch` against a dedicated session row with `session_type='solo'` (add to enum in a small migration), or — minimally invasive — defer persistence until `signalGameOver` and write all rows in one transaction at the end.
-- Recommendation: **persist on game-end only** for solo. Avoids touching the live write path, and analysis only needs the final state anyway.
+The analysis worker resolves a game's move history in this order:
+
+1. **In-memory** — `repo.Get(gameID)` returns the live `*game.Game`. Use `g.Board` + move list directly. This is the path for all solo games and any play game still resident in the repo.
+2. **DB fallback** — if `repo.Get` misses (play game evicted from memory, or server restarted), load from `games` + `moves` tables and reconstruct the FEN sequence. Solo games will simply 404 here — they don't exist in the DB and that's fine.
+
+A small `analysis.GameSource` interface wraps both paths so the worker doesn't care which it got.
+
+### Solo games: ephemeral analysis
+
+- No DB writes. No `analysis_jobs` row, no `move_analyses` rows.
+- The SSE handler holds the worker output channel for the life of the connection and forwards updates to the browser.
+- If the user reloads mid-analysis, the previous job is canceled and a fresh one starts. Acceptable — solo analysis is cheap and the user just made it happen.
 
 ---
 
@@ -311,7 +324,7 @@ All driven by datastar signals so SSE updates patch without re-render.
 
 | Phase | Scope | Done when |
 |-------|-------|-----------|
-| 0 | Solo persistence on game-end; migration 000003 | Completed solo games visible in `games` table |
+| 0 | Migration `000004_analysis` + `analysis.GameSource` (in-memory→DB fallback) | Worker can fetch FEN history for any live or persisted game |
 | 1 | `engine/uci/` package + Stockfish bundling + process pool | Unit test: spawn, `Analyze`, parse 5 PVs |
 | 2 | Opening ingest + `openings` table + lookup | First N plies of any game labeled with ECO |
 | 3 | Worker queue, jobs table, single-PV eval per ply | Eval bar populates post-game on demand |

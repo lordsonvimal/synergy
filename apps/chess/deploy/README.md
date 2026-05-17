@@ -38,8 +38,9 @@ These rules allow HTTP and HTTPS traffic to reach the VM.
 ## Step 3 — Set up the server (run once)
 
 Copies the systemd service definition and Nginx config to the VM, then runs `setup-server.sh`
-which installs Nginx, creates the `chess` system user, sets up directories, enables the service,
-and configures the OS-level firewall (ufw + iptables) to allow ports 80 and 443.
+which installs Nginx and Stockfish (used by the game-analysis worker), creates the `chess`
+system user, sets up directories, enables the service, and configures the OS-level firewall
+(ufw + iptables) to allow ports 80 and 443.
 
 Run from `apps/chess/`:
 

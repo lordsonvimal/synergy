@@ -10,9 +10,11 @@ import (
 
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/lordsonvimal/synergy/apps/chess/analysis"
 	"github.com/lordsonvimal/synergy/apps/chess/config"
 	"github.com/lordsonvimal/synergy/apps/chess/db"
 	"github.com/lordsonvimal/synergy/apps/chess/db/sqlite"
+	"github.com/lordsonvimal/synergy/apps/chess/engine/uci"
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
 	"github.com/lordsonvimal/synergy/apps/chess/server"
 	"github.com/lordsonvimal/synergy/apps/chess/store"
@@ -53,11 +55,23 @@ func main() {
 
 	gameStore := store.NewGameStore()
 
+	// Engine pool for game analysis (eval bar, move classification).
+	// Failure to spawn is non-fatal — the server runs without analysis if
+	// stockfish isn't installed. Handlers tolerate a nil runner.
+	var analysisRunner *analysis.Runner
+	if pool, err := uci.NewPool(ctx, uci.PoolConfig{}); err != nil {
+		logger.Warn(ctx).Err(err).Msg("Stockfish unavailable; game analysis disabled")
+	} else {
+		analysisRunner = analysis.NewRunner(pool, analysis.Options{})
+		defer pool.Close()
+	}
+
 	router.Use(requestid.New())                                        // Add this for correlation IDs
 	router.Use(logger.RedactedStructuredLogger(logger.GlobalLogger())) // Structured logging with token redaction (access_token, auth_token, etc.)
 	router.Use(gin.Recovery())                                         // Use default recovery for panic logging/handling
 	router.Use(store.StoreContext(gameStore))                          // Add gameStore to context
 	router.Use(store.DBRepoContext(dbRepo))                            // Add db repository to context
+	router.Use(analysis.Middleware(analysisRunner))                    // Add analysis runner (may be nil)
 	router.Use(server.CSRFMiddleware())
 
 	// Asset pipeline: dist/ is produced by `yarn build` and contains

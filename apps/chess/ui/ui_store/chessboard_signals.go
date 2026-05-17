@@ -39,6 +39,19 @@ type ChessBoardSignals struct {
 	// seq-guard should be bypassed for this frame. Cleared on every
 	// subsequent forward broadcast (always false off the takeback path).
 	Rewind bool `json:"rewind"`
+	// Eval bar signals. Populated independently by the analysis runner via
+	// hub.BroadcastSignals; included here so the initial page-load JSON
+	// emits the keys with default values (avoids "undefined" reactive
+	// expressions in datastar before the first analysis update arrives).
+	EvalCp          int     `json:"evalCp"`
+	EvalMate        int     `json:"evalMate"`
+	EvalDepth       int     `json:"evalDepth"`
+	EvalWp          float64 `json:"evalWp"`
+	EvalDisplay     string  `json:"evalDisplay"`
+	EvalBlackHeight string  `json:"evalBlackHeight"`
+	EvalTextColor   string  `json:"evalTextColor"`
+	EvalReady       bool    `json:"evalReady"`
+	EvalAnalyzing   bool    `json:"evalAnalyzing"`
 }
 
 func NewChessBoardSignals() *ChessBoardSignals {
@@ -54,6 +67,10 @@ func NewChessBoardSignals() *ChessBoardSignals {
 		IsCheck:        false,
 		Winner:         engine.NoColor,
 		Timed:          true,
+		EvalWp:          50,
+		EvalDisplay:     "0.00",
+		EvalBlackHeight: "50%",
+		EvalTextColor:   "#404040",
 	}
 }
 
