@@ -294,18 +294,30 @@ function selectPiece(sq) {
   mergePatch({ selectedSquare: sq, possibleMoves: legalDestSquaresFrom(sq) });
 }
 
-function postMove(fromSq, toSq, promotionRole) {
+function postMove(fromSq, toSq, promotionRole, baseSeq) {
   // Serialize so move N+1 cannot overtake move N on the wire. Without this,
   // two rapid moves from the same client can hit the server in reverse order
   // — the server's turn check still passes for the second arriving move
   // (turn hasn't flipped yet) and the moves get applied in inverted order.
-  return enqueueMovePost(() => sendMove(fromSq, toSq, promotionRole));
+  const clientMoveId = newMoveId();
+  return enqueueMovePost(() => sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId));
 }
 
-function sendMove(fromSq, toSq, promotionRole) {
+function newMoveId() {
+  // Per-attempt idempotency key. The server (step 7) caches the last applied
+  // clientMoveId per game+color so a network-retried POST returns the cached
+  // result instead of double-applying. crypto.randomUUID is available in all
+  // modern browsers we target.
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId) {
   const params = new URLSearchParams();
   params.set("clientTsNs", String(Date.now() * 1_000_000));
   if (promotionRole) params.set("promo", String(ROLE_TO_PIECE[promotionRole]));
+  if (Number.isFinite(baseSeq) && baseSeq >= 0) params.set("baseSeq", String(baseSeq));
+  if (clientMoveId) params.set("clientMoveId", clientMoveId);
   return fetch(`${routePrefix}/${gameId}/move/${fromSq}/${toSq}?${params.toString()}`, {
     method: "POST",
     headers: {
@@ -389,6 +401,10 @@ function applyOptimistic(fromSq, toSq, promotionRole) {
 
   applyDom(fromSq, toSq, { from: fromSq, to: toSq, promotion: promotionRole, isCastle });
 
+  // Capture baseSeq BEFORE we bump lastAppliedSeq below — the server uses it
+  // to verify the move was authored against the same Seq the server holds.
+  const baseSeq = lastAppliedSeq;
+
   const move = { from: fromSq, to: chessopsTo };
   if (promotionRole) move.promotion = promotionRole;
   chess.play(move);
@@ -411,7 +427,7 @@ function applyOptimistic(fromSq, toSq, promotionRole) {
   publishBoardDerivedSignals();
 
   clearSelection();
-  postMove(fromSq, toSq, promotionRole);
+  postMove(fromSq, toSq, promotionRole, baseSeq);
 }
 
 // Called by the promotion overlay buttons after the user picks a piece.

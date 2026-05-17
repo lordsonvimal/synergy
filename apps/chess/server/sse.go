@@ -167,46 +167,75 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 
 	move := engine.Move{From: from, To: to, Promotion: promo}
 
-	// Server-side selection state has to be in sync with the attempted move
-	// or ApplyMove will reject. Plant a temporary selection from the move's
-	// source so the existing IsTarget/IsPromotionMove checks keep working.
-	g.SelectSquare(ctx, from)
-	if !g.HasSelection() || g.GetSelectionFrom() != from || !g.IsTarget(to) {
-		// Illegal move: clear selection, signal the rejection by pushing the
-		// authoritative state so the client can hard-reset its DOM.
-		g.ClearSelection()
-		signals.UpdateFromGame(g)
-		_ = broadcastBoard(c, g, signals)
+	// Optional baseSeq from the client: the Seq value the client believes the
+	// game is currently at. -1 = client did not send one (legacy / solo).
+	baseSeq := int64(-1)
+	if v := c.Query("baseSeq"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 {
+			baseSeq = n
+		}
+	}
+
+	// One-shot apply + validate under a single game lock. Replaces the previous
+	// SelectSquare→HasSelection→IsTarget→IsPromotionMove→ApplyMove sequence,
+	// which acquired/released the lock multiple times and could interleave
+	// with concurrent moves.
+	result, _ := g.ApplyMoveChecked(move, lagCompNs, baseSeq)
+
+	// Status MUST be set before broadcastBoard, because broadcastBoard writes
+	// to the response body and commits headers — calling c.Status after that
+	// silently leaves the status at the default 200.
+	switch result {
+	case game.MoveApplied:
 		c.Status(http.StatusOK)
+		signals.UpdateFromGame(g)
+		signals.ClearPromotion()
+		if err := broadcastBoard(c, g, signals); err != nil {
+			logger.Error(ctx).Err(err).Msg("applyMoveRequest: broadcast board")
+		}
+		// Push the same frames over the always-on /events SSE. The plain fetch()
+		// in board.js drains the POST response without parsing the SSE frames,
+		// so without this the move-notation panel and any post-move signals
+		// never reach the client in solo mode (and only reach the opponent in
+		// play).
+		hubBroadcastBoard(ctx, g, signals)
 		return
-	}
 
-	if g.IsPromotionMove(move) && promo == engine.NoPiece {
-		// Client should have settled promotion before POSTing. Treat as
-		// rejection and let the client reconcile from the morph.
+	case game.MoveSeqConflict:
+		// Client's view is stale (another move slipped in, or a retried POST
+		// after the move already applied). Echo authoritative state so the
+		// client resyncs, and tell it explicitly via 409.
+		c.Status(http.StatusConflict)
+		g.ClearSelection()
+		signals.UpdateFromGame(g)
+		_ = broadcastBoard(c, g, signals)
+		hubBroadcastBoard(ctx, g, signals)
+		return
+
+	case game.MovePromoNeeded:
+		// Pawn reached last rank with no Promotion piece set. Client should
+		// open the promotion overlay and re-POST. 422 is the conventional code
+		// for "well-formed request, semantically unprocessable".
+		c.Status(http.StatusUnprocessableEntity)
+		g.ClearSelection()
+		signals.UpdateFromGame(g)
+		_ = broadcastBoard(c, g, signals)
+		return
+
+	case game.MoveGameOver:
+		c.Status(http.StatusGone)
+		g.ClearSelection()
+		signals.UpdateFromGame(g)
+		_ = broadcastBoard(c, g, signals)
+		return
+
+	default: // MoveIllegal
+		c.Status(http.StatusUnprocessableEntity)
 		g.ClearSelection()
 		signals.UpdateFromGame(g)
 		_ = broadcastBoard(c, g, signals)
 		return
 	}
-
-	if !g.ApplyMove(move, lagCompNs) {
-		g.ClearSelection()
-		signals.UpdateFromGame(g)
-		_ = broadcastBoard(c, g, signals)
-		return
-	}
-
-	signals.UpdateFromGame(g)
-	signals.ClearPromotion()
-	if err := broadcastBoard(c, g, signals); err != nil {
-		logger.Error(ctx).Err(err).Msg("applyMoveRequest: broadcast board")
-	}
-	// Push the same frames over the always-on /events SSE. The plain fetch()
-	// in board.js drains the POST response without parsing the SSE frames, so
-	// without this the move-notation panel and any post-move signals never
-	// reach the client in solo mode (and only reach the opponent in play).
-	hubBroadcastBoard(ctx, g, signals)
 }
 
 // writeClockSnapshot writes a single datastar signal patch carrying the given

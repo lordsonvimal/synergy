@@ -404,15 +404,111 @@ func (g *Game) IsStalemate() bool {
 // --------------------------
 // Apply move
 // --------------------------
-func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
+
+// MoveResult is the outcome of an attempted move via ApplyMoveChecked.
+type MoveResult int
+
+const (
+	// MoveApplied: move was legal and is now reflected in the authoritative state.
+	MoveApplied MoveResult = iota
+	// MoveIllegal: move is not legal in the current position.
+	MoveIllegal
+	// MoveSeqConflict: caller's baseSeq did not match the game's current Seq —
+	// the client is operating on a stale view (typical cause: another move
+	// landed in between, or a retried POST after the move already applied).
+	MoveSeqConflict
+	// MoveGameOver: game is no longer in progress.
+	MoveGameOver
+	// MovePromoNeeded: move would be a pawn promotion but no promotion piece
+	// was specified — caller must re-submit with a Promotion field set.
+	MovePromoNeeded
+)
+
+func (r MoveResult) String() string {
+	switch r {
+	case MoveApplied:
+		return "applied"
+	case MoveIllegal:
+		return "illegal"
+	case MoveSeqConflict:
+		return "seq-conflict"
+	case MoveGameOver:
+		return "game-over"
+	case MovePromoNeeded:
+		return "promo-needed"
+	}
+	return "unknown"
+}
+
+// ApplyMoveChecked validates and applies a move under a single lock, with an
+// optional baseSeq guard so two near-simultaneous requests from the same
+// client cannot land out of order. baseSeq < 0 disables the check (solo /
+// non-online callers). Returns the outcome and the resulting Seq (or current
+// Seq on rejection, so the caller can echo it back for client resync).
+func (g *Game) ApplyMoveChecked(m engine.Move, lagCompNs int64, baseSeq int64) (MoveResult, uint64) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	// 0. Prevent moves if game is already over
+	if g.State != GameOngoing {
+		return MoveGameOver, g.Seq
+	}
+	if baseSeq >= 0 && uint64(baseSeq) != g.Seq {
+		return MoveSeqConflict, g.Seq
+	}
+	// Validate move legality. Board.MakeMove only checks king-safety, not
+	// piece-movement geometry (sliders ignore blockers), so a misbehaving or
+	// malicious client could otherwise teleport pieces. Use the move generator
+	// to confirm (from→to[,promo]) is in the legal-move set for the side to
+	// move. Pre-Step-2 this was enforced by the server-side selection state
+	// (SelectSquare→IsTarget) — that path is gone, so the check moves here.
+	legal := g.Board.GenerateMovesForSquare(m.From)
+	matched := false
+	needsPromo := false
+	for _, lm := range legal {
+		if lm.To != m.To {
+			continue
+		}
+		// Check the MovePromo flag rather than the Promotion field — the
+		// generator leaves Promotion as its zero value (Pawn) for non-promo
+		// moves, so comparing against NoPiece (255) is unreliable.
+		if lm.Flags&engine.MovePromo != 0 {
+			if m.Promotion == engine.NoPiece {
+				needsPromo = true
+				continue
+			}
+			if lm.Promotion == m.Promotion {
+				matched = true
+				break
+			}
+		} else {
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		if needsPromo {
+			return MovePromoNeeded, g.Seq
+		}
+		return MoveIllegal, g.Seq
+	}
+	if !g.applyMoveLocked(m, lagCompNs) {
+		return MoveIllegal, g.Seq
+	}
+	return MoveApplied, g.Seq
+}
+
+func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
 	if g.State != GameOngoing {
 		return false
 	}
+	return g.applyMoveLocked(m, lagCompNs)
+}
 
+// applyMoveLocked is the core move-apply routine; the caller must hold g.mu
+// and must have already verified g.State == GameOngoing.
+func (g *Game) applyMoveLocked(m engine.Move, lagCompNs int64) bool {
 	color := g.Board.SideToMove
 	// Capture SAN and move metadata BEFORE the move so the board is still in the
 	// pre-move position. If MakeMove subsequently fails, history is not appended.
@@ -721,6 +817,13 @@ func (g *Game) IsTarget(square uint8) bool {
 func (g *Game) IsPromotionMove(move engine.Move) bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	return g.isPromotionMoveLocked(move)
+}
+
+// isPromotionMoveLocked is the unlocked core of IsPromotionMove. Caller must
+// hold g.mu (read or write). Used by ApplyMoveChecked to detect a missing
+// promotion piece without releasing and reacquiring the lock.
+func (g *Game) isPromotionMoveLocked(move engine.Move) bool {
 	color, piece, _ := g.Board.PieceAt(move.From)
 	if piece != engine.Pawn {
 		return false
