@@ -146,13 +146,15 @@ templ RenderChessSquare(g *game.Game, rank int, file int, routePrefix string) {
 		></div>
 
 		<!-- Game-end king overlays (mutually exclusive). -->
+		<!-- Loser: dense red wash so the square reads as "this is where it ended". -->
 		<div
-			class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle,rgb(220_38_38/0.75)_0%,rgb(220_38_38/0.25)_65%,transparent_85%)]"
+			class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle,rgb(220_38_38/0.95)_0%,rgb(220_38_38/0.6)_55%,rgb(220_38_38/0.25)_90%)]"
 			data-show={ ended + " && $winner !== 255 && ((" + isBlackKing + " && $winner === 0) || (" + isWhiteKing + " && $winner === 1))" }
 			style="display:none"
 		></div>
+		<!-- Winner: thin/light green ring — quiet badge of victory. -->
 		<div
-			class="absolute inset-0 pointer-events-none shadow-[inset_0_0_0_3px_rgb(217_119_6/0.9)]"
+			class="absolute inset-0 pointer-events-none shadow-[inset_0_0_0_2px_rgb(21_128_61/0.6)]"
 			data-show={ ended + " && $winner !== 255 && ((" + isWhiteKing + " && $winner === 0) || (" + isBlackKing + " && $winner === 1))" }
 			style="display:none"
 		></div>
@@ -170,20 +172,31 @@ templ RenderChessSquare(g *game.Game, rank int, file int, routePrefix string) {
 	</div>
 }
 
-// endGlyph renders the corner status mark (#, ½, ⚐, ⏱) that appears on the
-// affected king square once the game ends. Hidden during play.
+// endGlyph renders a small status badge on the king's square once the game
+// ends — same visual language as the ribbon icon (filled circle with a
+// glyph inside) so the two reinforce each other. Loser gets a red badge,
+// draw kings get a neutral gray badge; the winner has nothing here because
+// the green ring is the win signal.
 templ endGlyph(sq uint8, isWhiteKing, isBlackKing, ended string) {
+	{{
+		isLoser := "$winner !== 255 && ((" + isBlackKing + " && $winner === 0) || (" + isWhiteKing + " && $winner === 1))"
+		isDraw := "$winner === 255 && (" + isWhiteKing + " || " + isBlackKing + ")"
+	}}
 	<span
 		aria-hidden="true"
-		class="absolute bottom-0.5 left-0.5 text-xs font-bold leading-none text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.6)] pointer-events-none z-20"
-		data-show={ ended + " && (" + isWhiteKing + " || " + isBlackKing + ")" }
+		class="absolute bottom-0.5 left-0.5 inline-flex items-center justify-center w-[25%] h-[25%] rounded-full font-black text-[0.65rem] sm:text-xs leading-none pointer-events-none z-20 ring-2"
+		data-show={ ended + " && (" + isLoser + " || " + isDraw + ")" }
 		style="display:none"
-		data-class="{'rotate-180': $flipped}"
+		data-class={ templ.JSExpression(`{
+			'rotate-180': $flipped,
+			'bg-error text-on-error': ` + isLoser + `,
+			'bg-neutral-500 text-white': ` + isDraw + `,
+		}`) }
 		data-text={ templ.JSExpression(`(() => {
+			if ($winner === 255) return '½';
 			if ($gameState === 1) return '#';
 			if ($gameState === 2) return '⚐';
 			if ($gameState === 3) return '⏱';
-			if ($winner === 255) return '½';
 			return '';
 		})()`) }
 	></span>

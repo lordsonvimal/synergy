@@ -1,41 +1,73 @@
 package components
 
-// GameResultRibbon shows the winner + reason directly above the board once a
-// game ends. It is non-blocking (no buttons, no backdrop) and pairs with the
-// king-square overlays on the board itself.
+// GameStatusRibbon is the always-visible strip above the board.
 //
-// The icon, accent color and label all derive from $winner / $gameState
-// signals so the same component handles checkmate, stalemate, resign, timeout,
-// draws and abandonment without server-side branching.
-templ GameResultRibbon() {
+// While the game is in progress it shows the side to move (with a small
+// chess-colored dot) and a "Check" badge when applicable. Once the game
+// ends it switches to the winner + reason, paired with the king-square
+// overlays painted on the board itself.
+//
+// Mode is driven by `$gameState` (0 = ongoing); side/winner by `$sideToMove`
+// / `$winner`. Switching is purely reactive — no server branching needed.
+templ GameStatusRibbon() {
 	<div
-		data-show="$gameState !== 0"
-		style="display:none"
 		role="status"
 		aria-live="polite"
-		data-testid="game-result-ribbon"
+		data-testid="game-status-ribbon"
 		class="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-surface-0 border-b border-edge text-sm"
 	>
-		<span
-			aria-hidden="true"
-			class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold"
-			data-class={ templ.JSExpression(`{
-				'bg-error text-on-error':   $winner !== 255 && ($gameState === 1 || $gameState === 3),
-				'bg-accent text-on-accent': $winner !== 255 && $gameState === 2,
-				'bg-neutral-200 text-ink':  $winner === 255,
-			}`) }
-			data-text={ templ.JSExpression(`(() => {
-				if ($winner === 255) return '½';
-				if ($gameState === 1) return '#';
-				if ($gameState === 2) return '⚑';
-				if ($gameState === 3) return '⏱';
-				return '✓';
-			})()`) }
-		></span>
-		<span
-			class="font-semibold text-ink"
-			data-text={ templ.JSExpression(`$winner === 255 ? 'Draw' : ($winner === 0 ? 'White wins' : 'Black wins')`) }
-		></span>
-		<span class="text-ink-muted" data-text="'· ' + $gameStateText"></span>
+		<!-- IN-PROGRESS: side-to-move dot + label, with optional "Check" badge. -->
+		<div
+			class="flex items-center gap-2"
+			data-show="$gameState === 0"
+			style="display:none"
+		>
+			<span
+				aria-hidden="true"
+				class="inline-block w-3 h-3 rounded-full border border-edge"
+				data-class={ templ.JSExpression(`{
+					'bg-[#F5F5F5]': $sideToMove === 0,
+					'bg-[#1A1A1A]': $sideToMove === 1,
+				}`) }
+			></span>
+			<span
+				class="font-semibold text-ink"
+				data-text={ templ.JSExpression(`$sideToMove === 0 ? "White's turn" : "Black's turn"`) }
+			></span>
+			<span
+				class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[0.7rem] font-bold uppercase tracking-wide bg-error/10 text-error"
+				data-show="$checkSquare !== 64"
+				style="display:none"
+			>Check</span>
+		</div>
+
+		<!-- ENDED: winner + reason. -->
+		<div
+			class="flex items-center gap-2"
+			data-show="$gameState !== 0"
+			style="display:none"
+		>
+			<span
+				aria-hidden="true"
+				class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold"
+				data-class={ templ.JSExpression(`{
+					'bg-error text-on-error':   $winner !== 255 && ($gameState === 1 || $gameState === 3),
+					'bg-accent text-on-accent': $winner !== 255 && $gameState === 2,
+					'bg-neutral-200 text-ink':  $winner === 255,
+				}`) }
+				data-text={ templ.JSExpression(`(() => {
+					if ($winner === 255) return '½';
+					if ($gameState === 1) return '#';
+					if ($gameState === 2) return '⚑';
+					if ($gameState === 3) return '⏱';
+					return '✓';
+				})()`) }
+			></span>
+			<span
+				class="font-semibold text-ink"
+				data-text={ templ.JSExpression(`$winner === 255 ? 'Draw' : ($winner === 0 ? 'White wins' : 'Black wins')`) }
+			></span>
+			<span class="text-ink-muted" data-text="'· ' + $gameStateText"></span>
+		</div>
 	</div>
 }
