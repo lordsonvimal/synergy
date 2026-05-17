@@ -155,6 +155,22 @@ func (b *MoveBatch) FlushAndStop(ctx context.Context, status, winner string) {
 	}
 }
 
+// FlushNow drains any pending moves/events AND waits for any concurrent
+// in-flight flush to complete before returning. Use this from the move POST
+// path before acknowledging the move to the player: without it the response
+// can race the async DB write, so a server crash in that window would lose
+// a move the player has already seen.
+//
+// flush() takes an early-return shortcut when its drain finds the buffer
+// empty (because a concurrent Append-triggered goroutine drained it first).
+// The unconditional flushMu Lock/Unlock here is what gives us the "wait for
+// the other writer" guarantee in that case.
+func (b *MoveBatch) FlushNow(ctx context.Context) {
+	b.flush(ctx)
+	b.flushMu.Lock()
+	b.flushMu.Unlock()
+}
+
 // flush drains the pending moves and events and writes them to DB.
 func (b *MoveBatch) flush(ctx context.Context) {
 	b.mu.Lock()

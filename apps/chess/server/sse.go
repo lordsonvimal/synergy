@@ -243,6 +243,14 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 	// silently leaves the status at the default 200.
 	switch result {
 	case game.MoveApplied:
+		// Durability: in play mode, block on a DB flush before acknowledging
+		// the move. Without this the response can race the async batch flush,
+		// so a server crash in that window would lose a move the player has
+		// already seen on their board. Solo games skip — there's no second
+		// observer who could be misled if the row didn't make it to disk.
+		if g.PlayMeta != nil && g.Batch != nil && !skipBroadcast {
+			g.Batch.FlushNow(ctx)
+		}
 		c.Status(http.StatusOK)
 		if skipBroadcast {
 			return
