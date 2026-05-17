@@ -9,11 +9,18 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"reflect"
 	"sync"
 	"time"
 
 	"github.com/lordsonvimal/synergy/apps/chess/engine/uci"
 )
+
+// sameFunc reports whether two CancelFuncs are the same value. context.CancelFunc
+// is not directly comparable so we compare via reflect.Value pointers.
+func sameFunc(a, b context.CancelFunc) bool {
+	return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer()
+}
 
 // EvalSnapshot is what the eval bar UI binds to. Sent as a DataStar signal patch.
 type EvalSnapshot struct {
@@ -89,18 +96,23 @@ func (r *Runner) Start(jobKey, gameID, fen string, whiteToMove bool, onUpdate fu
 	r.jobs[jobKey] = cancel
 	r.mu.Unlock()
 
-	go r.run(jobCtx, jobKey, gameID, fen, whiteToMove, onUpdate)
+	go r.run(jobCtx, cancel, jobKey, gameID, fen, whiteToMove, onUpdate)
 }
 
-func (r *Runner) run(ctx context.Context, jobKey, gameID, fen string, whiteToMove bool, onUpdate func(EvalSnapshot)) {
+func (r *Runner) run(ctx context.Context, myCancel context.CancelFunc, jobKey, gameID, fen string, whiteToMove bool, onUpdate func(EvalSnapshot)) {
 	defer func() {
+		// Only clear the slot if it still belongs to us. A faster successor
+		// Start() may have already replaced it; clobbering would cancel the
+		// new job (it shares this jobKey) and leave the eval bar stuck until
+		// the *next* move triggered another Start.
 		r.mu.Lock()
-		if cancel, ok := r.jobs[jobKey]; ok {
-			cancel()
+		if cur, ok := r.jobs[jobKey]; ok && cur != nil && sameFunc(cur, myCancel) {
 			delete(r.jobs, jobKey)
 		}
 		snap, ok := r.fenCache[fen]
 		r.mu.Unlock()
+		// Always release this run's own ctx so its timer fires no later than now.
+		myCancel()
 		if ok && snap.EvalAnalyzing {
 			snap.EvalAnalyzing = false
 			r.cache(gameID, fen, snap)
