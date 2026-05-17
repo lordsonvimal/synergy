@@ -55,18 +55,19 @@ templ RenderChessSquare(g *game.Game, rank int, file int, routePrefix string) {
 
 		id := fmt.Sprintf("square-%d", sq)
 
-		bg := "bg-chess-light"
+		bg := "bg-[var(--chess-light)]"
 		if (rank+file)%2 == 0 {
-			bg = "bg-chess-dark"
+			bg = "bg-[var(--chess-dark)]"
 		}
 
 		// Coordinate label colour: contrast against the square background.
-		// These are chess-board colours not covered by the design-system tokens.
-		coordColor := "text-[#B58863]" // walnut on cream (light square)
-		// Shadow only on dark squares: cream text on walnut needs separation.
+		// Colors are CSS vars per board palette (see style.css :root) so the
+		// labels track the active [data-board-theme]. Shadow only on dark
+		// squares for separation.
+		coordColor := "text-[var(--chess-coord-on-light)]"
 		coordShadow := ""
 		if (rank+file)%2 == 0 {
-			coordColor = "text-[#F0D9B5]" // cream on walnut (dark square)
+			coordColor = "text-[var(--chess-coord-on-dark)]"
 			coordShadow = "[text-shadow:0_1px_2px_rgba(0,0,0,0.5)]"
 		}
 
@@ -209,9 +210,9 @@ templ RenderReadOnlyChessSquare(board *engine.Board, rank int, file int) {
 		sq := uint8(rank*8 + file)
 		color, piece, ok := board.PieceAt(sq)
 
-		bg := "bg-chess-light"
+		bg := "bg-[var(--chess-light)]"
 		if (rank+file)%2 == 0 {
-			bg = "bg-chess-dark"
+			bg = "bg-[var(--chess-dark)]"
 		}
 
 		coordColor := "text-[#B58863]"

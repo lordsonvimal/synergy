@@ -26,6 +26,9 @@ templ Layout(title string, showBack bool) {
 					else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
 						document.documentElement.setAttribute("data-theme", "dark");
 					}
+					const b = localStorage.getItem("chess-board-theme");
+					const valid = b === "green" || b === "bw" || b === "brown";
+					document.documentElement.setAttribute("data-board-theme", valid ? b : "green");
 				})();
 			</script>
 		</head>

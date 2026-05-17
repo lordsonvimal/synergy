@@ -8,12 +8,14 @@ import (
 templ RenderChessPiece(color engine.Color, piece engine.Piece) {
 	{{
 		label := helpers.ColorName(color) + " " + helpers.PieceName(piece)
-		pieceClass := "chess-piece-white"
+		// Two text-shadow layers give each piece a halo that separates it
+		// from same-tone squares (white-on-cream, black-on-walnut, etc.).
+		pieceClass := "text-white [text-shadow:0_0_2px_rgb(0_0_0/0.6),0_1px_3px_rgb(0_0_0/0.4)]"
 		if color == engine.Black {
-			pieceClass = "chess-piece-black"
+			pieceClass = "text-[#1A1A1A] [text-shadow:0_0_2px_rgb(255_255_255/0.5),0_1px_3px_rgb(255_255_255/0.3)]"
 		}
 	}}
-	<span aria-label={ label } role="img" class={ pieceClass, "relative z-10" }>
+	<span aria-label={ label } role="img" class={ pieceClass, "relative z-10 block w-full h-full [&>svg]:w-full [&>svg]:h-full" }>
 		if color == engine.White {
 			switch piece {
 				case engine.Pawn:

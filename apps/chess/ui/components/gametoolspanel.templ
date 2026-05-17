@@ -37,6 +37,9 @@ templ GameToolsPanel(gameID, role, csrfToken string) {
 		<!-- Sound on/off (icon only) -->
 		@SoundToggle()
 
+		<!-- Board color cycle (icon only) -->
+		@BoardColorToggle()
+
 		<div class="flex-1"></div>
 
 		if gameID != "" && (role == "white" || role == "black") {
