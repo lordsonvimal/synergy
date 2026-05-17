@@ -134,6 +134,23 @@ func datastarPatchSignalsFrame(b []byte) []byte {
 	return buf.Bytes()
 }
 
+// callerColor returns the engine.Color of the authenticated play-session
+// caller (White / Black). Returns false for solo / unauthenticated /
+// spectator callers — those skip the per-color idempotency cache.
+func callerColor(c *gin.Context) (engine.Color, bool) {
+	claims, err := GetPlaySession(c.Request)
+	if err != nil {
+		return 0, false
+	}
+	switch claims.Role {
+	case "white":
+		return engine.White, true
+	case "black":
+		return engine.Black, true
+	}
+	return 0, false
+}
+
 // applyMoveRequest is the authoritative move handler for both solo and play
 // modes. Selection is now driven entirely client-side by chessops (see
 // assets/js/board.js); this endpoint receives only an attempted move and
@@ -175,13 +192,51 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 			baseSeq = n
 		}
 	}
+	clientMoveId := c.Query("clientMoveId")
 
-	// One-shot apply + validate under a single game lock. The snapshot is
-	// captured under the same lock as the apply, so the broadcast we build
-	// from it is guaranteed not to mix fields from before and after a
-	// concurrent move (Seq=N+1 paired with FEN=N was previously possible).
-	result, snap := g.ApplyMoveChecked(move, lagCompNs, baseSeq)
+	// Idempotency: if this is a retry of a move we've already processed for
+	// this color (same clientMoveId), return the cached outcome. Without
+	// this, a network-retried POST against an already-applied move would
+	// look like a stale-baseSeq conflict and trigger a needless rollback on
+	// the client. Solo games have no PlayMeta and skip the cache.
+	var cachedResult *game.MoveResult
+	var cachedSnap game.SignalsSnapshot
+	if g.PlayMeta != nil && clientMoveId != "" {
+		// Caller color is required to scope the cache — solo callers don't
+		// hit this branch because PlayMeta is nil.
+		if color, ok := callerColor(c); ok {
+			if res, snap, found := g.PlayMeta.RecallMove(color, clientMoveId); found {
+				cachedResult = &res
+				cachedSnap = snap
+			}
+		}
+	}
+
+	var result game.MoveResult
+	var snap game.SignalsSnapshot
+	if cachedResult != nil {
+		result = *cachedResult
+		snap = cachedSnap
+	} else {
+		// One-shot apply + validate under a single game lock. The snapshot is
+		// captured under the same lock as the apply, so the broadcast we build
+		// from it is guaranteed not to mix fields from before and after a
+		// concurrent move (Seq=N+1 paired with FEN=N was previously possible).
+		result, snap = g.ApplyMoveChecked(move, lagCompNs, baseSeq)
+		// Remember the outcome so a network-retried POST is idempotent.
+		if g.PlayMeta != nil && clientMoveId != "" {
+			if color, ok := callerColor(c); ok {
+				g.PlayMeta.RememberMove(color, clientMoveId, result, snap)
+			}
+		}
+	}
 	signals.UpdateFromSnapshot(snap)
+
+	// On a cache hit we already broadcast the outcome the first time around
+	// and the global state may have moved on since; suppress the rebroadcast
+	// so we don't send stale-but-strictly-older frames over the hub. The
+	// HTTP status alone is enough for the retrying client.
+	skipBroadcast := cachedResult != nil
 
 	// Status MUST be set before broadcastBoard, because broadcastBoard writes
 	// to the response body and commits headers — calling c.Status after that
@@ -189,6 +244,9 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 	switch result {
 	case game.MoveApplied:
 		c.Status(http.StatusOK)
+		if skipBroadcast {
+			return
+		}
 		signals.ClearPromotion()
 		if err := broadcastBoard(c, g, signals); err != nil {
 			logger.Error(ctx).Err(err).Msg("applyMoveRequest: broadcast board")
@@ -206,6 +264,9 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 		// after the move already applied). Echo authoritative state so the
 		// client resyncs, and tell it explicitly via 409.
 		c.Status(http.StatusConflict)
+		if skipBroadcast {
+			return
+		}
 		_ = broadcastBoard(c, g, signals)
 		hubBroadcastBoard(ctx, g, signals)
 		return
@@ -215,16 +276,25 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 		// open the promotion overlay and re-POST. 422 is the conventional code
 		// for "well-formed request, semantically unprocessable".
 		c.Status(http.StatusUnprocessableEntity)
+		if skipBroadcast {
+			return
+		}
 		_ = broadcastBoard(c, g, signals)
 		return
 
 	case game.MoveGameOver:
 		c.Status(http.StatusGone)
+		if skipBroadcast {
+			return
+		}
 		_ = broadcastBoard(c, g, signals)
 		return
 
 	default: // MoveIllegal
 		c.Status(http.StatusUnprocessableEntity)
+		if skipBroadcast {
+			return
+		}
 		_ = broadcastBoard(c, g, signals)
 		return
 	}

@@ -72,6 +72,44 @@ type PlayMeta struct {
 	// available again at the new position. Indexed [White, Black].
 	LastDrawSeq     [2]int64
 	LastTakebackSeq [2]int64
+
+	// Per-color idempotency cache for move POSTs. When a client retries a
+	// move (network blip, app foregrounded mid-flight, etc.) it sends the
+	// same clientMoveId — the server returns the cached outcome instead of
+	// re-applying. Without this a retry against a now-applied move would
+	// look like a stale-baseSeq conflict and the client would needlessly
+	// roll back. Indexed [White, Black].
+	lastMoveID     [2]string
+	lastMoveResult [2]MoveResult
+	lastMoveSnap   [2]SignalsSnapshot
+}
+
+// RememberMove stores the outcome of the most recent move POST for a color so
+// that a retried POST with the same clientMoveId can be answered from cache
+// without re-applying. Pass an empty id to skip (clients without idempotency).
+func (m *PlayMeta) RememberMove(color engine.Color, id string, result MoveResult, snap SignalsSnapshot) {
+	if id == "" || (color != engine.White && color != engine.Black) {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.lastMoveID[color] = id
+	m.lastMoveResult[color] = result
+	m.lastMoveSnap[color] = snap
+}
+
+// RecallMove returns the cached outcome for (color, id). The second return is
+// false if no match — caller must proceed with a fresh apply.
+func (m *PlayMeta) RecallMove(color engine.Color, id string) (MoveResult, SignalsSnapshot, bool) {
+	if id == "" || (color != engine.White && color != engine.Black) {
+		return 0, SignalsSnapshot{}, false
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.lastMoveID[color] != id {
+		return 0, SignalsSnapshot{}, false
+	}
+	return m.lastMoveResult[color], m.lastMoveSnap[color], true
 }
 
 // RecordSSEConnect notes a new SSE connection for the given role.

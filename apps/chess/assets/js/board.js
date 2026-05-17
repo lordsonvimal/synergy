@@ -360,14 +360,40 @@ function sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId, snapshot, 
       if (done) break;
     }
   }).catch(() => {
-    // Network failure: roll back optimistic state. The server hasn't seen the
-    // move at all, so its next /events frame (or a reconnect resync) will
-    // reflect the pre-move position. Until then, restoring local state keeps
-    // the client able to re-attempt or play a different move.
-    if (settle) settle();
-    rollbackOptimistic(snapshot);
-    onMoveRejected(0);
+    // Network failure: retry ONCE before giving up. The clientMoveId makes
+    // this safe — the server's per-color idempotency cache (PlayMeta) will
+    // return the original outcome if the first POST actually reached the
+    // server but only the response was lost. If both attempts fail, roll
+    // back optimistic state and surface the rejection.
+    return retryOnce(fromSq, toSq, promotionRole, baseSeq, clientMoveId).then((ok) => {
+      if (settle) settle();
+      if (!ok) {
+        rollbackOptimistic(snapshot);
+        onMoveRejected(0);
+      }
+    });
   });
+}
+
+function retryOnce(fromSq, toSq, promotionRole, baseSeq, clientMoveId) {
+  const params = new URLSearchParams();
+  params.set("clientTsNs", String(Date.now() * 1_000_000));
+  if (promotionRole) params.set("promo", String(ROLE_TO_PIECE[promotionRole]));
+  if (Number.isFinite(baseSeq) && baseSeq >= 0) params.set("baseSeq", String(baseSeq));
+  if (clientMoveId) params.set("clientMoveId", clientMoveId);
+  return fetch(`${routePrefix}/${gameId}/move/${fromSq}/${toSq}?${params.toString()}`, {
+    method: "POST",
+    headers: { "Accept": "text/event-stream", "Datastar-Request": "true" },
+  }).then(async (res) => {
+    if (res.body) {
+      const r = res.body.getReader();
+      while (true) { const { done } = await r.read(); if (done) break; }
+    }
+    // The retry succeeded as long as the server responded. Even a 4xx counts
+    // as "server reached" — the rejection broadcast it sent will reconcile
+    // the client (and the idempotency cache will have stored the outcome).
+    return res.ok;
+  }).catch(() => false);
 }
 
 // Visual feedback for a refused move. Adds data-move-rejected on the board
