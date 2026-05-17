@@ -23,6 +23,32 @@ func FormatTimeControl(timeNs, incNs int64) string {
 	return fmt.Sprintf("%d+%d", mins, secs)
 }
 
+// FormatTimeControlSubtitle returns a descriptive subtitle for a time control,
+// e.g. "5 min · no inc" or "5 min · +2s / move".
+func FormatTimeControlSubtitle(timeNs, incNs int64) string {
+	mins := timeNs / 1_000_000_000 / 60
+	secs := incNs / 1_000_000_000
+	if secs == 0 {
+		return fmt.Sprintf("%d min · no inc", mins)
+	}
+	return fmt.Sprintf("%d min · +%ds / move", mins, secs)
+}
+
+// CategoryTagline returns a short description for a game-mode category,
+// used as a section subtitle on the game-mode selection page.
+func CategoryTagline(category string) string {
+	switch category {
+	case "blitz":
+		return "Fast-paced — under 5 minutes per side"
+	case "rapid":
+		return "Standard pace — around 10 minutes per side"
+	case "classical":
+		return "Long-form — 30 minutes or more per side"
+	default:
+		return ""
+	}
+}
+
 func SquareName(sq uint8) string {
 	return fmt.Sprintf("%c%d", 'a'+sq%8, sq/8+1)
 }

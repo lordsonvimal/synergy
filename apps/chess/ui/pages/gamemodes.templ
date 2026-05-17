@@ -10,8 +10,18 @@ import (
 templ GameModesPage(onlineGroups []game.GameModeGroup, unlimitedMode game.GameMode, csrfToken string, errMsg string, existingGameID string, existingGameRole string) {
 	@layouts.Layout("ChessLeap", false) {
 		<!-- datastar runtime is loaded once in layouts.Layout via the importmap -->
-		<div data-signals="{loadingMode: '', activeTab: 'online'}" class="flex items-center justify-center min-h-full">
-			<div class="w-full max-w-2xl px-4 py-6 sm:px-6">
+		<div data-signals="{loadingMode: '', activeTab: 'online'}" class="flex items-start justify-center min-h-full">
+			<div class="w-full max-w-4xl px-4 py-10 sm:px-6 sm:py-12">
+				<header class="mb-8">
+					<h1
+						class="text-2xl font-semibold text-ink leading-tight"
+						data-text="$activeTab === 'computer' ? 'Play vs. the computer' : $activeTab === 'solo' ? 'Play solo' : 'Choose a time control'"
+					>Choose a time control</h1>
+					<p
+						class="text-sm text-ink-subtle mt-1"
+						data-text="$activeTab === 'computer' ? 'Practice against an engine opponent.' : $activeTab === 'solo' ? 'Move both sides yourself, at your own pace.' : 'Pick a format and start playing.'"
+					>Pick a format and start playing.</p>
+				</header>
 				if errMsg != "" {
 					<div
 						data-testid="error-banner"
@@ -28,23 +38,23 @@ templ GameModesPage(onlineGroups []game.GameModeGroup, unlimitedMode game.GameMo
 				}
 
 				<!-- Tab switcher -->
-				<div class="flex gap-1 mb-6 bg-surface-4 rounded-lg p-1">
+				<div class="flex gap-1 mb-6 bg-surface-3 border border-edge rounded-lg p-1">
 					<button
 						type="button"
 						data-on:click="$activeTab = 'online'"
-						data-class="{'bg-surface-1 shadow-sm text-ink': $activeTab === 'online', 'text-ink-subtle hover:bg-surface-3': $activeTab !== 'online'}"
+						data-class="{'bg-surface-1 shadow-sm text-ink ring-1 ring-edge-strong': $activeTab === 'online', 'text-ink-subtle hover:bg-surface-4 hover:text-ink': $activeTab !== 'online'}"
 						class="flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer"
 					>Online</button>
 					<button
 						type="button"
 						data-on:click="$activeTab = 'computer'"
-						data-class="{'bg-surface-1 shadow-sm text-ink': $activeTab === 'computer', 'text-ink-subtle hover:bg-surface-3': $activeTab !== 'computer'}"
+						data-class="{'bg-surface-1 shadow-sm text-ink ring-1 ring-edge-strong': $activeTab === 'computer', 'text-ink-subtle hover:bg-surface-4 hover:text-ink': $activeTab !== 'computer'}"
 						class="flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer"
 					>Computer</button>
 					<button
 						type="button"
 						data-on:click="$activeTab = 'solo'"
-						data-class="{'bg-surface-1 shadow-sm text-ink': $activeTab === 'solo', 'text-ink-subtle hover:bg-surface-3': $activeTab !== 'solo'}"
+						data-class="{'bg-surface-1 shadow-sm text-ink ring-1 ring-edge-strong': $activeTab === 'solo', 'text-ink-subtle hover:bg-surface-4 hover:text-ink': $activeTab !== 'solo'}"
 						class="flex-1 py-2 text-sm font-medium rounded-md transition cursor-pointer"
 					>Solo</button>
 				</div>
@@ -89,11 +99,17 @@ templ GameModesPage(onlineGroups []game.GameModeGroup, unlimitedMode game.GameMo
 						if len(onlineGroups) == 0 {
 							<p class="text-sm text-ink-subtle">No game modes available.</p>
 						} else {
-							<div class="flex flex-col gap-6">
+							<div class="flex flex-col gap-8">
 								for _, group := range onlineGroups {
 									<div>
-										<h3 class="text-xs font-semibold text-ink-muted uppercase tracking-wider mb-3">{ group.Label }</h3>
-										<div class="grid grid-cols-4 gap-3">
+										<div class="flex items-center gap-2 mb-3">
+											@categoryIcon(group.Category)
+											<h3 class="text-xs font-semibold text-ink uppercase tracking-wider">{ group.Label }</h3>
+											if tag := helpers.CategoryTagline(group.Category); tag != "" {
+												<span class="text-xs text-ink-muted">— { tag }</span>
+											}
+										</div>
+										<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 											for i, mode := range group.Modes {
 												@onlineTile(mode, i, csrfToken)
 											}
@@ -110,7 +126,7 @@ templ GameModesPage(onlineGroups []game.GameModeGroup, unlimitedMode game.GameMo
 						data-class="{'invisible pointer-events-none': $activeTab !== 'computer'}"
 						style="grid-area:1/1"
 					>
-						@unlimitedTile(unlimitedMode, "/solo", csrfToken)
+						@computerHero()
 					</div>
 
 					<!-- Solo tab -->
@@ -119,7 +135,7 @@ templ GameModesPage(onlineGroups []game.GameModeGroup, unlimitedMode game.GameMo
 						data-class="{'invisible pointer-events-none': $activeTab !== 'solo'}"
 						style="grid-area:1/1"
 					>
-						@unlimitedTile(unlimitedMode, "/solo", csrfToken)
+						@soloHero(unlimitedMode, csrfToken)
 					</div>
 				</div>
 			</div>
@@ -147,37 +163,111 @@ templ onlineTile(mode game.GameMode, idx int, csrfToken string) {
 					};
 				})()
 			`, mode.Name, mode.Name)) }
-			class="w-full aspect-square flex flex-col items-center justify-center gap-1 bg-surface-1 border border-edge rounded-lg shadow-sm transition"
+			class="w-full flex items-center gap-4 px-4 py-4 bg-surface-1 border border-edge rounded-lg shadow-sm transition text-left"
 		>
-			<span class="text-base font-bold text-ink leading-none">{ helpers.FormatTimeControl(mode.TimeNs, mode.Increment) }</span>
-			<span class="text-xs text-ink-muted">{ helpers.FormatTime(mode.TimeNs) }</span>
+			<span class="flex items-center justify-center w-10 h-10 rounded-md bg-surface-3 text-primary shrink-0">
+				@categoryIcon(mode.Category)
+			</span>
+			<span class="flex flex-col gap-0.5 min-w-0">
+				<span class="text-lg font-bold text-ink leading-none">{ helpers.FormatTimeControl(mode.TimeNs, mode.Increment) }</span>
+				<span class="text-xs text-ink-muted">{ helpers.FormatTimeControlSubtitle(mode.TimeNs, mode.Increment) }</span>
+			</span>
 		</button>
 	</form>
 }
 
-templ unlimitedTile(mode game.GameMode, action string, csrfToken string) {
-	<form method="POST" action={ templ.SafeURL(action) } class="flex justify-center py-8">
-		<input type="hidden" name="_csrf" value={ csrfToken }/>
-		<input type="hidden" name="mode" value={ mode.Name }/>
-		<button
-			type="submit"
-			data-on:click={ templ.JSExpression(fmt.Sprintf("$loadingMode = '%s'", mode.Name)) }
-			data-attr:disabled={ templ.JSExpression(fmt.Sprintf("$loadingMode !== '' && $loadingMode !== '%s'", mode.Name)) }
-			data-class={ templ.JSExpression(fmt.Sprintf(`
-				(() => {
-					const active = $loadingMode === '%s';
-					const blocked = $loadingMode !== '' && $loadingMode !== '%s';
-					return {
-						'opacity-50 cursor-not-allowed pointer-events-none': blocked,
-						'bg-primary-subtle border-primary-200 cursor-wait': active,
-						'hover:bg-primary-subtle hover:border-primary-200 hover:shadow-md cursor-pointer': !active && !blocked,
-					};
-				})()
-			`, mode.Name, mode.Name)) }
-			class="w-40 aspect-square flex flex-col items-center justify-center gap-2 bg-surface-1 border border-edge rounded-xl shadow-sm transition cursor-pointer"
-		>
-			<span class="text-4xl font-light text-ink-muted leading-none">&#8734;</span>
-			<span class="text-sm font-semibold text-ink">Unlimited</span>
-		</button>
-	</form>
+templ categoryIcon(category string) {
+	switch category {
+		case "blitz":
+			<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+			</svg>
+		case "rapid":
+			<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<circle cx="12" cy="13" r="8"></circle>
+				<path d="M12 9v4l2 2"></path>
+				<path d="M9 2h6"></path>
+			</svg>
+		case "classical":
+			<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<path d="M6 2h12"></path>
+				<path d="M6 22h12"></path>
+				<path d="M6 2v4a6 6 0 0 0 12 0V2"></path>
+				<path d="M6 22v-4a6 6 0 0 1 12 0v4"></path>
+			</svg>
+		default:
+			<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<circle cx="12" cy="12" r="9"></circle>
+			</svg>
+	}
+}
+
+templ soloHero(mode game.GameMode, csrfToken string) {
+	<div class="bg-surface-1 border border-edge rounded-xl p-8 sm:p-10 flex flex-col items-center text-center gap-4 shadow-sm">
+		<span class="flex items-center justify-center w-14 h-14 rounded-lg bg-surface-3 text-primary">
+			<svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<rect x="3" y="3" width="18" height="18" rx="2"></rect>
+				<path d="M3 9h18"></path>
+				<path d="M3 15h18"></path>
+				<path d="M9 3v18"></path>
+				<path d="M15 3v18"></path>
+			</svg>
+		</span>
+		<div class="flex flex-col gap-2 max-w-md">
+			<h2 class="text-lg font-semibold text-ink">Solo board</h2>
+			<p class="text-sm text-ink-subtle leading-relaxed">
+				Practice openings, analyze positions, or play out a game move-by-move. No clock, no opponent — just the board.
+			</p>
+		</div>
+		<form method="POST" action="/solo" class="mt-2">
+			<input type="hidden" name="_csrf" value={ csrfToken }/>
+			<input type="hidden" name="mode" value={ mode.Name }/>
+			<button
+				type="submit"
+				data-on:click={ templ.JSExpression(fmt.Sprintf("$loadingMode = '%s'", mode.Name)) }
+				data-attr:disabled={ templ.JSExpression(fmt.Sprintf("$loadingMode !== '' && $loadingMode !== '%s'", mode.Name)) }
+				data-class={ templ.JSExpression(fmt.Sprintf(`
+					(() => {
+						const active = $loadingMode === '%s';
+						const blocked = $loadingMode !== '' && $loadingMode !== '%s';
+						return {
+							'opacity-50 cursor-not-allowed pointer-events-none': blocked,
+							'cursor-wait opacity-80': active,
+							'hover:bg-primary-hover cursor-pointer': !active && !blocked,
+						};
+					})()
+				`, mode.Name, mode.Name)) }
+				class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary text-sm font-semibold rounded-md shadow-sm transition"
+			>
+				Start solo game
+				<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<line x1="5" y1="12" x2="19" y2="12"></line>
+					<polyline points="12 5 19 12 12 19"></polyline>
+				</svg>
+			</button>
+		</form>
+	</div>
+}
+
+templ computerHero() {
+	<div class="bg-surface-1 border border-edge rounded-xl p-8 sm:p-10 flex flex-col items-center text-center gap-4 shadow-sm">
+		<span class="flex items-center justify-center w-14 h-14 rounded-lg bg-surface-3 text-ink-muted">
+			<svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<rect x="4" y="4" width="16" height="12" rx="2"></rect>
+				<line x1="8" y1="20" x2="16" y2="20"></line>
+				<line x1="12" y1="16" x2="12" y2="20"></line>
+				<circle cx="9" cy="10" r="1"></circle>
+				<circle cx="15" cy="10" r="1"></circle>
+			</svg>
+		</span>
+		<div class="flex flex-col gap-2 max-w-md">
+			<div class="flex items-center justify-center gap-2">
+				<h2 class="text-lg font-semibold text-ink">Play vs. the computer</h2>
+				<span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-warning-subtle text-warning border border-warning-200">Coming soon</span>
+			</div>
+			<p class="text-sm text-ink-subtle leading-relaxed">
+				Practice against an engine opponent at adjustable difficulty levels. This mode is still in development — check back soon.
+			</p>
+		</div>
+	</div>
 }
