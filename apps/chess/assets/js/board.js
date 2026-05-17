@@ -294,13 +294,13 @@ function selectPiece(sq) {
   mergePatch({ selectedSquare: sq, possibleMoves: legalDestSquaresFrom(sq) });
 }
 
-function postMove(fromSq, toSq, promotionRole, baseSeq) {
+function postMove(fromSq, toSq, promotionRole, baseSeq, snapshot) {
   // Serialize so move N+1 cannot overtake move N on the wire. Without this,
   // two rapid moves from the same client can hit the server in reverse order
   // — the server's turn check still passes for the second arriving move
   // (turn hasn't flipped yet) and the moves get applied in inverted order.
   const clientMoveId = newMoveId();
-  return enqueueMovePost(() => sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId));
+  return enqueueMovePost(() => sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId, snapshot));
 }
 
 function newMoveId() {
@@ -312,7 +312,7 @@ function newMoveId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId) {
+function sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId, snapshot) {
   const params = new URLSearchParams();
   params.set("clientTsNs", String(Date.now() * 1_000_000));
   if (promotionRole) params.set("promo", String(ROLE_TO_PIECE[promotionRole]));
@@ -325,6 +325,14 @@ function sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId) {
       "Datastar-Request": "true",
     },
   }).then(async (res) => {
+    // Non-2xx is a rejection (409 stale baseSeq / 422 illegal / 410 game-over).
+    // The server has already broadcast the authoritative state via /events
+    // hub; we just need to roll back the local optimistic chessops/seq so we
+    // don't reject the next legal move client-side.
+    if (!res.ok) {
+      rollbackOptimistic(snapshot);
+      onMoveRejected(res.status);
+    }
     if (!res.body) return;
     // Datastar's @get listener processes SSE frames automatically. Our fetch
     // is plain — we drain the response so the server can flush, but the
@@ -337,10 +345,20 @@ function sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId) {
       if (done) break;
     }
   }).catch(() => {
-    // Hard fallback: if the network failed, the server will eventually push
-    // the authoritative board via SSE on reconnect. Until then the optimistic
-    // DOM stays put.
+    // Network failure: roll back optimistic state. The server hasn't seen the
+    // move at all, so its next /events frame (or a reconnect resync) will
+    // reflect the pre-move position. Until then, restoring local state keeps
+    // the client able to re-attempt or play a different move.
+    rollbackOptimistic(snapshot);
+    onMoveRejected(0);
   });
+}
+
+// Hook for step 6 (UX feedback): show a shake / illegal sound when a move is
+// refused. Status 0 indicates a network failure (treat as a transient
+// rejection rather than a hard "illegal").
+function onMoveRejected(_status) {
+  // Implemented in step 6.
 }
 
 function onSquareClick(sq) {
@@ -399,6 +417,13 @@ function applyOptimistic(fromSq, toSq, promotionRole) {
                       (fromSq & 7) !== (toSq & 7) && !destPiece;
   const capture = !isCastle && (!!destPiece || isEnPassant);
 
+  // Snapshot pre-move state so we can roll back the chessops instance and
+  // seq counter if the server rejects (illegal / stale baseSeq / game-over).
+  // The DOM will be corrected by the server's authoritative broadcast that
+  // follows the rejection; chessops is local so we must restore it ourselves
+  // or subsequent legal moves get rejected client-side.
+  const snapshot = { fen: lastFen, seq: lastAppliedSeq };
+
   applyDom(fromSq, toSq, { from: fromSq, to: toSq, promotion: promotionRole, isCastle });
 
   // Capture baseSeq BEFORE we bump lastAppliedSeq below — the server uses it
@@ -427,7 +452,32 @@ function applyOptimistic(fromSq, toSq, promotionRole) {
   publishBoardDerivedSignals();
 
   clearSelection();
-  postMove(fromSq, toSq, promotionRole, baseSeq);
+  postMove(fromSq, toSq, promotionRole, baseSeq, snapshot);
+}
+
+// Restore chessops + seq to the snapshot captured before applyOptimistic ran.
+// Used when the server rejects a move (HTTP 4xx / network failure). Does NOT
+// touch the DOM — the server's hub broadcast carries an authoritative HTML
+// patch that datastar morphs in. There is a brief visual flicker between
+// optimistic display and corrective morph; step 6 layers a shake animation.
+function rollbackOptimistic(snapshot) {
+  if (!snapshot) return;
+  if (snapshot.fen) {
+    const parsed = parseFen(snapshot.fen);
+    if (!parsed.isErr) {
+      const built = Chess.fromSetup(parsed.unwrap());
+      if (!built.isErr) {
+        chess = built.unwrap();
+        lastFen = snapshot.fen;
+      }
+    }
+  }
+  // Restore seq so the server's corrective broadcast (carrying the snapshot's
+  // seq, since the rejection didn't advance Seq) passes the stale-guard.
+  lastAppliedSeq = snapshot.seq;
+  // We didn't actually move, so the next opponent sound should play.
+  lastMoveBySelf = false;
+  publishBoardDerivedSignals();
 }
 
 // Called by the promotion overlay buttons after the user picks a piece.
