@@ -9,15 +9,15 @@ templ SoundToggle() {
 		data-testid="sound-toggle"
 		type="button"
 		aria-label="Toggle sound effects"
-		class="inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-subtle hover:bg-surface-4 hover:text-ink transition-colors duration-150 cursor-pointer shrink-0"
+		class="inline-flex items-center justify-center w-11 h-11 rounded-md text-ink-subtle hover:bg-surface-4 hover:text-ink transition-colors duration-150 cursor-pointer shrink-0"
 		onclick="toggleChessSound()"
 	>
 		<span id="sound-toggle-icon" class="inline-flex"></span>
 	</button>
 	<script>
 		(function () {
-			const ON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>';
-			const OFF_SVG = '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>';
+			const ON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>';
+			const OFF_SVG = '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>';
 
 			function isOn() { return localStorage.getItem("chess-sound") !== "off"; }
 			function paint() {

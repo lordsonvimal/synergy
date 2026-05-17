@@ -16,7 +16,7 @@ templ MoveNotationPanel(routePrefix, gameID string, history []game.MoveRecord) {
 		noMoves := len(history) == 0
 	}}
 	<div id="move-notation-panel" data-testid="move-notation-panel">
-		<div class="flex items-center justify-between gap-2 px-3 py-2.5 bg-surface-1 border-t border-edge min-h-13">
+		<div class="flex items-center justify-between gap-2 px-3 py-1 bg-surface-1 border-t border-edge min-h-9">
 			<!-- Previous move button -->
 			<button
 				id="notation-prev"

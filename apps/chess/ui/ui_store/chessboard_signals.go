@@ -26,6 +26,10 @@ type ChessBoardSignals struct {
 	// changes, so client-side legal-move generation stays in sync with the
 	// server's engine. Empty before the first sync.
 	Fen string `json:"fen"`
+	// Seq mirrors game.Seq — the half-move counter. Used by per-position
+	// rate-limited offers (draw / takeback) to know whether the offer lock
+	// (`lastDrawSeqWhite` etc.) still applies at the current position.
+	Seq uint64 `json:"seq"`
 }
 
 func NewChessBoardSignals() *ChessBoardSignals {
@@ -90,6 +94,7 @@ func (s *ChessBoardSignals) UpdateFromGame(g *game.Game) {
 	s.Timed = g.Timed
 	s.SideToMove = g.Board.SideToMove
 	s.Fen = g.Board.FEN()
+	s.Seq = g.Seq
 
 	// Update game state
 	s.IsCheck = g.IsCheck()

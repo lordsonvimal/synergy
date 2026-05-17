@@ -147,6 +147,11 @@ function setupEffects() {
   initIfMissing("rematchAcceptedUrl", "")
   initIfMissing("drawOfferedBy", "")
   initIfMissing("takebackOfferedBy", "")
+  initIfMissing("seq", 0)
+  initIfMissing("lastDrawSeqWhite", -1)
+  initIfMissing("lastDrawSeqBlack", -1)
+  initIfMissing("lastTakebackSeqWhite", -1)
+  initIfMissing("lastTakebackSeqBlack", -1)
   initIfMissing("keepaliveTs", 0)
   initIfMissing("connectionDown", false)
 

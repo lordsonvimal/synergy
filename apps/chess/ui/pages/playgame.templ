@@ -127,8 +127,30 @@ type playSignals struct {
 	TakebackPending    bool   `json:"takebackPending"`
 	TakebackSecondsLeft int   `json:"takebackSecondsLeft"`
 	ResignConfirm      bool   `json:"resignConfirm"`
+	// Per-position lock seqs: the half-move counter at which each side last
+	// proposed a draw / takeback. -1 means never. The UI disables a player's
+	// own offer button when their lock seq matches the current seq.
+	LastDrawSeqWhite     int64 `json:"lastDrawSeqWhite"`
+	LastDrawSeqBlack     int64 `json:"lastDrawSeqBlack"`
+	LastTakebackSeqWhite int64 `json:"lastTakebackSeqWhite"`
+	LastTakebackSeqBlack int64 `json:"lastTakebackSeqBlack"`
 	Fen                string `json:"fen"` // authoritative FEN; board.js re-anchors chessops on change
+	Seq                uint64 `json:"seq"`
 	ConnectionDown     bool   `json:"connectionDown"`
+}
+
+func drawSeq(g *game.Game, idx int) int64 {
+	if g.PlayMeta == nil {
+		return -1
+	}
+	return g.PlayMeta.LastDrawSeq[idx]
+}
+
+func takebackSeq(g *game.Game, idx int) int64 {
+	if g.PlayMeta == nil {
+		return -1
+	}
+	return g.PlayMeta.LastTakebackSeq[idx]
 }
 
 func firstMoveDeadlineNsFor(g *game.Game) int64 {
@@ -179,7 +201,12 @@ func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 		TakebackPending:    false,
 		TakebackSecondsLeft: 0,
 		ResignConfirm:      false,
+		LastDrawSeqWhite:     drawSeq(g, 0),
+		LastDrawSeqBlack:     drawSeq(g, 1),
+		LastTakebackSeqWhite: takebackSeq(g, 0),
+		LastTakebackSeqBlack: takebackSeq(g, 1),
 		Fen:                base.Fen,
+		Seq:                base.Seq,
 		ConnectionDown:     false,
 	}
 }

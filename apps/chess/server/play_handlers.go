@@ -83,6 +83,8 @@ func CreatePlay(c *gin.Context) {
 		RematchProposedBy:  engine.NoColor,
 		DrawOfferedBy:      engine.NoColor,
 		TakebackOfferedBy:  engine.NoColor,
+		LastDrawSeq:        [2]int64{-1, -1},
+		LastTakebackSeq:    [2]int64{-1, -1},
 		ClaimVictoryFor:    engine.NoColor,
 	}
 
@@ -595,6 +597,8 @@ func AcceptRematch(c *gin.Context) {
 		RematchProposedBy:  engine.NoColor,
 		DrawOfferedBy:      engine.NoColor,
 		TakebackOfferedBy:  engine.NoColor,
+		LastDrawSeq:        [2]int64{-1, -1},
+		LastTakebackSeq:    [2]int64{-1, -1},
 		ClaimVictoryFor:    engine.NoColor,
 	}
 
@@ -724,11 +728,18 @@ func ProposeDraw(c *gin.Context) {
 	if claims.Role == "black" {
 		proposerColor = engine.Black
 	}
-	if !g.PlayMeta.TryProposeDraw(proposerColor) {
+	if !g.PlayMeta.TryProposeDraw(proposerColor, g.Seq) {
 		c.Status(http.StatusConflict)
 		return
 	}
-	g.Hub.BroadcastSignals(map[string]any{"drawOfferedBy": claims.Role})
+	lockKey := "lastDrawSeqWhite"
+	if proposerColor == engine.Black {
+		lockKey = "lastDrawSeqBlack"
+	}
+	g.Hub.BroadcastSignals(map[string]any{
+		"drawOfferedBy": claims.Role,
+		lockKey:         int64(g.Seq),
+	})
 
 	go func() {
 		time.Sleep(30 * time.Second)
@@ -845,11 +856,18 @@ func ProposeTakeback(c *gin.Context) {
 		c.Status(http.StatusConflict)
 		return
 	}
-	if !g.PlayMeta.TryProposeTakeback(proposerColor) {
+	if !g.PlayMeta.TryProposeTakeback(proposerColor, g.Seq) {
 		c.Status(http.StatusConflict)
 		return
 	}
-	g.Hub.BroadcastSignals(map[string]any{"takebackOfferedBy": claims.Role})
+	lockKey := "lastTakebackSeqWhite"
+	if proposerColor == engine.Black {
+		lockKey = "lastTakebackSeqBlack"
+	}
+	g.Hub.BroadcastSignals(map[string]any{
+		"takebackOfferedBy": claims.Role,
+		lockKey:             int64(g.Seq),
+	})
 
 	go func() {
 		time.Sleep(30 * time.Second)
@@ -1040,6 +1058,8 @@ func loadPlayGameFromDB(ctx context.Context, dbRepo db.Repository, gameID string
 		RematchProposedBy:        engine.NoColor,
 		DrawOfferedBy:            engine.NoColor,
 		TakebackOfferedBy:        engine.NoColor,
+		LastDrawSeq:              [2]int64{-1, -1},
+		LastTakebackSeq:          [2]int64{-1, -1},
 		ClaimVictoryFor:          engine.NoColor,
 		BothPlayersConnectedOnce: bothConnectedBefore,
 		// ClockArmedAfterLoad stays false so the first reconnect-pair after

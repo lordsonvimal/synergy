@@ -60,6 +60,13 @@ type PlayMeta struct {
 	// they respond.
 	TakebackOfferedBy engine.Color
 	TakebackOfferedAt *time.Time
+
+	// Per-position offer locks: each colour can only offer a draw / takeback
+	// once at any given position (game.Seq). -1 = never offered. Cleared on
+	// any move via Seq advancing past the stored value, so the offer becomes
+	// available again at the new position. Indexed [White, Black].
+	LastDrawSeq     [2]int64
+	LastTakebackSeq [2]int64
 }
 
 // RecordSSEConnect notes a new SSE connection for the given role.
@@ -248,17 +255,31 @@ func (m *PlayMeta) GetDrawOfferer() engine.Color {
 	return m.DrawOfferedBy
 }
 
-// TryProposeDraw atomically sets a draw offer if none is pending.
-func (m *PlayMeta) TryProposeDraw(proposer engine.Color) bool {
+// TryProposeDraw atomically sets a draw offer if none is pending and the
+// proposer has not already offered a draw at this position (currentSeq).
+func (m *PlayMeta) TryProposeDraw(proposer engine.Color, currentSeq uint64) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.DrawOfferedBy != engine.NoColor {
 		return false
 	}
+	if m.LastDrawSeq[proposer] == int64(currentSeq) {
+		return false
+	}
 	now := time.Now()
 	m.DrawOfferedBy = proposer
 	m.DrawOfferedAt = &now
+	m.LastDrawSeq[proposer] = int64(currentSeq)
 	return true
+}
+
+// HasOfferedDrawAt reports whether the given colour has already proposed a
+// draw at the given position (Seq). Used by the UI to show / disable the
+// "offer draw" button without round-tripping to attempt the request.
+func (m *PlayMeta) HasOfferedDrawAt(color engine.Color, currentSeq uint64) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.LastDrawSeq[color] == int64(currentSeq)
 }
 
 // AcceptAndClearDraw clears a draw offer if the accepter is not the proposer.
@@ -301,17 +322,30 @@ func (m *PlayMeta) GetTakebackProposer() engine.Color {
 	return m.TakebackOfferedBy
 }
 
-// TryProposeTakeback atomically sets a takeback offer if none is pending.
-func (m *PlayMeta) TryProposeTakeback(proposer engine.Color) bool {
+// TryProposeTakeback atomically sets a takeback offer if none is pending and
+// the proposer has not already requested a takeback at this position.
+func (m *PlayMeta) TryProposeTakeback(proposer engine.Color, currentSeq uint64) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.TakebackOfferedBy != engine.NoColor {
 		return false
 	}
+	if m.LastTakebackSeq[proposer] == int64(currentSeq) {
+		return false
+	}
 	now := time.Now()
 	m.TakebackOfferedBy = proposer
 	m.TakebackOfferedAt = &now
+	m.LastTakebackSeq[proposer] = int64(currentSeq)
 	return true
+}
+
+// HasOfferedTakebackAt reports whether the given colour has already requested
+// a takeback at the given position.
+func (m *PlayMeta) HasOfferedTakebackAt(color engine.Color, currentSeq uint64) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.LastTakebackSeq[color] == int64(currentSeq)
 }
 
 // AcceptAndClearTakeback clears a takeback offer if the accepter is not the proposer.
