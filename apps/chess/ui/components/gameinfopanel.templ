@@ -7,7 +7,7 @@ package components
 templ BlackPlayerCard() {
 	<div
 		data-testid="player-card-black"
-		data-signals.ifmissing='{"blackOnline": false, "clockUnlocked": false}'
+		data-signals.ifmissing='{"blackOnline": false, "clockUnlocked": false, "blackDisconnectSecondsLeft": 0}'
 		class="flex items-center gap-3 h-[40px] px-3 bg-neutral-950 border-transparent transition-colors duration-150"
 		data-class={ templ.JSExpression(`{'order-last': $flipped}`) }
 	>
@@ -23,8 +23,16 @@ templ BlackPlayerCard() {
 			class="w-2 h-2 rounded-full shrink-0 transition-colors duration-300"
 			data-show="$clockUnlocked"
 			style="display:none"
-			data-class={ templ.JSExpression(`{'bg-success': $blackOnline, 'bg-ink-dim': !$blackOnline}`) }
+			data-class={ templ.JSExpression(`{'bg-success': $blackOnline, 'bg-error': !$blackOnline}`) }
 			aria-hidden="true"
+		></span>
+		<!-- Opponent disconnect forfeit countdown -->
+		<span
+			data-testid="black-disconnect-countdown"
+			class="text-error text-xs font-mono tabular-nums font-semibold"
+			data-show="!$blackOnline && $clockUnlocked && $blackDisconnectSecondsLeft > 0"
+			style="display:none"
+			data-text="'forfeit in ' + $blackDisconnectSecondsLeft + 's'"
 		></span>
 		<span
 			class="w-1.5 h-1.5 rounded-full bg-primary shrink-0"
@@ -44,7 +52,7 @@ templ BlackPlayerCard() {
 templ WhitePlayerCard() {
 	<div
 		data-testid="player-card-white"
-		data-signals.ifmissing='{"whiteOnline": false, "clockUnlocked": false}'
+		data-signals.ifmissing='{"whiteOnline": false, "clockUnlocked": false, "whiteDisconnectSecondsLeft": 0}'
 		class="flex items-center gap-3 h-[40px] px-3 bg-neutral-950 border-transparent transition-colors duration-150"
 		data-class={ templ.JSExpression(`{'order-first': $flipped}`) }
 	>
@@ -60,8 +68,16 @@ templ WhitePlayerCard() {
 			class="w-2 h-2 rounded-full shrink-0 transition-colors duration-300"
 			data-show="$clockUnlocked"
 			style="display:none"
-			data-class={ templ.JSExpression(`{'bg-success': $whiteOnline, 'bg-ink-dim': !$whiteOnline}`) }
+			data-class={ templ.JSExpression(`{'bg-success': $whiteOnline, 'bg-error': !$whiteOnline}`) }
 			aria-hidden="true"
+		></span>
+		<!-- Opponent disconnect forfeit countdown -->
+		<span
+			data-testid="white-disconnect-countdown"
+			class="text-error text-xs font-mono tabular-nums font-semibold"
+			data-show="!$whiteOnline && $clockUnlocked && $whiteDisconnectSecondsLeft > 0"
+			style="display:none"
+			data-text="'forfeit in ' + $whiteDisconnectSecondsLeft + 's'"
 		></span>
 		<span
 			class="w-1.5 h-1.5 rounded-full bg-primary shrink-0"

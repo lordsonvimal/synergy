@@ -362,11 +362,27 @@ func PlayEventsHandler(c *gin.Context) {
 	defer g.Hub.Unsubscribe(ch)
 
 	bothFirstConnected, shouldArmClock := g.PlayMeta.RecordSSEConnect(role)
+	// Broadcast updated online status so the opponent's UI flips the dot
+	// back to green and clears the forfeit countdown.
+	{
+		whiteOnline, blackOnline := g.PlayMeta.OnlineStatus()
+		wDisAt, bDisAt := g.PlayMeta.DisconnectAtNs()
+		go g.Hub.BroadcastSignals(map[string]any{
+			"whiteOnline":         whiteOnline,
+			"blackOnline":         blackOnline,
+			"whiteDisconnectAtNs": wDisAt,
+			"blackDisconnectAtNs": bDisAt,
+		})
+	}
 	defer func() {
 		g.PlayMeta.RecordSSEDisconnect(role)
 		whiteOnline, blackOnline := g.PlayMeta.OnlineStatus()
+		wDisAt, bDisAt := g.PlayMeta.DisconnectAtNs()
 		g.Hub.BroadcastSignals(map[string]any{
-			"whiteOnline": whiteOnline, "blackOnline": blackOnline,
+			"whiteOnline":         whiteOnline,
+			"blackOnline":         blackOnline,
+			"whiteDisconnectAtNs": wDisAt,
+			"blackDisconnectAtNs": bDisAt,
 		})
 	}()
 
@@ -399,8 +415,12 @@ func PlayEventsHandler(c *gin.Context) {
 		writeClockSnapshot(c, g.ClockTickSnapshot())
 	}
 	whiteOnline, blackOnline := g.PlayMeta.OnlineStatus()
+	wDisAtInit, bDisAtInit := g.PlayMeta.DisconnectAtNs()
 	initialSignals := map[string]any{
-		"whiteOnline": whiteOnline, "blackOnline": blackOnline,
+		"whiteOnline":         whiteOnline,
+		"blackOnline":         blackOnline,
+		"whiteDisconnectAtNs": wDisAtInit,
+		"blackDisconnectAtNs": bDisAtInit,
 	}
 	if dlNs := g.PlayMeta.GetFirstMoveDeadlineNs(); dlNs != 0 && len(g.History) == 0 && g.IsOngoing() {
 		initialSignals["firstMoveDeadlineNs"] = dlNs

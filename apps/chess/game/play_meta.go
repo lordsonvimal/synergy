@@ -186,6 +186,21 @@ func (m *PlayMeta) OnlineStatus() (white, black bool) {
 	return m.whiteConns > 0, m.blackConns > 0
 }
 
+// DisconnectAtNs returns the unix-nanosecond timestamp at which each side
+// went offline, or 0 if currently online. Used to drive a client-side
+// forfeit-countdown display next to the opponent's online indicator.
+func (m *PlayMeta) DisconnectAtNs() (white, black int64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.whiteDisconnectAt != nil {
+		white = m.whiteDisconnectAt.UnixNano()
+	}
+	if m.blackDisconnectAt != nil {
+		black = m.blackDisconnectAt.UnixNano()
+	}
+	return white, black
+}
+
 // totalDisconnectedNsLocked returns cumulative disconnected nanoseconds for a side.
 // Caller must hold m.mu.
 func (m *PlayMeta) totalDisconnectedNsLocked(color engine.Color, now time.Time) int64 {

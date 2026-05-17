@@ -156,6 +156,10 @@ function setupEffects() {
   initIfMissing("lastTakebackSeqBlack", -1)
   initIfMissing("keepaliveTs", 0)
   initIfMissing("connectionDown", false)
+  initIfMissing("whiteDisconnectAtNs", 0)
+  initIfMissing("blackDisconnectAtNs", 0)
+  initIfMissing("whiteDisconnectSecondsLeft", 0)
+  initIfMissing("blackDisconnectSecondsLeft", 0)
 
   // Reconnect watchdog: server sends keepaliveTs every 10s. If the gap
   // exceeds DOWN_MS we show the "Reconnecting" banner and freeze the local
@@ -270,6 +274,49 @@ function setupEffects() {
     joinInterval = setInterval(() => {
       if (updateJoinSecondsLeft() <= 0) clearJoinTimer()
     }, 500)
+  })
+
+  // Opponent disconnect countdown: when a player drops, the server pushes
+  // whiteDisconnectAtNs / blackDisconnectAtNs (unix ns). The watchdog
+  // auto-forfeits the disconnected side at 120s, so display how many seconds
+  // remain until that fires. Server is authoritative — this is display-only.
+  const DISCONNECT_FORFEIT_S = 120
+  const disconnectIntervals = { white: null, black: null }
+  const clearDisconnectTimer = (color) => {
+    if (disconnectIntervals[color] !== null) {
+      clearInterval(disconnectIntervals[color])
+      disconnectIntervals[color] = null
+    }
+  }
+  const computeDisconnectSecondsLeft = (atNs) => {
+    if (!atNs) return 0
+    const offsetNs = getClockOffset()
+    const nowNs = Date.now() * 1e6 + offsetNs
+    const elapsedS = Math.floor((nowNs - atNs) / 1e9)
+    return Math.max(0, DISCONNECT_FORFEIT_S - elapsedS)
+  }
+  const wireDisconnectCountdown = (color, atSignalKey, leftSignalKey) => {
+    effect(() => {
+      const atNs = Number(getPath(atSignalKey) ?? 0)
+      clearDisconnectTimer(color)
+      if (!atNs) {
+        mergePatch({ [leftSignalKey]: 0 })
+        return
+      }
+      const tick = () => {
+        const left = computeDisconnectSecondsLeft(atNs)
+        mergePatch({ [leftSignalKey]: left })
+        if (left <= 0) clearDisconnectTimer(color)
+      }
+      tick()
+      disconnectIntervals[color] = setInterval(tick, 1000)
+    })
+  }
+  wireDisconnectCountdown("white", "whiteDisconnectAtNs", "whiteDisconnectSecondsLeft")
+  wireDisconnectCountdown("black", "blackDisconnectAtNs", "blackDisconnectSecondsLeft")
+  window.addEventListener("beforeunload", () => {
+    clearDisconnectTimer("white")
+    clearDisconnectTimer("black")
   })
 
   // Clock-tick effect: server pushes {clkW, clkB, clkWRun, clkBRun, clkTs}

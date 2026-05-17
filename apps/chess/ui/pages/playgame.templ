@@ -113,6 +113,10 @@ type playSignals struct {
 	Role           string `json:"role"`
 	WhiteOnline    bool   `json:"whiteOnline"`
 	BlackOnline    bool   `json:"blackOnline"`
+	WhiteDisconnectAtNs        int64 `json:"whiteDisconnectAtNs"`
+	BlackDisconnectAtNs        int64 `json:"blackDisconnectAtNs"`
+	WhiteDisconnectSecondsLeft int   `json:"whiteDisconnectSecondsLeft"`
+	BlackDisconnectSecondsLeft int   `json:"blackDisconnectSecondsLeft"`
 	ClockUnlocked  bool   `json:"clockUnlocked"`
 	Timed          bool   `json:"timed"`
 	FirstMoveDeadlineNs int64 `json:"firstMoveDeadlineNs"`
@@ -200,6 +204,10 @@ func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 		Role:            role,
 		WhiteOnline:     false,
 		BlackOnline:     false,
+		WhiteDisconnectAtNs:        0,
+		BlackDisconnectAtNs:        0,
+		WhiteDisconnectSecondsLeft: 0,
+		BlackDisconnectSecondsLeft: 0,
 		ClockUnlocked:   g.PlayMeta != nil && g.PlayMeta.IsStarted(),
 		Timed:           base.Timed,
 		FirstMoveDeadlineNs: firstMoveDeadlineNsFor(g),
