@@ -26,7 +26,7 @@ func BoardFromFENDisplay(fen string) (*Board, error) {
 	if len(ranks) != 8 {
 		return nil, fmt.Errorf("BoardFromFENDisplay: expected 8 ranks, got %d", len(ranks))
 	}
-	b := &Board{EnPassant: 255, SideToMove: White}
+	b := &Board{EnPassant: NoSquare, SideToMove: White}
 	for rankInv, rankStr := range ranks {
 		rankIdx := 7 - rankInv
 		fileIdx := 0
@@ -94,7 +94,7 @@ func BoardFromFEN(fen string) (*Board, error) {
 		}
 	}
 
-	b.EnPassant = 255
+	b.EnPassant = NoSquare
 	if len(parts) >= 4 && parts[3] != "-" && len(parts[3]) == 2 {
 		b.EnPassant = (parts[3][1]-'1')*8 + (parts[3][0]-'a')
 	}
