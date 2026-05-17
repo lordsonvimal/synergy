@@ -44,6 +44,14 @@ func (s *moveStore) InsertBatch(ctx context.Context, moves []*db.Move) error {
 	return tx.Commit()
 }
 
+func (s *moveStore) DeleteFromSeq(ctx context.Context, gameID string, fromSeq uint64) error {
+	_, err := s.db.ExecContext(ctx,
+		`DELETE FROM moves WHERE game_id = ? AND seq >= ?`,
+		gameID, fromSeq,
+	)
+	return err
+}
+
 func (s *moveStore) ListByGame(ctx context.Context, gameID string) ([]*db.Move, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, game_id, session_id, seq, uci, san, fen, move_number,

@@ -17,6 +17,7 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/logger"
 	"github.com/lordsonvimal/synergy/apps/chess/store"
 	"github.com/lordsonvimal/synergy/apps/chess/ui/pages"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 )
 
 // generateParticipantToken generates a cryptographically random 32-char hex token.
@@ -80,6 +81,8 @@ func CreatePlay(c *gin.Context) {
 		BlackClaimed:       !creatorIsWhite,
 		OriginalMode:       gm,
 		RematchProposedBy:  engine.NoColor,
+		DrawOfferedBy:      engine.NoColor,
+		TakebackOfferedBy:  engine.NoColor,
 		ClaimVictoryFor:    engine.NoColor,
 	}
 
@@ -338,6 +341,20 @@ func PlayEventsHandler(c *gin.Context) {
 		}
 		writeSignalsDirect(c, map[string]any{"rematchProposedBy": proposerRole})
 	}
+	if offerer := g.PlayMeta.GetDrawOfferer(); offerer != engine.NoColor {
+		offererRole := "white"
+		if offerer == engine.Black {
+			offererRole = "black"
+		}
+		writeSignalsDirect(c, map[string]any{"drawOfferedBy": offererRole})
+	}
+	if proposer := g.PlayMeta.GetTakebackProposer(); proposer != engine.NoColor {
+		proposerRole := "white"
+		if proposer == engine.Black {
+			proposerRole = "black"
+		}
+		writeSignalsDirect(c, map[string]any{"takebackOfferedBy": proposerRole})
+	}
 
 	// Seed keepaliveTs immediately so the client watchdog has a fresh baseline.
 	writeSignalsDirect(c, map[string]any{"keepaliveTs": time.Now().UnixNano()})
@@ -412,7 +429,23 @@ func PlayMove(c *gin.Context) {
 		return
 	}
 
+	prevHistoryLen := g.HistoryLen()
 	applyMoveRequest(c, g, from, to, promo)
+	if g.HistoryLen() > prevHistoryLen {
+		// A move landed: any pending mid-game offer is implicitly declined.
+		cleared := map[string]any{}
+		if g.PlayMeta.GetDrawOfferer() != engine.NoColor {
+			g.PlayMeta.ClearDraw()
+			cleared["drawOfferedBy"] = ""
+		}
+		if g.PlayMeta.GetTakebackProposer() != engine.NoColor {
+			g.PlayMeta.ClearTakeback()
+			cleared["takebackOfferedBy"] = ""
+		}
+		if len(cleared) > 0 {
+			g.Hub.BroadcastSignals(cleared)
+		}
+	}
 }
 
 // ClaimVictory handles POST /play/:gameID/claim-victory.
@@ -560,6 +593,8 @@ func AcceptRematch(c *gin.Context) {
 		BlackClaimed:       accepterNewRole == "black",
 		OriginalMode:       mode,
 		RematchProposedBy:  engine.NoColor,
+		DrawOfferedBy:      engine.NoColor,
+		TakebackOfferedBy:  engine.NoColor,
 		ClaimVictoryFor:    engine.NoColor,
 	}
 
@@ -613,6 +648,304 @@ func DeclineRematch(c *gin.Context) {
 
 	g.PlayMeta.ClearRematch()
 	g.Hub.BroadcastSignals(map[string]any{"rematchProposedBy": ""})
+	_ = ctx
+	c.Status(http.StatusNoContent)
+}
+
+// ResignGame handles POST /play/:gameID/resign.
+func ResignGame(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok || g.PlayMeta == nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	claims, err := GetPlaySession(c.Request)
+	if err != nil || claims.GameID != gameID || (claims.Role != "white" && claims.Role != "black") {
+		c.Status(http.StatusForbidden)
+		return
+	}
+
+	loser := engine.White
+	if claims.Role == "black" {
+		loser = engine.Black
+	}
+	if !g.Resign(loser) {
+		c.Status(http.StatusConflict)
+		return
+	}
+	// Resign also voids any pending offers so prompts close.
+	g.PlayMeta.ClearRematch()
+	g.PlayMeta.ClearDraw()
+	g.PlayMeta.ClearTakeback()
+	g.Hub.BroadcastSignals(map[string]any{
+		"drawOfferedBy":     "",
+		"takebackOfferedBy": "",
+	})
+	_ = ctx
+	c.Status(http.StatusNoContent)
+}
+
+// ProposeDraw handles POST /play/:gameID/draw.
+func ProposeDraw(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok || g.PlayMeta == nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	claims, err := GetPlaySession(c.Request)
+	if err != nil || claims.GameID != gameID || (claims.Role != "white" && claims.Role != "black") {
+		c.Status(http.StatusForbidden)
+		return
+	}
+	if !g.IsOngoing() {
+		c.Status(http.StatusConflict)
+		return
+	}
+
+	proposerColor := engine.White
+	if claims.Role == "black" {
+		proposerColor = engine.Black
+	}
+	if !g.PlayMeta.TryProposeDraw(proposerColor) {
+		c.Status(http.StatusConflict)
+		return
+	}
+	g.Hub.BroadcastSignals(map[string]any{"drawOfferedBy": claims.Role})
+
+	go func() {
+		time.Sleep(30 * time.Second)
+		if g.PlayMeta.ClearDrawIfPendingBy(proposerColor) {
+			g.Hub.BroadcastSignals(map[string]any{"drawOfferedBy": ""})
+		}
+	}()
+
+	_ = ctx
+	c.Status(http.StatusNoContent)
+}
+
+// AcceptDraw handles POST /play/:gameID/draw/accept.
+func AcceptDraw(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok || g.PlayMeta == nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	claims, err := GetPlaySession(c.Request)
+	if err != nil || claims.GameID != gameID || (claims.Role != "white" && claims.Role != "black") {
+		c.Status(http.StatusForbidden)
+		return
+	}
+
+	accepterColor := engine.White
+	if claims.Role == "black" {
+		accepterColor = engine.Black
+	}
+	if _, ok := g.PlayMeta.AcceptAndClearDraw(accepterColor); !ok {
+		c.Status(http.StatusConflict)
+		return
+	}
+	if !g.AgreeDraw() {
+		c.Status(http.StatusConflict)
+		return
+	}
+	g.Hub.BroadcastSignals(map[string]any{"drawOfferedBy": ""})
+	_ = ctx
+	c.Status(http.StatusNoContent)
+}
+
+// DeclineDraw handles POST /play/:gameID/draw/decline.
+func DeclineDraw(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok || g.PlayMeta == nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	claims, err := GetPlaySession(c.Request)
+	if err != nil || claims.GameID != gameID {
+		c.Status(http.StatusForbidden)
+		return
+	}
+
+	g.PlayMeta.ClearDraw()
+	g.Hub.BroadcastSignals(map[string]any{"drawOfferedBy": ""})
+	_ = ctx
+	c.Status(http.StatusNoContent)
+}
+
+// ProposeTakeback handles POST /play/:gameID/takeback.
+// Only proposable when it's the opponent's turn (i.e. the requester just moved
+// and the opponent has not yet replied).
+func ProposeTakeback(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok || g.PlayMeta == nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	claims, err := GetPlaySession(c.Request)
+	if err != nil || claims.GameID != gameID || (claims.Role != "white" && claims.Role != "black") {
+		c.Status(http.StatusForbidden)
+		return
+	}
+	if !g.IsOngoing() || g.HistoryLen() == 0 {
+		c.Status(http.StatusConflict)
+		return
+	}
+
+	proposerColor := engine.White
+	if claims.Role == "black" {
+		proposerColor = engine.Black
+	}
+	// Requester must have just moved → board's side-to-move is the opponent.
+	if g.Board.SideToMove == proposerColor {
+		c.Status(http.StatusConflict)
+		return
+	}
+	if !g.PlayMeta.TryProposeTakeback(proposerColor) {
+		c.Status(http.StatusConflict)
+		return
+	}
+	g.Hub.BroadcastSignals(map[string]any{"takebackOfferedBy": claims.Role})
+
+	go func() {
+		time.Sleep(30 * time.Second)
+		if g.PlayMeta.ClearTakebackIfPendingBy(proposerColor) {
+			g.Hub.BroadcastSignals(map[string]any{"takebackOfferedBy": ""})
+		}
+	}()
+
+	_ = ctx
+	c.Status(http.StatusNoContent)
+}
+
+// AcceptTakeback handles POST /play/:gameID/takeback/accept.
+// Reverts the requester's last move (1 ply). Clocks are not refunded.
+func AcceptTakeback(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok || g.PlayMeta == nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	claims, err := GetPlaySession(c.Request)
+	if err != nil || claims.GameID != gameID || (claims.Role != "white" && claims.Role != "black") {
+		c.Status(http.StatusForbidden)
+		return
+	}
+	accepterColor := engine.White
+	if claims.Role == "black" {
+		accepterColor = engine.Black
+	}
+	if _, ok := g.PlayMeta.AcceptAndClearTakeback(accepterColor); !ok {
+		c.Status(http.StatusConflict)
+		return
+	}
+	if !g.RevertLastPly() {
+		c.Status(http.StatusConflict)
+		return
+	}
+	// A takeback invalidates any in-flight draw offer too — the position has
+	// changed materially.
+	clearedDraw := false
+	if g.PlayMeta.GetDrawOfferer() != engine.NoColor {
+		g.PlayMeta.ClearDraw()
+		clearedDraw = true
+	}
+
+	signals := ui_store.ChessBoardSignalsFromGame(g)
+	hubBroadcastBoard(ctx, g, signals)
+	extras := map[string]any{"takebackOfferedBy": ""}
+	if clearedDraw {
+		extras["drawOfferedBy"] = ""
+	}
+	if g.Timed {
+		nowNs := time.Now().UnixNano()
+		extras["clkW"] = g.Clock.RemainingAt(0, nowNs)
+		extras["clkB"] = g.Clock.RemainingAt(1, nowNs)
+		extras["clkWRun"] = g.Clock.White.Running
+		extras["clkBRun"] = g.Clock.Black.Running
+		extras["clkTs"] = nowNs
+	}
+	g.Hub.BroadcastSignals(extras)
+	c.Status(http.StatusNoContent)
+}
+
+// DeclineTakeback handles POST /play/:gameID/takeback/decline.
+func DeclineTakeback(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok || g.PlayMeta == nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	claims, err := GetPlaySession(c.Request)
+	if err != nil || claims.GameID != gameID {
+		c.Status(http.StatusForbidden)
+		return
+	}
+
+	g.PlayMeta.ClearTakeback()
+	g.Hub.BroadcastSignals(map[string]any{"takebackOfferedBy": ""})
 	_ = ctx
 	c.Status(http.StatusNoContent)
 }
@@ -705,6 +1038,8 @@ func loadPlayGameFromDB(ctx context.Context, dbRepo db.Repository, gameID string
 		SessionID:                core.dbGame.SessionID,
 		OriginalMode:             game.GameMode{TimeNs: timeCtrlNs, Increment: restoredIncNs, Variant: core.dbGame.Variant, Timed: timeCtrlNs > 0},
 		RematchProposedBy:        engine.NoColor,
+		DrawOfferedBy:            engine.NoColor,
+		TakebackOfferedBy:        engine.NoColor,
 		ClaimVictoryFor:          engine.NoColor,
 		BothPlayersConnectedOnce: bothConnectedBefore,
 		// ClockArmedAfterLoad stays false so the first reconnect-pair after

@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -195,11 +196,128 @@ func (g *Game) AbandonWithResult(winner engine.Color) bool {
 	return true
 }
 
+// Resign ends an ongoing game with loser's opponent as winner.
+// Returns false if the game was already finished.
+func (g *Game) Resign(loser engine.Color) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.State != GameOngoing {
+		return false
+	}
+	g.State = GameResigned
+	if loser == engine.White {
+		g.Winner = engine.Black
+	} else {
+		g.Winner = engine.White
+	}
+	g.signalGameOver()
+	return true
+}
+
+// AgreeDraw ends an ongoing game in a mutually agreed draw.
+// Returns false if the game was already finished.
+func (g *Game) AgreeDraw() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.State != GameOngoing {
+		return false
+	}
+	g.State = GameDrawAgreement
+	g.Winner = engine.NoColor
+	g.signalGameOver()
+	return true
+}
+
 // IsOngoing returns true if the game is still in progress.
 func (g *Game) IsOngoing() bool {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 	return g.State == GameOngoing
+}
+
+// RevertLastPly drops the most recent half-move from history and rebuilds the
+// board from the previous position's FEN. Clocks are NOT refunded — only the
+// running side is switched back to the player whose move was reverted. If a
+// MoveBatch is attached, the reverted move is purged from persistence (either
+// popped from the in-memory buffer or DELETEd from the DB) and a `takeback`
+// audit event is appended.
+//
+// Returns false if there is no move to revert or the game is no longer ongoing.
+func (g *Game) RevertLastPly() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.State != GameOngoing || len(g.History) == 0 {
+		return false
+	}
+
+	// Side that made the reverted move is the opposite of current side-to-move.
+	mover := g.Board.SideToMove ^ 1
+
+	if len(g.History) == 1 {
+		g.Board = engine.NewBoard()
+	} else {
+		prev := g.History[len(g.History)-2]
+		b, err := engine.BoardFromFEN(prev.FEN)
+		if err != nil {
+			return false
+		}
+		g.Board = b
+	}
+
+	revertedSeq := g.Seq
+
+	g.History = g.History[:len(g.History)-1]
+	g.legalMoveCache = nil
+	g.ClearSelection()
+	g.touchActivity()
+	if g.Seq > 0 {
+		g.Seq--
+	}
+
+	// Switch the running clock back to the mover (who is on the move again).
+	// Time spent by the opponent thinking on the now-reverted reply is kept
+	// (no refund per design choice), but we must NOT route through Clock.Stop
+	// because that awards the Fischer increment on completion — takeback is
+	// not a move completion. Mutate Running/RemainingNs directly.
+	opp := mover ^ 1
+	oppClock := &g.Clock.Black
+	if opp == engine.White {
+		oppClock = &g.Clock.White
+	}
+	if oppClock.Running {
+		elapsed := monoNow() - oppClock.LastStartNs
+		if elapsed > 0 {
+			oppClock.RemainingNs -= elapsed
+			if oppClock.RemainingNs < 0 {
+				oppClock.RemainingNs = 0
+			}
+		}
+		oppClock.Running = false
+	}
+	g.Clock.Start(mover)
+
+	// Purge the reverted move row from persistence (or in-memory buffer) so the
+	// next move can reuse the same seq without colliding with the unique
+	// (game_id, seq) constraint. Run synchronously while holding g.mu so the
+	// next ApplyMove (which also acquires g.mu) cannot race with the cleanup —
+	// if it could, the new move could land in the batch buffer with the same
+	// seq as the reverted one and RevertLast would pop the wrong entry.
+	if g.Batch != nil && revertedSeq > 0 {
+		if err := g.Batch.RevertLast(context.Background(), g.ID, revertedSeq); err != nil {
+			logger.Error(context.Background()).Err(err).
+				Str("game_id", g.ID).Uint64("seq", revertedSeq).
+				Msg("RevertLastPly: revert persisted move")
+		}
+		g.Batch.AppendEvent(PendingEvent{
+			GameID:     g.ID,
+			SessionID:  g.Batch.sessionID(),
+			EventType:  "takeback",
+			Payload:    `{"reverted_seq":` + strconv.FormatUint(revertedSeq, 10) + `}`,
+			OccurredAt: monoNow(),
+		})
+	}
+	return true
 }
 
 // ResumeClockForActiveSide arms the side-to-move clock from its persisted
@@ -235,9 +353,10 @@ func (g *Game) StartPlayClock(deadline time.Time) {
 }
 
 // InitBatch wires up DB persistence for this game. Call once after NewGame,
-// before the first move is applied.
-func (g *Game) InitBatch(sessionID string, flushFn FlushFunc, gameEndFn GameEndFunc) {
-	g.Batch = NewMoveBatch(sessionID, flushFn, gameEndFn)
+// before the first move is applied. revertFn may be nil for flows that never
+// use takeback (e.g. solo games).
+func (g *Game) InitBatch(sessionID string, flushFn FlushFunc, gameEndFn GameEndFunc, revertFn MoveRevertFunc) {
+	g.Batch = NewMoveBatch(sessionID, flushFn, gameEndFn, revertFn)
 }
 
 // --------------------------

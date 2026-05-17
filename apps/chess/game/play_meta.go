@@ -50,6 +50,16 @@ type PlayMeta struct {
 	// Rematch state.
 	RematchProposedBy engine.Color
 	RematchProposedAt *time.Time
+
+	// Draw-offer state (mid-game).
+	DrawOfferedBy engine.Color
+	DrawOfferedAt *time.Time
+
+	// Takeback state (mid-game). Only proposable when it's the opponent's turn
+	// (i.e. proposer has just moved); auto-declined if the opponent moves before
+	// they respond.
+	TakebackOfferedBy engine.Color
+	TakebackOfferedAt *time.Time
 }
 
 // RecordSSEConnect notes a new SSE connection for the given role.
@@ -229,6 +239,112 @@ func (m *PlayMeta) ClearRematch() {
 	m.RematchProposedBy = engine.NoColor
 	m.RematchProposedAt = nil
 	m.mu.Unlock()
+}
+
+// GetDrawOfferer returns the color of the player with a pending draw offer, or NoColor.
+func (m *PlayMeta) GetDrawOfferer() engine.Color {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.DrawOfferedBy
+}
+
+// TryProposeDraw atomically sets a draw offer if none is pending.
+func (m *PlayMeta) TryProposeDraw(proposer engine.Color) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.DrawOfferedBy != engine.NoColor {
+		return false
+	}
+	now := time.Now()
+	m.DrawOfferedBy = proposer
+	m.DrawOfferedAt = &now
+	return true
+}
+
+// AcceptAndClearDraw clears a draw offer if the accepter is not the proposer.
+func (m *PlayMeta) AcceptAndClearDraw(accepter engine.Color) (engine.Color, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.DrawOfferedBy == engine.NoColor || m.DrawOfferedBy == accepter {
+		return engine.NoColor, false
+	}
+	proposer := m.DrawOfferedBy
+	m.DrawOfferedBy = engine.NoColor
+	m.DrawOfferedAt = nil
+	return proposer, true
+}
+
+// ClearDraw unconditionally clears a pending draw offer.
+func (m *PlayMeta) ClearDraw() {
+	m.mu.Lock()
+	m.DrawOfferedBy = engine.NoColor
+	m.DrawOfferedAt = nil
+	m.mu.Unlock()
+}
+
+// ClearDrawIfPendingBy clears the offer only if the current proposer matches color.
+func (m *PlayMeta) ClearDrawIfPendingBy(color engine.Color) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.DrawOfferedBy != color {
+		return false
+	}
+	m.DrawOfferedBy = engine.NoColor
+	m.DrawOfferedAt = nil
+	return true
+}
+
+// GetTakebackProposer returns the color of the player with a pending takeback offer, or NoColor.
+func (m *PlayMeta) GetTakebackProposer() engine.Color {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.TakebackOfferedBy
+}
+
+// TryProposeTakeback atomically sets a takeback offer if none is pending.
+func (m *PlayMeta) TryProposeTakeback(proposer engine.Color) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.TakebackOfferedBy != engine.NoColor {
+		return false
+	}
+	now := time.Now()
+	m.TakebackOfferedBy = proposer
+	m.TakebackOfferedAt = &now
+	return true
+}
+
+// AcceptAndClearTakeback clears a takeback offer if the accepter is not the proposer.
+func (m *PlayMeta) AcceptAndClearTakeback(accepter engine.Color) (engine.Color, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.TakebackOfferedBy == engine.NoColor || m.TakebackOfferedBy == accepter {
+		return engine.NoColor, false
+	}
+	proposer := m.TakebackOfferedBy
+	m.TakebackOfferedBy = engine.NoColor
+	m.TakebackOfferedAt = nil
+	return proposer, true
+}
+
+// ClearTakeback unconditionally clears a pending takeback offer.
+func (m *PlayMeta) ClearTakeback() {
+	m.mu.Lock()
+	m.TakebackOfferedBy = engine.NoColor
+	m.TakebackOfferedAt = nil
+	m.mu.Unlock()
+}
+
+// ClearTakebackIfPendingBy clears the offer only if the current proposer matches color.
+func (m *PlayMeta) ClearTakebackIfPendingBy(color engine.Color) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.TakebackOfferedBy != color {
+		return false
+	}
+	m.TakebackOfferedBy = engine.NoColor
+	m.TakebackOfferedAt = nil
+	return true
 }
 
 // ClearRematchIfPendingBy clears the proposal only if the current proposer matches color.

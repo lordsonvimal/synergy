@@ -21,7 +21,7 @@ templ SoloGamePage(g *game.Game) {
 		>
 			@components.GameStatusBanner()
 
-			<div class="w-full sm:w-[min(100%,calc(100vh-16rem),540px)] flex flex-col sm:rounded-sm overflow-hidden sm:shadow-2xl">
+			<div class="w-full sm:w-[min(100%,calc(100vh-16rem),540px)] flex flex-col border-y sm:border border-edge sm:rounded-sm overflow-hidden sm:shadow-2xl">
 				@components.GameStatusRibbon(g)
 				<div class="flex flex-col">
 					@components.BlackPlayerCard()

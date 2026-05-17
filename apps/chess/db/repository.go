@@ -92,6 +92,9 @@ type GameStore interface {
 type MoveStore interface {
 	InsertBatch(ctx context.Context, moves []*Move) error
 	ListByGame(ctx context.Context, gameID string) ([]*Move, error)
+	// DeleteFromSeq removes all moves for a game whose seq >= fromSeq.
+	// Used by takeback to purge reverted move rows.
+	DeleteFromSeq(ctx context.Context, gameID string, fromSeq uint64) error
 }
 
 type GameEventStore interface {

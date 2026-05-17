@@ -9,7 +9,7 @@ templ GameToolsPanel(gameID, role, csrfToken string) {
 	<div
 		data-testid="game-tools-panel"
 		data-signals.ifmissing='{"toolsMenuOpen": false}'
-		class="flex items-center gap-1 px-2 py-1 bg-surface-1"
+		class="flex items-center gap-1 px-2 py-1 bg-surface-1 border-t border-edge"
 	>
 		<!-- Flip board (icon only) -->
 		<button
@@ -40,12 +40,65 @@ templ GameToolsPanel(gameID, role, csrfToken string) {
 		<!-- Board color cycle (icon only) -->
 		@BoardColorToggle()
 
+		if gameID != "" && (role == "white" || role == "black") {
+			<!-- In-game action icons: draw offer, takeback, resign. Shown only
+			     while the game is ongoing and both players are connected. -->
+			<button
+				type="button"
+				aria-label="Offer draw"
+				title="Offer draw"
+				data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/draw')") }
+				data-show="$gameState === 0 && !$drawOffered && !$drawPending && $clockUnlocked"
+				style="display:none"
+				class="inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-subtle hover:bg-surface-4 hover:text-ink transition-colors duration-150 cursor-pointer shrink-0"
+			>
+				<!-- Handshake / draw symbol: "½" inside a circle keeps it visually distinct from move-list controls. -->
+				<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<circle cx="12" cy="12" r="9"></circle>
+					<text x="12" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="currentColor" stroke="none">½</text>
+				</svg>
+			</button>
+
+			<!-- Takeback: enabled only when it's the opponent's turn (requester just moved). -->
+			<button
+				type="button"
+				aria-label="Request takeback"
+				title="Request takeback"
+				data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/takeback')") }
+				data-show="$gameState === 0 && !$takebackOffered && !$takebackPending && $clockUnlocked && (($role === 'white' && $sideToMove === 1) || ($role === 'black' && $sideToMove === 0))"
+				style="display:none"
+				class="inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-subtle hover:bg-surface-4 hover:text-ink transition-colors duration-150 cursor-pointer shrink-0"
+			>
+				<!-- Undo / counter-clockwise arrow. -->
+				<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<path d="M3 7v6h6"></path>
+					<path d="M3 13a9 9 0 1 0 3-6.7L3 9"></path>
+				</svg>
+			</button>
+
+			<!-- Resign: destructive, hovers red. -->
+			<button
+				type="button"
+				aria-label="Resign"
+				title="Resign"
+				data-on:click="$resignConfirm = true"
+				data-show="$gameState === 0 && $clockUnlocked"
+				style="display:none"
+				class="inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-subtle hover:bg-error-subtle hover:text-error transition-colors duration-150 cursor-pointer shrink-0"
+			>
+				<!-- Flag: the standard "resign" affordance on chess sites. -->
+				<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<path d="M4 21V4"></path>
+					<path d="M4 4h12l-2 4 2 4H4"></path>
+				</svg>
+			</button>
+		}
+
 		<div class="flex-1"></div>
 
 		if gameID != "" && (role == "white" || role == "black") {
 			<div class="relative">
-				<!-- Only show the trigger when there's actually something inside the menu
-				     (claim-victory available OR game is over → rematch available). -->
+				<!-- Post-game menu: claim-victory + propose-rematch. -->
 				<button
 					type="button"
 					aria-label="More game actions"

@@ -23,6 +23,105 @@ func newTestGame(t *testing.T) *game.Game {
 
 // ---- Move validation ------------------------------------------------------
 
+func TestRevertLastPlyRestoresPosition(t *testing.T) {
+	g := newTestGame(t)
+
+	g.ApplyMove(engine.MoveFromUCI("e2e4"), 0) // 1. e4
+	g.ApplyMove(engine.MoveFromUCI("e7e5"), 0) // 1...e5
+	g.ApplyMove(engine.MoveFromUCI("g1f3"), 0) // 2. Nf3
+
+	if g.Board.SideToMove != engine.Black {
+		t.Fatal("expected Black to move after 2.Nf3")
+	}
+	if g.HistoryLen() != 3 {
+		t.Fatalf("expected 3 history entries, got %d", g.HistoryLen())
+	}
+	prevSeq := g.Seq
+
+	if !g.RevertLastPly() {
+		t.Fatal("RevertLastPly returned false on a normal position")
+	}
+	if g.HistoryLen() != 2 {
+		t.Fatalf("expected 2 history entries after revert, got %d", g.HistoryLen())
+	}
+	if g.Board.SideToMove != engine.White {
+		t.Fatal("expected White to move after reverting Nf3")
+	}
+	if g.Seq != prevSeq-1 {
+		t.Fatalf("expected seq %d after revert, got %d", prevSeq-1, g.Seq)
+	}
+	// Re-applying the same move should work — the position is genuinely
+	// restored, not just the side-to-move flipped.
+	if !g.ApplyMove(engine.MoveFromUCI("g1f3"), 0) {
+		t.Fatal("re-applying Nf3 after revert should succeed")
+	}
+	if g.Seq != prevSeq {
+		t.Fatalf("expected seq %d after re-apply, got %d", prevSeq, g.Seq)
+	}
+}
+
+func TestRevertLastPlyOnFirstMoveRestoresInitial(t *testing.T) {
+	g := newTestGame(t)
+	g.ApplyMove(engine.MoveFromUCI("e2e4"), 0)
+	if !g.RevertLastPly() {
+		t.Fatal("RevertLastPly should succeed after first move")
+	}
+	if g.HistoryLen() != 0 {
+		t.Fatalf("expected empty history, got %d", g.HistoryLen())
+	}
+	if g.Board.SideToMove != engine.White {
+		t.Fatal("expected White to move at initial position")
+	}
+	// All moves should be legal again from the starting position.
+	if !g.ApplyMove(engine.MoveFromUCI("d2d4"), 0) {
+		t.Fatal("d4 should be legal from the restored initial position")
+	}
+}
+
+func TestRevertLastPlyEmptyHistoryReturnsFalse(t *testing.T) {
+	g := newTestGame(t)
+	if g.RevertLastPly() {
+		t.Fatal("RevertLastPly with no history should return false")
+	}
+}
+
+func TestRevertLastPlyDoesNotAwardIncrement(t *testing.T) {
+	g := newTestGame(t)
+
+	// Play one move so White's clock has run + gotten the increment, and
+	// Black's clock is now running.
+	g.ApplyMove(engine.MoveFromUCI("e2e4"), 0)
+	blackBefore := g.Clock.Black.RemainingNs
+	whiteBefore := g.Clock.White.RemainingNs
+
+	// Black "thinks" briefly so their clock would otherwise pick up an
+	// increment if we routed through Clock.Stop.
+	time.Sleep(20 * time.Millisecond)
+
+	if !g.RevertLastPly() {
+		t.Fatal("RevertLastPly should succeed")
+	}
+
+	// White should be back on the move with their clock running.
+	if !g.Clock.White.Running {
+		t.Fatal("expected white clock running after revert")
+	}
+	if g.Clock.Black.Running {
+		t.Fatal("expected black clock stopped after revert")
+	}
+	// Black should NOT have received the Fischer increment (they did not
+	// complete a move). Allow a tiny tolerance: any positive change up to a
+	// few ms is acceptable elapsed-time bookkeeping, but anything close to
+	// the configured 2s increment indicates a bug.
+	if g.Clock.Black.RemainingNs > blackBefore {
+		t.Fatalf("black gained time after revert: before=%d after=%d", blackBefore, g.Clock.Black.RemainingNs)
+	}
+	// White's clock should not have changed (the revert just resumes it).
+	if g.Clock.White.RemainingNs != whiteBefore {
+		t.Fatalf("white clock changed unexpectedly: before=%d after=%d", whiteBefore, g.Clock.White.RemainingNs)
+	}
+}
+
 func TestValidMoveApplied(t *testing.T) {
 	g := newTestGame(t)
 

@@ -149,6 +149,10 @@ function mySideColor() {
 }
 
 function isOurTurn() {
+  // Game over (gameState != GameOngoing/0) blocks any further move attempts,
+  // including for solo. Without this, accept-draw / resign leaves the board
+  // interactive until the next page load even though the server rejects.
+  if ((getPath("gameState") ?? 0) !== 0) return false;
   const me = mySideColor();
   if (!me) return true; // solo: always our turn
   const turn = chess?.turn || "white";

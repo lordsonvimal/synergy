@@ -26,6 +26,104 @@ templ RematchPrompt(gameID, csrfToken string) {
 	</div>
 }
 
+// ResignConfirm asks the player to confirm a destructive resign.
+templ ResignConfirm(gameID, csrfToken string) {
+	<div class="bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-3">
+		<div>
+			<p class="text-sm font-semibold text-ink">Resign the game?</p>
+			<p class="text-xs text-ink-muted mt-1">Your opponent will be awarded the win.</p>
+		</div>
+		<div class="flex gap-3 justify-end">
+			<button
+				type="button"
+				data-on:click="$resignConfirm = false"
+				class="px-4 py-2 text-sm font-medium text-ink border border-edge rounded-md hover:bg-surface-4 transition cursor-pointer"
+			>Cancel</button>
+			<button
+				type="button"
+				data-on:click={ templ.JSExpression("$resignConfirm = false; @post('/play/" + gameID + "/resign')") }
+				class="px-4 py-2 text-sm font-medium text-on-error bg-error rounded-md hover:bg-error-hover transition cursor-pointer"
+			>Resign</button>
+		</div>
+	</div>
+}
+
+// DrawPrompt renders a banner shown to the player receiving a draw offer.
+templ DrawPrompt(gameID, csrfToken string) {
+	<div class="bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-3">
+		<div class="flex items-center justify-between">
+			<p class="text-sm font-semibold text-ink">Your opponent offers a draw</p>
+			<span class="text-xs text-ink-muted tabular-nums"><span data-text="$drawSecondsLeft"></span>s</span>
+		</div>
+		<div class="flex gap-3">
+			<button
+				type="button"
+				data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/draw/accept')") }
+				class="px-4 py-2 text-sm font-medium bg-primary text-on-primary rounded-md hover:bg-primary-hover transition cursor-pointer"
+			>Accept</button>
+			<button
+				type="button"
+				data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/draw/decline')") }
+				class="px-4 py-2 text-sm font-medium text-error border border-error rounded-md hover:bg-error-subtle transition cursor-pointer"
+			>Decline</button>
+		</div>
+	</div>
+}
+
+// DrawPending renders a banner shown to the player who offered a draw.
+templ DrawPending(gameID, csrfToken string) {
+	<div class="bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-3">
+		<div class="flex items-center justify-between">
+			<p class="text-sm font-semibold text-ink">Draw offer sent</p>
+			<span class="text-xs text-ink-muted tabular-nums"><span data-text="$drawSecondsLeft"></span>s</span>
+		</div>
+		<p class="text-xs text-ink-muted">Waiting for opponent to respond...</p>
+		<button
+			type="button"
+			data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/draw/decline')") }
+			class="self-start px-3 py-1.5 text-xs font-medium text-error border border-error rounded-md hover:bg-error-subtle transition cursor-pointer"
+		>Cancel</button>
+	</div>
+}
+
+// TakebackPrompt renders a banner shown to the player receiving a takeback request.
+templ TakebackPrompt(gameID, csrfToken string) {
+	<div class="bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-3">
+		<div class="flex items-center justify-between">
+			<p class="text-sm font-semibold text-ink">Opponent wants to take back their move</p>
+			<span class="text-xs text-ink-muted tabular-nums"><span data-text="$takebackSecondsLeft"></span>s</span>
+		</div>
+		<div class="flex gap-3">
+			<button
+				type="button"
+				data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/takeback/accept')") }
+				class="px-4 py-2 text-sm font-medium bg-primary text-on-primary rounded-md hover:bg-primary-hover transition cursor-pointer"
+			>Accept</button>
+			<button
+				type="button"
+				data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/takeback/decline')") }
+				class="px-4 py-2 text-sm font-medium text-error border border-error rounded-md hover:bg-error-subtle transition cursor-pointer"
+			>Decline</button>
+		</div>
+	</div>
+}
+
+// TakebackPending renders a banner shown to the player who requested a takeback.
+templ TakebackPending(gameID, csrfToken string) {
+	<div class="bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-3">
+		<div class="flex items-center justify-between">
+			<p class="text-sm font-semibold text-ink">Takeback requested</p>
+			<span class="text-xs text-ink-muted tabular-nums"><span data-text="$takebackSecondsLeft"></span>s</span>
+		</div>
+		<p class="text-xs text-ink-muted">Waiting for opponent to respond. Their next move will decline this request.</p>
+		<button
+			type="button"
+			data-on:click={ templ.JSExpression("@post('/play/" + gameID + "/takeback/decline')") }
+			class="self-start px-3 py-1.5 text-xs font-medium text-error border border-error rounded-md hover:bg-error-subtle transition cursor-pointer"
+		>Cancel</button>
+	</div>
+}
+
 // RematchPending renders a banner shown to the player who proposed a rematch.
 templ RematchPending(gameID, csrfToken string) {
 	<div class="bg-surface-1 border border-edge rounded-md p-4 flex flex-col gap-3">

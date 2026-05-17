@@ -10,6 +10,12 @@ const REMATCH_TIMEOUT_S = 30
 let rematchSecondsLeft = 0
 let rematchTimerInterval = null
 
+const OFFER_TIMEOUT_S = 30
+let drawSecondsLeft = 0
+let drawTimerInterval = null
+let takebackSecondsLeft = 0
+let takebackTimerInterval = null
+
 // Final clock values for ended games. Plain JS vars: simpler than signals
 // and there's no cross-tab observer that needs to react to them.
 let gameEndedWhiteRemNs = null
@@ -46,6 +52,42 @@ function startRematchTimer() {
     rematchSecondsLeft = Math.max(0, rematchSecondsLeft - 1)
     mergePatch({ rematchSecondsLeft })
     if (rematchSecondsLeft <= 0) clearRematchTimer()
+  }, 1000)
+}
+
+function clearDrawTimer() {
+  if (drawTimerInterval !== null) {
+    clearInterval(drawTimerInterval)
+    drawTimerInterval = null
+  }
+}
+
+function startDrawTimer() {
+  clearDrawTimer()
+  drawSecondsLeft = OFFER_TIMEOUT_S
+  mergePatch({ drawSecondsLeft })
+  drawTimerInterval = setInterval(() => {
+    drawSecondsLeft = Math.max(0, drawSecondsLeft - 1)
+    mergePatch({ drawSecondsLeft })
+    if (drawSecondsLeft <= 0) clearDrawTimer()
+  }, 1000)
+}
+
+function clearTakebackTimer() {
+  if (takebackTimerInterval !== null) {
+    clearInterval(takebackTimerInterval)
+    takebackTimerInterval = null
+  }
+}
+
+function startTakebackTimer() {
+  clearTakebackTimer()
+  takebackSecondsLeft = OFFER_TIMEOUT_S
+  mergePatch({ takebackSecondsLeft })
+  takebackTimerInterval = setInterval(() => {
+    takebackSecondsLeft = Math.max(0, takebackSecondsLeft - 1)
+    mergePatch({ takebackSecondsLeft })
+    if (takebackSecondsLeft <= 0) clearTakebackTimer()
   }, 1000)
 }
 
@@ -103,6 +145,8 @@ function setupEffects() {
   initIfMissing("firstMoveSecondsLeft", 0)
   initIfMissing("rematchProposedBy", "")
   initIfMissing("rematchAcceptedUrl", "")
+  initIfMissing("drawOfferedBy", "")
+  initIfMissing("takebackOfferedBy", "")
   initIfMissing("keepaliveTs", 0)
   initIfMissing("connectionDown", false)
 
@@ -215,6 +259,20 @@ function setupEffects() {
     })
   }
 
+  // Game over → close any open mid-game offer prompts/pending banners so the
+  // game-over UI isn't covered by a stale takeback/draw modal.
+  effect(() => {
+    const gState = getPath("gameState") ?? 0
+    if (gState !== 0) {
+      clearDrawTimer()
+      clearTakebackTimer()
+      mergePatch({
+        drawOffered: false, drawPending: false, drawSecondsLeft: 0,
+        takebackOffered: false, takebackPending: false, takebackSecondsLeft: 0,
+      })
+    }
+  })
+
   // Game-over edge: gameState transitions from 0 (ongoing) to non-zero.
   // Stop both clocks and freeze the final values. Flag-state (3) pins the
   // losing side to exactly 0.
@@ -254,6 +312,44 @@ function setupEffects() {
       mergePatch({ rematchProposed: false, rematchPending: false, rematchSecondsLeft: 0 })
     }
     prevProposer = proposer
+  })
+
+  // Draw offer: server pushes drawOfferedBy (role string or empty). Mirror the
+  // rematch pattern — recipient sees the prompt, proposer sees the pending
+  // state, transition to empty clears both.
+  let prevDrawBy = ""
+  effect(() => {
+    const offerer = getPath("drawOfferedBy") ?? ""
+    if (offerer && offerer !== prevDrawBy) {
+      startDrawTimer()
+      if (offerer === playerRole) {
+        mergePatch({ drawPending: true, drawOffered: false })
+      } else {
+        mergePatch({ drawOffered: true, drawPending: false })
+      }
+    } else if (!offerer && prevDrawBy) {
+      clearDrawTimer()
+      mergePatch({ drawOffered: false, drawPending: false, drawSecondsLeft: 0 })
+    }
+    prevDrawBy = offerer
+  })
+
+  // Takeback offer: same shape as draw.
+  let prevTakebackBy = ""
+  effect(() => {
+    const proposer = getPath("takebackOfferedBy") ?? ""
+    if (proposer && proposer !== prevTakebackBy) {
+      startTakebackTimer()
+      if (proposer === playerRole) {
+        mergePatch({ takebackPending: true, takebackOffered: false })
+      } else {
+        mergePatch({ takebackOffered: true, takebackPending: false })
+      }
+    } else if (!proposer && prevTakebackBy) {
+      clearTakebackTimer()
+      mergePatch({ takebackOffered: false, takebackPending: false, takebackSecondsLeft: 0 })
+    }
+    prevTakebackBy = proposer
   })
 
   // Rematch accepted: server sets rematchAcceptedUrl for the proposer to

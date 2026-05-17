@@ -189,7 +189,6 @@ templ endGlyph(sq uint8, isWhiteKing, isBlackKing, ended string) {
 		data-show={ ended + " && (" + isLoser + " || " + isDraw + ")" }
 		style="display:none"
 		data-class={ templ.JSExpression(`{
-			'rotate-180': $flipped,
 			'bg-error text-on-error': ` + isLoser + `,
 			'bg-neutral-500 text-white': ` + isDraw + `,
 		}`) }

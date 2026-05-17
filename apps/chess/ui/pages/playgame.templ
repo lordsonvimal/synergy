@@ -33,7 +33,7 @@ templ PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) {
 				}
 			}
 
-			<div class="w-full sm:w-[min(100%,calc(100vh-16rem),540px)] flex flex-col sm:rounded-sm overflow-hidden sm:shadow-2xl">
+			<div class="w-full sm:w-[min(100%,calc(100vh-16rem),540px)] flex flex-col border-y sm:border border-edge sm:rounded-sm overflow-hidden sm:shadow-2xl">
 				@components.GameStatusRibbon(g)
 				<div class="flex flex-col">
 					@components.BlackPlayerCard()
@@ -71,6 +71,28 @@ templ PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) {
 			@components.Modal("$rematchProposed", "", "Rematch proposed", "rematch-prompt-modal") {
 				@components.RematchPrompt(g.ID, csrfToken)
 			}
+
+			<!-- Resign confirm modal (local-only signal). -->
+			@components.Modal("$resignConfirm", "$resignConfirm = false", "Confirm resign", "resign-confirm-modal") {
+				@components.ResignConfirm(g.ID, csrfToken)
+			}
+
+			<!-- Draw offer modals. The JS effect ensures these signals are only
+			     set while the game is ongoing (auto-cleared on next move / game end). -->
+			@components.Modal("$drawOffered", "", "Draw offered", "draw-prompt-modal") {
+				@components.DrawPrompt(g.ID, csrfToken)
+			}
+			@components.Modal("$drawPending", "", "Draw offer pending", "draw-pending-modal") {
+				@components.DrawPending(g.ID, csrfToken)
+			}
+
+			<!-- Takeback modals. -->
+			@components.Modal("$takebackOffered", "", "Takeback requested", "takeback-prompt-modal") {
+				@components.TakebackPrompt(g.ID, csrfToken)
+			}
+			@components.Modal("$takebackPending", "", "Takeback pending", "takeback-pending-modal") {
+				@components.TakebackPending(g.ID, csrfToken)
+			}
 		</div>
 	}
 }
@@ -98,6 +120,13 @@ type playSignals struct {
 	RematchProposed    bool   `json:"rematchProposed"`
 	RematchPending     bool   `json:"rematchPending"`
 	RematchSecondsLeft int    `json:"rematchSecondsLeft"`
+	DrawOffered        bool   `json:"drawOffered"`
+	DrawPending        bool   `json:"drawPending"`
+	DrawSecondsLeft    int    `json:"drawSecondsLeft"`
+	TakebackOffered    bool   `json:"takebackOffered"`
+	TakebackPending    bool   `json:"takebackPending"`
+	TakebackSecondsLeft int   `json:"takebackSecondsLeft"`
+	ResignConfirm      bool   `json:"resignConfirm"`
 	Fen                string `json:"fen"` // authoritative FEN; board.js re-anchors chessops on change
 	ConnectionDown     bool   `json:"connectionDown"`
 }
@@ -143,6 +172,13 @@ func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 		RematchProposed:    false,
 		RematchPending:     false,
 		RematchSecondsLeft: 0,
+		DrawOffered:        false,
+		DrawPending:        false,
+		DrawSecondsLeft:    0,
+		TakebackOffered:    false,
+		TakebackPending:    false,
+		TakebackSecondsLeft: 0,
+		ResignConfirm:      false,
 		Fen:                base.Fen,
 		ConnectionDown:     false,
 	}

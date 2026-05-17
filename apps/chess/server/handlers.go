@@ -492,6 +492,9 @@ func initGameBatch(g *game.Game, sessionID string, dbRepo db.Repository) {
 			}
 			return dbRepo.Games().UpdateStatus(batchCtx, g.ID, status, winnerPtr, &endedAt)
 		},
+		func(batchCtx context.Context, gameID string, fromSeq uint64) error {
+			return dbRepo.Moves().DeleteFromSeq(batchCtx, gameID, fromSeq)
+		},
 	)
 }
 
