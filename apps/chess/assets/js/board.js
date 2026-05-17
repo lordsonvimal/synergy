@@ -300,7 +300,21 @@ function postMove(fromSq, toSq, promotionRole, baseSeq, snapshot) {
   // — the server's turn check still passes for the second arriving move
   // (turn hasn't flipped yet) and the moves get applied in inverted order.
   const clientMoveId = newMoveId();
-  return enqueueMovePost(() => sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId, snapshot));
+  const pendingTimer = setTimeout(() => markBoardAttr("data-move-pending", "true"), 1000);
+  const settle = () => {
+    clearTimeout(pendingTimer);
+    markBoardAttr("data-move-pending", null);
+  };
+  return enqueueMovePost(() => sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId, snapshot, settle));
+}
+
+// Toggle an attribute on #chessboard. Pass value=null to remove. Used by the
+// move-pending dim and rejection-shake CSS in ui/styles/style.css.
+function markBoardAttr(name, value) {
+  const root = document.querySelector("#chessboard");
+  if (!root) return;
+  if (value === null || value === undefined) root.removeAttribute(name);
+  else root.setAttribute(name, value);
 }
 
 function newMoveId() {
@@ -312,7 +326,7 @@ function newMoveId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId, snapshot) {
+function sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId, snapshot, settle) {
   const params = new URLSearchParams();
   params.set("clientTsNs", String(Date.now() * 1_000_000));
   if (promotionRole) params.set("promo", String(ROLE_TO_PIECE[promotionRole]));
@@ -329,6 +343,7 @@ function sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId, snapshot) 
     // The server has already broadcast the authoritative state via /events
     // hub; we just need to roll back the local optimistic chessops/seq so we
     // don't reject the next legal move client-side.
+    if (settle) settle();
     if (!res.ok) {
       rollbackOptimistic(snapshot);
       onMoveRejected(res.status);
@@ -349,16 +364,25 @@ function sendMove(fromSq, toSq, promotionRole, baseSeq, clientMoveId, snapshot) 
     // move at all, so its next /events frame (or a reconnect resync) will
     // reflect the pre-move position. Until then, restoring local state keeps
     // the client able to re-attempt or play a different move.
+    if (settle) settle();
     rollbackOptimistic(snapshot);
     onMoveRejected(0);
   });
 }
 
-// Hook for step 6 (UX feedback): show a shake / illegal sound when a move is
-// refused. Status 0 indicates a network failure (treat as a transient
-// rejection rather than a hard "illegal").
+// Visual feedback for a refused move. Adds data-move-rejected on the board
+// root briefly so CSS shakes it; auto-clears after the animation. Status 0
+// indicates a network failure (caller treats it the same as a server reject
+// for feedback purposes — the user couldn't tell the difference anyway and
+// either way the optimistic move did not stick).
+let rejectionClearTimer = null;
 function onMoveRejected(_status) {
-  // Implemented in step 6.
+  markBoardAttr("data-move-rejected", "true");
+  if (rejectionClearTimer) clearTimeout(rejectionClearTimer);
+  rejectionClearTimer = setTimeout(() => {
+    markBoardAttr("data-move-rejected", null);
+    rejectionClearTimer = null;
+  }, 360); // slightly longer than the 320ms shake animation
 }
 
 function onSquareClick(sq) {

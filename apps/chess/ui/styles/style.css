@@ -36,3 +36,35 @@
   --chess-coord-on-light: #8A8A8A;
   --chess-coord-on-dark: #F0F0F0;
 }
+
+/* Move-sync UX feedback (driven from assets/js/board.js).
+
+   data-move-pending: a move POST has been in flight for >1s. The board
+   dims very slightly so the user knows the move hasn't been confirmed by
+   the server yet — without screaming "error", since most moves resolve
+   well within a second.
+
+   data-move-rejected: the server (or network) refused the most recent
+   move. Plays a one-shot horizontal shake. CSS animation is single-use
+   per attribute application; board.js removes the attribute on the next
+   animation frame after the shake ends. */
+#chessboard[data-move-pending="true"] {
+  opacity: 0.92;
+  transition: opacity 120ms ease-out;
+}
+#chessboard[data-move-rejected="true"] {
+  animation: chessleap-shake 320ms cubic-bezier(.36,.07,.19,.97) both;
+}
+@keyframes chessleap-shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #chessboard[data-move-rejected="true"] {
+    animation: none;
+    outline: 2px solid color-mix(in oklab, var(--color-destructive, #c33) 70%, transparent);
+    outline-offset: 2px;
+  }
+}
