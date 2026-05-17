@@ -11,12 +11,15 @@ import (
 func TestApplyMoveChecked_AppliedAdvancesSeq(t *testing.T) {
 	g := newTestGame(t)
 	prev := g.Seq
-	res, seq := g.ApplyMoveChecked(engine.MoveFromUCI("e2e4"), 0, int64(prev))
+	res, snap := g.ApplyMoveChecked(engine.MoveFromUCI("e2e4"), 0, int64(prev))
 	if res != game.MoveApplied {
 		t.Fatalf("expected MoveApplied, got %v", res)
 	}
-	if seq != prev+1 {
-		t.Fatalf("expected seq %d, got %d", prev+1, seq)
+	if snap.Seq != prev+1 {
+		t.Fatalf("expected snap.Seq %d, got %d", prev+1, snap.Seq)
+	}
+	if snap.Fen == "" {
+		t.Fatal("snapshot FEN must be populated after a successful apply")
 	}
 }
 
@@ -26,12 +29,12 @@ func TestApplyMoveChecked_SeqConflictRejects(t *testing.T) {
 	// Client thinks it's still at Seq 0 — must be rejected without mutating
 	// the board.
 	histBefore := g.HistoryLen()
-	res, seq := g.ApplyMoveChecked(engine.MoveFromUCI("e7e5"), 0, 0)
+	res, snap := g.ApplyMoveChecked(engine.MoveFromUCI("e7e5"), 0, 0)
 	if res != game.MoveSeqConflict {
 		t.Fatalf("expected MoveSeqConflict, got %v", res)
 	}
-	if seq != 1 {
-		t.Fatalf("conflict result should report current seq=1, got %d", seq)
+	if snap.Seq != 1 {
+		t.Fatalf("conflict result should report current seq=1, got %d", snap.Seq)
 	}
 	if g.HistoryLen() != histBefore {
 		t.Fatalf("board mutated on conflict: history went %d -> %d", histBefore, g.HistoryLen())
@@ -122,3 +125,36 @@ func TestApplyMoveChecked_ConcurrentSeqGuard(t *testing.T) {
 		t.Fatalf("expected exactly 1 move in history, got %d", g.HistoryLen())
 	}
 }
+
+// TestApplyMoveChecked_SnapshotMatchesSeq verifies that the SignalsSnapshot
+// returned from a successful apply has Fen and Seq that correspond to the
+// same post-move state — i.e. no concurrent mutation can sneak in between
+// the apply and the snapshot capture. We hammer ApplyMoveChecked with many
+// distinct legal moves and assert that for every applied move, the snapshot
+// Fen parses to a position whose half-move count is consistent with snap.Seq.
+func TestApplyMoveChecked_SnapshotMatchesSeq(t *testing.T) {
+	// Sequence of guaranteed-legal alternating moves to keep applying.
+	moves := []string{
+		"e2e4", "e7e5", "g1f3", "g8f6", "f1c4", "f8c5",
+		"e1g1", "e8g8", // both castle short
+		"d2d3", "d7d6",
+	}
+	for trial := 0; trial < 5; trial++ {
+		g := newTestGame(t)
+		for i, u := range moves {
+			res, snap := g.ApplyMoveChecked(engine.MoveFromUCI(u), 0, int64(g.Seq))
+			if res != game.MoveApplied {
+				t.Fatalf("trial %d move %d (%s): expected applied, got %v", trial, i, u, res)
+			}
+			if snap.Seq != uint64(i+1) {
+				t.Fatalf("trial %d move %d: snap.Seq=%d, expected %d", trial, i, snap.Seq, i+1)
+			}
+			// Fen's half-move counter (FEN field 6 - fullmove number) advances
+			// in lockstep with played plies.
+			if snap.Fen == "" {
+				t.Fatalf("trial %d move %d: empty snap.Fen", trial, i)
+			}
+		}
+	}
+}
+

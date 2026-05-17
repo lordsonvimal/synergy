@@ -91,23 +91,28 @@ func (s *ChessBoardSignals) ClearPromotion() {
 }
 
 func (s *ChessBoardSignals) UpdateFromGame(g *game.Game) {
-	s.Timed = g.Timed
-	s.SideToMove = g.Board.SideToMove
-	s.Fen = g.Board.FEN()
-	s.Seq = g.Seq
+	s.UpdateFromSnapshot(g.ReadSignalsSnapshot())
+}
 
-	// Update game state
-	s.IsCheck = g.IsCheck()
-	s.GameState = g.State
-	if g.State != game.GameOngoing && g.Winner != engine.NoColor {
-		c := g.Winner
-		s.Winner = c
+// UpdateFromSnapshot copies an atomic game-state snapshot into the signals.
+// Prefer this over UpdateFromGame when the snapshot was already captured
+// under the same lock as a mutation (e.g. ApplyMoveChecked) — it guarantees
+// the broadcast does not mix fields from before and after a concurrent move.
+func (s *ChessBoardSignals) UpdateFromSnapshot(snap game.SignalsSnapshot) {
+	s.Timed = snap.Timed
+	s.SideToMove = snap.SideToMove
+	s.Fen = snap.Fen
+	s.Seq = snap.Seq
+	s.IsCheck = snap.IsCheck
+	s.GameState = snap.State
+	if snap.State != game.GameOngoing && snap.Winner != engine.NoColor {
+		s.Winner = snap.Winner
 	} else {
 		s.Winner = engine.NoColor
 	}
 
 	// Set human-readable GameState text
-	switch g.State {
+	switch snap.State {
 	case game.GameOngoing:
 		s.GameStateText = "Ongoing"
 	case game.GameCheckmate:
@@ -139,10 +144,10 @@ func (s *ChessBoardSignals) UpdateFromGame(g *game.Game) {
 	// Selection is now driven entirely by the client (chessops), but the
 	// server still reflects whatever in-progress selection it knows about
 	// — used on reconnect/spectator-load.
-	if g.Selection != nil {
-		s.SelectedSquare = g.Selection.FromSquare
-		s.PossibleMoves = make([]int, len(g.Selection.Targets))
-		for i, t := range g.Selection.Targets {
+	if snap.HasSelection {
+		s.SelectedSquare = snap.SelectionFrom
+		s.PossibleMoves = make([]int, len(snap.SelectionTargets))
+		for i, t := range snap.SelectionTargets {
 			s.PossibleMoves[i] = int(t)
 		}
 	} else {

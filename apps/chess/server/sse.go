@@ -176,11 +176,12 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 		}
 	}
 
-	// One-shot apply + validate under a single game lock. Replaces the previous
-	// SelectSquare→HasSelection→IsTarget→IsPromotionMove→ApplyMove sequence,
-	// which acquired/released the lock multiple times and could interleave
-	// with concurrent moves.
-	result, _ := g.ApplyMoveChecked(move, lagCompNs, baseSeq)
+	// One-shot apply + validate under a single game lock. The snapshot is
+	// captured under the same lock as the apply, so the broadcast we build
+	// from it is guaranteed not to mix fields from before and after a
+	// concurrent move (Seq=N+1 paired with FEN=N was previously possible).
+	result, snap := g.ApplyMoveChecked(move, lagCompNs, baseSeq)
+	signals.UpdateFromSnapshot(snap)
 
 	// Status MUST be set before broadcastBoard, because broadcastBoard writes
 	// to the response body and commits headers — calling c.Status after that
@@ -188,7 +189,6 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 	switch result {
 	case game.MoveApplied:
 		c.Status(http.StatusOK)
-		signals.UpdateFromGame(g)
 		signals.ClearPromotion()
 		if err := broadcastBoard(c, g, signals); err != nil {
 			logger.Error(ctx).Err(err).Msg("applyMoveRequest: broadcast board")
@@ -206,8 +206,6 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 		// after the move already applied). Echo authoritative state so the
 		// client resyncs, and tell it explicitly via 409.
 		c.Status(http.StatusConflict)
-		g.ClearSelection()
-		signals.UpdateFromGame(g)
 		_ = broadcastBoard(c, g, signals)
 		hubBroadcastBoard(ctx, g, signals)
 		return
@@ -217,22 +215,16 @@ func applyMoveRequest(c *gin.Context, g *game.Game, from, to uint8, promo engine
 		// open the promotion overlay and re-POST. 422 is the conventional code
 		// for "well-formed request, semantically unprocessable".
 		c.Status(http.StatusUnprocessableEntity)
-		g.ClearSelection()
-		signals.UpdateFromGame(g)
 		_ = broadcastBoard(c, g, signals)
 		return
 
 	case game.MoveGameOver:
 		c.Status(http.StatusGone)
-		g.ClearSelection()
-		signals.UpdateFromGame(g)
 		_ = broadcastBoard(c, g, signals)
 		return
 
 	default: // MoveIllegal
 		c.Status(http.StatusUnprocessableEntity)
-		g.ClearSelection()
-		signals.UpdateFromGame(g)
 		_ = broadcastBoard(c, g, signals)
 		return
 	}

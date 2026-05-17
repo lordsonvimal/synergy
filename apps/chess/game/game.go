@@ -440,20 +440,68 @@ func (r MoveResult) String() string {
 	return "unknown"
 }
 
+// SignalsSnapshot is an atomic view of the game state needed to build a
+// ChessBoardSignals patch. Captured under g.mu so two near-simultaneous
+// moves cannot interleave between ApplyMoveChecked returning and the caller
+// reading g.Board/g.Seq/g.State to build the broadcast — which previously
+// allowed a hub frame to carry seq=N+1 paired with the FEN from seq=N.
+type SignalsSnapshot struct {
+	Timed            bool
+	SideToMove       engine.Color
+	Fen              string
+	Seq              uint64
+	IsCheck          bool
+	State            GameState
+	Winner           engine.Color
+	HasSelection     bool
+	SelectionFrom    uint8
+	SelectionTargets []uint8
+}
+
+// SignalsSnapshot takes a read lock and returns an atomic view suitable for
+// building a ChessBoardSignals patch. Use this when constructing a broadcast
+// outside of ApplyMoveChecked (which returns its own snapshot under the
+// write lock).
+func (g *Game) ReadSignalsSnapshot() SignalsSnapshot {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.signalsSnapshotLocked()
+}
+
+// signalsSnapshotLocked must be called with g.mu held (read or write).
+func (g *Game) signalsSnapshotLocked() SignalsSnapshot {
+	snap := SignalsSnapshot{
+		Timed:      g.Timed,
+		SideToMove: g.Board.SideToMove,
+		Fen:        g.Board.FEN(),
+		Seq:        g.Seq,
+		IsCheck:    g.Board.IsKingInCheck(g.Board.SideToMove),
+		State:      g.State,
+		Winner:     g.Winner,
+	}
+	if g.Selection != nil {
+		snap.HasSelection = true
+		snap.SelectionFrom = g.Selection.FromSquare
+		snap.SelectionTargets = append([]uint8(nil), g.Selection.Targets...)
+	}
+	return snap
+}
+
 // ApplyMoveChecked validates and applies a move under a single lock, with an
 // optional baseSeq guard so two near-simultaneous requests from the same
 // client cannot land out of order. baseSeq < 0 disables the check (solo /
-// non-online callers). Returns the outcome and the resulting Seq (or current
-// Seq on rejection, so the caller can echo it back for client resync).
-func (g *Game) ApplyMoveChecked(m engine.Move, lagCompNs int64, baseSeq int64) (MoveResult, uint64) {
+// non-online callers). Returns the outcome and a snapshot of the resulting
+// game state — captured under the same lock as the apply, so the caller can
+// build an atomically-consistent broadcast without re-reading g.
+func (g *Game) ApplyMoveChecked(m engine.Move, lagCompNs int64, baseSeq int64) (MoveResult, SignalsSnapshot) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	if g.State != GameOngoing {
-		return MoveGameOver, g.Seq
+		return MoveGameOver, g.signalsSnapshotLocked()
 	}
 	if baseSeq >= 0 && uint64(baseSeq) != g.Seq {
-		return MoveSeqConflict, g.Seq
+		return MoveSeqConflict, g.signalsSnapshotLocked()
 	}
 	// Validate move legality. Board.MakeMove only checks king-safety, not
 	// piece-movement geometry (sliders ignore blockers), so a misbehaving or
@@ -487,14 +535,14 @@ func (g *Game) ApplyMoveChecked(m engine.Move, lagCompNs int64, baseSeq int64) (
 	}
 	if !matched {
 		if needsPromo {
-			return MovePromoNeeded, g.Seq
+			return MovePromoNeeded, g.signalsSnapshotLocked()
 		}
-		return MoveIllegal, g.Seq
+		return MoveIllegal, g.signalsSnapshotLocked()
 	}
 	if !g.applyMoveLocked(m, lagCompNs) {
-		return MoveIllegal, g.Seq
+		return MoveIllegal, g.signalsSnapshotLocked()
 	}
-	return MoveApplied, g.Seq
+	return MoveApplied, g.signalsSnapshotLocked()
 }
 
 func (g *Game) ApplyMove(m engine.Move, lagCompNs int64) bool {
