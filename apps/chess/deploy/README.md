@@ -101,7 +101,8 @@ Save: `Ctrl+O` → `Enter` → `Ctrl+X`. Then type `exit` to leave the SSH sessi
 2. Builds Tailwind CSS and minifies it into `dist/style.css`
 3. Cross-compiles the Go binary for `linux/amd64`
 4. Uploads the binary, `dist/`, and `assets/` to the VM via scp/rsync
-5. Restarts the systemd service
+5. Ensures `stockfish` is installed on the VM (idempotent; needed by the game-analysis worker)
+6. Restarts the systemd service
 
 Run from `apps/chess/`:
 

@@ -39,6 +39,24 @@ echo "==> Preparing remote directory..."
 # root or a different user) can be overwritten by rsync/scp under our user.
 $SSH "$REMOTE" "sudo mkdir -p $REMOTE_DIR && sudo chown -R \$(whoami) $REMOTE_DIR"
 
+echo "==> Ensuring stockfish is installed (required for game analysis)..."
+# Idempotent: apt-get install is a no-op if already present. Older VMs that
+# were provisioned before stockfish was added to setup-server.sh need this
+# on first deploy after the analysis feature shipped.
+$SSH "$REMOTE" "[ -x /usr/games/stockfish ] || (sudo apt-get update -q && sudo apt-get install -y stockfish)"
+
+echo "==> Syncing systemd unit if changed..."
+# The unit file is normally installed once by setup-server.sh, but deploys
+# that touch the unit (e.g. new Environment= for stockfish path) need to
+# refresh it. Copy → diff against /etc/systemd → reload daemon if changed.
+scp ${SSH_KEY:+-i "$SSH_KEY"} deploy/chess.service "$REMOTE:/tmp/chess.service.new"
+$SSH "$REMOTE" "if ! sudo cmp -s /tmp/chess.service.new /etc/systemd/system/chess.service; then \
+  sudo mv /tmp/chess.service.new /etc/systemd/system/chess.service && \
+  sudo systemctl daemon-reload; \
+else \
+  rm -f /tmp/chess.service.new; \
+fi"
+
 echo "==> Uploading binary to staging path..."
 # Upload to /tmp first, then sudo-move into place after stopping the service.
 # This avoids ETXTBSY on running binaries and keeps the swap atomic.
