@@ -143,6 +143,8 @@ function setupEffects() {
   initIfMissing("clkTs", 0)
   initIfMissing("firstMoveDeadlineNs", 0)
   initIfMissing("firstMoveSecondsLeft", 0)
+  initIfMissing("joinDeadlineNs", 0)
+  initIfMissing("joinSecondsLeft", 0)
   initIfMissing("rematchProposedBy", "")
   initIfMissing("rematchAcceptedUrl", "")
   initIfMissing("drawOfferedBy", "")
@@ -231,6 +233,43 @@ function setupEffects() {
     firstMoveInterval = setInterval(() => {
       if (updateFirstMoveSecondsLeft() <= 0) clearFirstMoveTimer()
     }, 250)
+  })
+
+  // Opponent-join countdown: while the creator is waiting for the second
+  // player to claim their seat, the server-side watchdog auto-cancels at
+  // joinDeadlineNs. Mirror that as a visible countdown so the creator
+  // knows how long they have. Display-only; server is authoritative.
+  let joinInterval = null
+  const clearJoinTimer = () => {
+    if (joinInterval !== null) {
+      clearInterval(joinInterval)
+      joinInterval = null
+    }
+  }
+  const updateJoinSecondsLeft = () => {
+    const deadlineNs = Number(getPath("joinDeadlineNs") ?? 0)
+    if (!deadlineNs) {
+      mergePatch({ joinSecondsLeft: 0 })
+      return 0
+    }
+    const offsetNs = getClockOffset()
+    const nowNs = Date.now() * 1e6 + offsetNs
+    const remNs = Math.max(0, deadlineNs - nowNs)
+    const remS = Math.ceil(remNs / 1e9)
+    mergePatch({ joinSecondsLeft: remS })
+    return remS
+  }
+  effect(() => {
+    const deadlineNs = Number(getPath("joinDeadlineNs") ?? 0)
+    clearJoinTimer()
+    if (!deadlineNs) {
+      mergePatch({ joinSecondsLeft: 0 })
+      return
+    }
+    if (updateJoinSecondsLeft() <= 0) return
+    joinInterval = setInterval(() => {
+      if (updateJoinSecondsLeft() <= 0) clearJoinTimer()
+    }, 500)
   })
 
   // Clock-tick effect: server pushes {clkW, clkB, clkWRun, clkBRun, clkTs}

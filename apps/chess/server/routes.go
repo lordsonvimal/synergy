@@ -17,6 +17,7 @@ func InitRoutes(r *gin.Engine) {
 	// Online play routes.
 	r.POST("/play", CreatePlay)
 	r.GET("/play/:gameID", ShowPlayGame)
+	r.POST("/play/:gameID/claim", ClaimPlaySeat)
 	r.GET("/play/:gameID/events", PlayEventsHandler)
 	r.GET("/play/:gameID/board-at/:halfMoveIdx", BoardAtHistoryHandler)
 	r.POST("/play/:gameID/move/:from/:to", PlayMove)

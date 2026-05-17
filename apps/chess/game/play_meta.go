@@ -36,7 +36,12 @@ type PlayMeta struct {
 
 	// Clock-unlock gate: true once both players have had ≥1 SSE connection.
 	BothPlayersConnectedOnce bool
-	FirstMoveDeadline        *time.Time // 30s after both first connect
+	FirstMoveDeadline        *time.Time // 60s after both first connect
+
+	// JoinDeadline is the wall-clock at which the game auto-cancels if the
+	// opponent has not yet claimed their seat. Set on game creation, cleared
+	// once both players have connected.
+	JoinDeadline *time.Time
 
 	// ClockArmedAfterLoad tracks whether we've started the side-to-move clock
 	// since this game was loaded into memory. Reset to false on each fresh
@@ -102,6 +107,7 @@ func (m *PlayMeta) RecordSSEConnect(role string) (bothFirstConnected, shouldArmC
 	bothOnline := m.whiteConns > 0 && m.blackConns > 0
 	if !m.BothPlayersConnectedOnce && bothOnline {
 		m.BothPlayersConnectedOnce = true
+		m.JoinDeadline = nil
 		bothFirstConnected = true
 	}
 	if bothOnline && !m.ClockArmedAfterLoad {
@@ -203,6 +209,31 @@ func (m *PlayMeta) GetFirstMoveDeadlineNs() int64 {
 		return 0
 	}
 	return m.FirstMoveDeadline.UnixNano()
+}
+
+// IsSeatClaimed reports whether the given role ("white"/"black") has been
+// claimed by a participant.
+func (m *PlayMeta) IsSeatClaimed(role string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	switch role {
+	case "white":
+		return m.WhiteClaimed
+	case "black":
+		return m.BlackClaimed
+	}
+	return false
+}
+
+// GetJoinDeadlineNs returns the opponent-join deadline as unix nanoseconds,
+// or 0 if no deadline is set (e.g. both players have already connected).
+func (m *PlayMeta) GetJoinDeadlineNs() int64 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.JoinDeadline == nil {
+		return 0
+	}
+	return m.JoinDeadline.UnixNano()
 }
 
 // IsStarted returns true after both players have had ≥1 SSE connection.

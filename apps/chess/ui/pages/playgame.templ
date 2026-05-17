@@ -55,9 +55,10 @@ templ PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) {
 				@components.GameToolsPanel(g.ID, role, csrfToken)
 			</div>
 
-			<!-- Share-links modal: shown until the opponent claims their seat. -->
+			<!-- Share-links modal: shown until the opponent claims their seat
+			     or the game is no longer ongoing (e.g. join-deadline expired). -->
 			if (role == "white" || role == "black") && (!g.PlayMeta.WhiteClaimed || !g.PlayMeta.BlackClaimed) {
-				@components.Modal("!$clockUnlocked", "", "Invite opponent", "share-links-modal") {
+				@components.Modal("!$clockUnlocked && $gameState === 0", "", "Invite opponent", "share-links-modal") {
 					@components.ShareLinksPanel(g.ID, g.PlayMeta.WhiteToken, g.PlayMeta.BlackToken, role)
 				}
 			}
@@ -116,6 +117,8 @@ type playSignals struct {
 	Timed          bool   `json:"timed"`
 	FirstMoveDeadlineNs int64 `json:"firstMoveDeadlineNs"`
 	FirstMoveSecondsLeft int  `json:"firstMoveSecondsLeft"`
+	JoinDeadlineNs       int64 `json:"joinDeadlineNs"`
+	JoinSecondsLeft      int   `json:"joinSecondsLeft"`
 	ClaimVictory       bool   `json:"claimVictory"`
 	RematchProposed    bool   `json:"rematchProposed"`
 	RematchPending     bool   `json:"rematchPending"`
@@ -163,6 +166,16 @@ func firstMoveDeadlineNsFor(g *game.Game) int64 {
 	return g.PlayMeta.GetFirstMoveDeadlineNs()
 }
 
+func joinDeadlineNsFor(g *game.Game) int64 {
+	if g.PlayMeta == nil {
+		return 0
+	}
+	if !g.IsOngoing() {
+		return 0
+	}
+	return g.PlayMeta.GetJoinDeadlineNs()
+}
+
 func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 	base := ui_store.ChessBoardSignalsFromGame(g)
 	// Don't leak the opponent's selection/highlights to the player whose turn it
@@ -190,6 +203,8 @@ func playPageSignals(g *game.Game, role string, flipped bool) *playSignals {
 		Timed:           base.Timed,
 		FirstMoveDeadlineNs: firstMoveDeadlineNsFor(g),
 		FirstMoveSecondsLeft: 0,
+		JoinDeadlineNs:      joinDeadlineNsFor(g),
+		JoinSecondsLeft:     0,
 		ClaimVictory:       false,
 		RematchProposed:    false,
 		RematchPending:     false,

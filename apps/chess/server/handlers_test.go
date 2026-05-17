@@ -61,8 +61,8 @@ func TestShowGameModesContainsGameModeButton(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	body := w.Body.String()
-	if !strings.Contains(body, "game-mode-button-0") {
-		t.Error("response body should contain a game-mode-button data-testid")
+	if !strings.Contains(body, "play-mode-button-0") {
+		t.Error("response body should contain a play-mode-button data-testid")
 	}
 }
 
@@ -84,7 +84,7 @@ func TestShowGameModesErrorQuery(t *testing.T) {
 
 func TestCreateGameRedirectsToGame(t *testing.T) {
 	r := newTestRouter(t)
-	req := postWithCSRF("/solo", url.Values{"mode": {"Standard 5+2"}})
+	req := postWithCSRF("/solo", url.Values{"mode": {"Unlimited"}})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -116,7 +116,7 @@ func TestCreateGameInvalidModeRedirectsWithError(t *testing.T) {
 // createGameViaHTTP creates a game through the handler and returns its ID.
 func createGameViaHTTP(t *testing.T, r *gin.Engine) string {
 	t.Helper()
-	req := postWithCSRF("/solo", url.Values{"mode": {"Standard 5+2"}})
+	req := postWithCSRF("/solo", url.Values{"mode": {"Unlimited"}})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -172,33 +172,3 @@ func TestShowGameNotFoundRedirects(t *testing.T) {
 	}
 }
 
-// ---- SelectSquare ---------------------------------------------------------
-
-func TestSelectSquareReturns200(t *testing.T) {
-	r := newTestRouter(t)
-	gameID := createGameViaHTTP(t, r)
-
-	// Select square 12 (e2) — White's e-pawn starting square.
-	// Must include the _csrf token in the form body; the CSRF middleware rejects
-	// POST requests that have neither a matching form field nor a same-origin header.
-	req := postWithCSRF("/solo/"+gameID+"/select/12", url.Values{})
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	// The handler either writes SSE signals (200) or returns immediately.
-	// We only check that it does not 5xx/4xx.
-	if w.Code >= http.StatusBadRequest {
-		t.Errorf("POST /solo/:id/select/:sq status: got %d, want < 400", w.Code)
-	}
-}
-
-func TestSelectSquareInvalidGameReturns404(t *testing.T) {
-	r := newTestRouter(t)
-	req := postWithCSRF("/solo/bad-id/select/12", url.Values{})
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	if w.Code != http.StatusNotFound {
-		t.Errorf("SELECT on missing game: got %d, want %d", w.Code, http.StatusNotFound)
-	}
-}

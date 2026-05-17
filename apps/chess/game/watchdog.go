@@ -42,6 +42,16 @@ func (g *Game) startWatchdog() {
 					pm.mu.Lock()
 
 					if !pm.BothPlayersConnectedOnce {
+						// Opponent-join timeout: if no one has claimed and
+						// connected by JoinDeadline, abandon with no winner.
+						if pm.JoinDeadline != nil && now.After(*pm.JoinDeadline) {
+							pm.mu.Unlock()
+							g.State = GameAbandoned
+							g.Winner = engine.NoColor
+							g.signalGameOver()
+							g.mu.Unlock()
+							return
+						}
 						pm.mu.Unlock()
 						g.mu.Unlock()
 						continue

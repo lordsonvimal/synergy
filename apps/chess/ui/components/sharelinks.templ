@@ -29,6 +29,19 @@ templ ShareLinksPanel(gameID, whiteToken, blackToken, myRole string) {
 			</div>
 		</div>
 		@opponentLinkRow(oppURL, oppColorLabel)
+		<div
+			class="flex items-center justify-between gap-2 px-3 py-2 bg-surface-3 border border-edge rounded"
+			data-show="$joinDeadlineNs > 0"
+			style="display:none"
+			role="timer"
+			aria-live="polite"
+		>
+			<span class="text-xs text-ink-muted">Game cancels if no one joins in</span>
+			<span
+				class="text-sm font-mono tabular-nums font-semibold text-accent"
+				data-text="$joinSecondsLeft + 's'"
+			></span>
+		</div>
 	</section>
 }
 

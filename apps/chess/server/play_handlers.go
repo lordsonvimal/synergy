@@ -20,6 +20,16 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 )
 
+const (
+	// joinTimeout is how long after game creation the opponent has to claim
+	// their seat before the game auto-cancels.
+	joinTimeout = 120 * time.Second
+
+	// firstMoveTimeout is how long white has to play the first move after
+	// both players have connected.
+	firstMoveTimeout = 60 * time.Second
+)
+
 // generateParticipantToken generates a cryptographically random 32-char hex token.
 func generateParticipantToken() (string, error) {
 	b := make([]byte, 16)
@@ -71,6 +81,7 @@ func CreatePlay(c *gin.Context) {
 		return
 	}
 
+	joinDeadline := time.Now().Add(joinTimeout)
 	meta := &game.PlayMeta{
 		SessionID:          uuid.New().String(),
 		WhiteParticipantID: uuid.New().String(),
@@ -86,6 +97,7 @@ func CreatePlay(c *gin.Context) {
 		LastDrawSeq:        [2]int64{-1, -1},
 		LastTakebackSeq:    [2]int64{-1, -1},
 		ClaimVictoryFor:    engine.NoColor,
+		JoinDeadline:       &joinDeadline,
 	}
 
 	g := game.NewPlayGame(&gm, meta)
@@ -200,34 +212,91 @@ func ShowPlayGame(c *gin.Context) {
 		return
 	}
 
-	role, redirectURL := resolvePlayRole(c, g)
-	if redirectURL != "" {
-		c.Redirect(http.StatusSeeOther, redirectURL)
+	// If the visitor has a valid cookie for this game, render the game directly.
+	if claims, err := GetPlaySession(c.Request); err == nil && claims.GameID == g.ID {
+		role := claims.Role
+		flipped := role == "black"
+		Render(c, http.StatusOK, pages.PlayGamePage(g, role, flipped, CSRFToken(c)))
 		return
 	}
 
-	flipped := role == "black"
-	Render(c, http.StatusOK, pages.PlayGamePage(g, role, flipped, CSRFToken(c)))
+	// Visitor has no session cookie for this game.
+	//
+	// If a ?token= is present, surface a join-confirmation page rather than
+	// claiming the seat on GET. Claiming on GET allows link-preview crawlers
+	// (WhatsApp, Slack, etc.) to consume the token when the URL is pasted
+	// into a chat — the real opponent then arrives to find the seat already
+	// claimed and is silently demoted to spectator.
+	if token := c.Query("token"); token != "" {
+		// Bots get a minimal OG-preview page; they must not consume the token
+		// or even learn about the seat assignment.
+		if isLinkPreviewBot(c.Request.UserAgent()) {
+			Render(c, http.StatusOK, pages.PlayInvitePreview(g))
+			return
+		}
+
+		// Determine which side this token corresponds to (without claiming).
+		intendedRole := ""
+		switch token {
+		case g.PlayMeta.WhiteToken:
+			intendedRole = "white"
+		case g.PlayMeta.BlackToken:
+			intendedRole = "black"
+		}
+		if intendedRole == "" {
+			c.Redirect(http.StatusSeeOther, "/?error=invalid_invite")
+			return
+		}
+		// If that seat is already claimed (e.g. opponent on another device),
+		// fall through to spectator.
+		claimed := g.PlayMeta.IsSeatClaimed(intendedRole)
+		if claimed {
+			Render(c, http.StatusOK, pages.PlayGamePage(g, "spectator", false, CSRFToken(c)))
+			return
+		}
+		Render(c, http.StatusOK, pages.PlayJoinConfirm(g, intendedRole, token, CSRFToken(c)))
+		return
+	}
+
+	// No cookie, no token → spectator view of the game.
+	Render(c, http.StatusOK, pages.PlayGamePage(g, "spectator", false, CSRFToken(c)))
 }
 
-// resolvePlayRole determines the visitor's role.
-// Returns (role, "") on success or ("", redirectURL) when a claim redirect is needed.
-func resolvePlayRole(c *gin.Context, g *game.Game) (role, redirectURL string) {
-	// 1. Valid cookie for this game.
-	if claims, err := GetPlaySession(c.Request); err == nil && claims.GameID == g.ID {
-		return claims.Role, ""
+// ClaimPlaySeat handles POST /play/:gameID/claim — completes the join after
+// the visitor has explicitly confirmed on the join page. The token must be
+// supplied via form field "token".
+func ClaimPlaySeat(c *gin.Context) {
+	ctx := c.Request.Context()
+	repo, ok := store.GetRepoFromContext(ctx)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/?error=server_error")
+		return
 	}
-
-	// 2. Token query param — atomic claim.
-	if token := c.Query("token"); token != "" {
-		if participantID, claimedRole, ok := g.PlayMeta.TryClaim(token); ok {
-			claimParticipant(c, g, participantID, claimedRole)
-			return "", "/play/" + g.ID
-		}
-		// Token matched but already claimed → spectator (fall through).
+	gameID := c.Param("gameID")
+	g, ok := repo.Get(gameID)
+	if !ok || g.PlayMeta == nil {
+		c.Redirect(http.StatusSeeOther, "/?error=game_not_found")
+		return
 	}
-
-	return "spectator", ""
+	token := c.PostForm("token")
+	if token == "" {
+		c.Redirect(http.StatusSeeOther, "/?error=invalid_invite")
+		return
+	}
+	// If the caller already has a session for this game, just send them to the
+	// board — no further claim needed.
+	if claims, err := GetPlaySession(c.Request); err == nil && claims.GameID == gameID {
+		c.Redirect(http.StatusSeeOther, "/play/"+gameID)
+		return
+	}
+	participantID, claimedRole, ok := g.PlayMeta.TryClaim(token)
+	if !ok {
+		// Token unknown or seat already taken — drop to spectator view.
+		c.Redirect(http.StatusSeeOther, "/play/"+gameID)
+		return
+	}
+	claimParticipant(c, g, participantID, claimedRole)
+	c.Redirect(http.StatusSeeOther, "/play/"+gameID)
 }
 
 func claimParticipant(c *gin.Context, g *game.Game, participantID, role string) {
@@ -306,11 +375,12 @@ func PlayEventsHandler(c *gin.Context) {
 		case bothFirstConnected:
 			// Brand-new game, both players just arrived for the first time.
 			// Start the 20s first-move countdown for white.
-			deadline := time.Now().Add(20 * time.Second)
+			deadline := time.Now().Add(firstMoveTimeout)
 			g.StartPlayClock(deadline)
 			g.Hub.BroadcastSignals(map[string]any{
 				"clockUnlocked":       true,
 				"firstMoveDeadlineNs": deadline.UnixNano(),
+				"joinDeadlineNs":      int64(0),
 			})
 		case shouldArmClock:
 			// Game already had at least one move (or BothPlayersConnectedOnce
@@ -334,6 +404,11 @@ func PlayEventsHandler(c *gin.Context) {
 	}
 	if dlNs := g.PlayMeta.GetFirstMoveDeadlineNs(); dlNs != 0 && len(g.History) == 0 && g.IsOngoing() {
 		initialSignals["firstMoveDeadlineNs"] = dlNs
+	}
+	if jdNs := g.PlayMeta.GetJoinDeadlineNs(); jdNs != 0 && g.IsOngoing() {
+		initialSignals["joinDeadlineNs"] = jdNs
+	} else {
+		initialSignals["joinDeadlineNs"] = int64(0)
 	}
 	writeSignalsDirect(c, initialSignals)
 	if proposer := g.PlayMeta.GetRematchProposer(); proposer != engine.NoColor {

@@ -1,0 +1,100 @@
+package pages
+
+import (
+	"github.com/lordsonvimal/synergy/apps/chess/game"
+	"github.com/lordsonvimal/synergy/apps/chess/ui/layouts"
+)
+
+// PlayJoinConfirm is shown to a real user who has opened an invite link
+// (/play/:gameID?token=...). The seat is NOT claimed on GET — instead, the
+// visitor must explicitly confirm by submitting this form, which posts to
+// /play/:gameID/claim. This prevents link-preview crawlers from consuming
+// the token when the URL is pasted into chat apps.
+templ PlayJoinConfirm(g *game.Game, intendedRole, token, csrfToken string) {
+	{{
+		colorLabel := "White"
+		colorGlyph := "♔"
+		if intendedRole == "black" {
+			colorLabel = "Black"
+			colorGlyph = "♚"
+		}
+		mode := ""
+		if g.PlayMeta != nil {
+			mode = g.PlayMeta.OriginalMode.Name
+		}
+	}}
+	@layouts.Layout("ChessLeap — Join game", true) {
+		<div class="flex-1 flex items-start justify-center p-4">
+			<section class="w-full max-w-md mt-12 bg-surface-1 border border-edge rounded-md p-6 flex flex-col gap-5">
+				<header class="flex flex-col gap-1">
+					<h1 class="text-lg font-semibold text-ink">You've been invited to play</h1>
+					if mode != "" {
+						<p class="text-sm text-ink-muted">{ mode }</p>
+					}
+				</header>
+				<div class="flex items-center gap-3 p-3 bg-surface-3 border border-edge rounded">
+					<span aria-hidden="true" class="text-3xl leading-none">{ colorGlyph }</span>
+					<div class="flex flex-col">
+						<span class="text-xs text-ink-muted">You will play as</span>
+						<span class="text-base font-semibold text-ink">{ colorLabel }</span>
+					</div>
+				</div>
+				<form method="POST" action={ templ.SafeURL("/play/" + g.ID + "/claim") } class="flex flex-col gap-2">
+					<input type="hidden" name="_csrf" value={ csrfToken }/>
+					<input type="hidden" name="token" value={ token }/>
+					<button
+						type="submit"
+						class="w-full text-sm font-medium px-4 py-2.5 bg-primary text-on-primary border border-primary rounded cursor-pointer hover:bg-primary-hover hover:border-primary-hover active:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition"
+					>
+						Join as { colorLabel }
+					</button>
+					<a
+						href="/"
+						class="w-full text-center text-xs font-medium px-4 py-2 text-ink-muted hover:text-ink hover:bg-surface-4 rounded cursor-pointer transition"
+					>
+						Cancel
+					</a>
+				</form>
+				<p class="text-xs text-ink-muted">
+					Your seat is reserved when you tap "Join as { colorLabel }". The clock starts as soon as both players are connected.
+				</p>
+			</section>
+		</div>
+	}
+}
+
+// PlayInvitePreview is served to link-preview crawlers (WhatsApp, Slack,
+// Twitter, etc). It includes Open Graph tags so the preview looks nice, but
+// renders no interactive UI and — crucially — does not call TryClaim, so the
+// invite token is preserved for the real opponent.
+templ PlayInvitePreview(g *game.Game) {
+	{{
+		mode := ""
+		if g.PlayMeta != nil {
+			mode = g.PlayMeta.OriginalMode.Name
+		}
+		title := "ChessLeap — You've been invited to play"
+		desc := "Tap to accept and join the game."
+		if mode != "" {
+			desc = "Tap to accept and join a " + mode + " game on ChessLeap."
+		}
+	}}
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<title>{ title }</title>
+			<meta name="description" content={ desc }/>
+			<meta property="og:type" content="website"/>
+			<meta property="og:title" content={ title }/>
+			<meta property="og:description" content={ desc }/>
+			<meta name="twitter:card" content="summary"/>
+			<meta name="twitter:title" content={ title }/>
+			<meta name="twitter:description" content={ desc }/>
+		</head>
+		<body>
+			<h1>{ title }</h1>
+			<p>{ desc }</p>
+		</body>
+	</html>
+}
