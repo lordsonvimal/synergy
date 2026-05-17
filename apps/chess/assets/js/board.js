@@ -607,7 +607,13 @@ function init() {
       const fen = getPath("fen");
       if (typeof fen !== "string" || fen.length === 0) return;
       const incomingSeq = Number(getPath("seq"));
-      if (!shouldApplyIncomingSeq(lastAppliedSeq, incomingSeq)) {
+      // `rewind: true` is set by the server only on takeback broadcasts, where
+      // Seq legitimately moves backward. Bypass the monotonic guard so the
+      // chessops instance re-anchors to the reverted FEN; without this the
+      // patch would be dropped as a stale echo and chess.turn would stay on
+      // the wrong side. Late-arriving stale patches never carry this flag.
+      const isRewind = getPath("rewind") === true;
+      if (!isRewind && !shouldApplyIncomingSeq(lastAppliedSeq, incomingSeq)) {
         // Stale patch — server has already advanced past this state on our
         // side. Ignore to avoid rewinding the board.
         return;

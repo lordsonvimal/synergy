@@ -1052,6 +1052,10 @@ func AcceptTakeback(c *gin.Context) {
 	}
 
 	signals := ui_store.ChessBoardSignalsFromGame(g)
+	// Mark this broadcast as an authoritative rewind so the client's
+	// monotonic seq-guard accepts the now-lower Seq instead of dropping it
+	// as a stale echo.
+	signals.Rewind = true
 	hubBroadcastBoard(ctx, g, signals)
 	extras := map[string]any{"takebackOfferedBy": ""}
 	if clearedDraw {

@@ -34,6 +34,11 @@ type ChessBoardSignals struct {
 	// last pawn move or capture and the game is still ongoing. Clients use
 	// this to enable the "Claim draw (50-move)" button.
 	CanClaimFiftyMove bool `json:"canClaimFiftyMove"`
+	// Rewind, when true, tells the client this patch is an authoritative
+	// backward state transition (takeback) and the client's monotonic
+	// seq-guard should be bypassed for this frame. Cleared on every
+	// subsequent forward broadcast (always false off the takeback path).
+	Rewind bool `json:"rewind"`
 }
 
 func NewChessBoardSignals() *ChessBoardSignals {
