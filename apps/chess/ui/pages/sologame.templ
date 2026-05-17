@@ -7,7 +7,7 @@ import "github.com/lordsonvimal/synergy/apps/chess/ui/layouts"
 import "github.com/lordsonvimal/synergy/apps/chess/ui/ui_store"
 
 templ SoloGamePage(g *game.Game) {
-	@layouts.Layout("ChessLeap", true) {
+	@layouts.Layout("ChessLeap") {
 		<!-- datastar runtime is loaded once in layouts.Layout via the importmap -->
 		<script type="module" src={ helpers.Asset("js/initClock.js") }></script>
 		<script type="module" src={ helpers.Asset("js/board.js") }></script>

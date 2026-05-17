@@ -9,7 +9,7 @@ import (
 )
 
 templ PlayGamePage(g *game.Game, role string, flipped bool, csrfToken string) {
-	@layouts.Layout("ChessLeap — Play", true) {
+	@layouts.Layout("ChessLeap — Play") {
 		<!-- datastar runtime is loaded once in layouts.Layout via the importmap -->
 		<script type="module" src={ helpers.Asset("js/initClock.js") }></script>
 		<script type="module" src={ helpers.Asset("js/board.js") }></script>

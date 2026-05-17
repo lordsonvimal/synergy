@@ -5,7 +5,7 @@ import (
 	"github.com/lordsonvimal/synergy/apps/chess/ui/helpers"
 )
 
-templ Layout(title string, showBack bool) {
+templ Layout(title string) {
 	<!DOCTYPE html>
 	<html lang="en" class="h-full">
 		<head>
@@ -38,11 +38,6 @@ templ Layout(title string, showBack bool) {
 				data-signals.ifmissing='{"menuOpen": false}'
 			>
 				<div class="flex items-center gap-2">
-					if showBack {
-						<a href="/" class="sm:hidden p-1 rounded-md hover:bg-surface-4 text-ink-subtle transition" aria-label="Back to home">
-							<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
-						</a>
-					}
 					<a href="/" class="flex items-center gap-2 text-lg font-semibold text-ink tracking-tight">
 						<img src={ helpers.Asset("favicon.svg") } alt="ChessLeap logo" width="28" height="28" class="rounded-md"/>
 						ChessLeap
