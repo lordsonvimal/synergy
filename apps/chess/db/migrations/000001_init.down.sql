@@ -1,6 +1,0 @@
-DROP TABLE IF EXISTS chat_messages;
-DROP TABLE IF EXISTS game_events;
-DROP TABLE IF EXISTS moves;
-DROP TABLE IF EXISTS games;
-DROP TABLE IF EXISTS participants;
-DROP TABLE IF EXISTS sessions;

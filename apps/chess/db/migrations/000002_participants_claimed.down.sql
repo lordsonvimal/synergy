@@ -1,2 +1,0 @@
--- SQLite does not support DROP COLUMN reliably before 3.35.0.
--- To revert: recreate participants table without the claimed column.
