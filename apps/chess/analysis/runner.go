@@ -9,17 +9,31 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"reflect"
 	"sync"
 	"time"
 
 	"github.com/lordsonvimal/synergy/apps/chess/engine/uci"
 )
 
-// sameFunc reports whether two CancelFuncs are the same value. context.CancelFunc
-// is not directly comparable so we compare via reflect.Value pointers.
-func sameFunc(a, b context.CancelFunc) bool {
-	return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer()
+// histKey returns the cancellation slot key used for history navigation jobs.
+// Kept centralised so the broadcast (Start), cleanup (Forget), and explicit
+// cancel (CancelHistory) paths can't drift apart.
+func histKey(gameID string) string { return "hist:" + gameID }
+
+// jobSlot pairs a cancel func with a monotonic id so the run() defer can tell
+// whether the slot it installed is still current. Comparing CancelFunc values
+// directly does not work — they're closures sharing a code pointer, so
+// reflect.Value.Pointer() returns the same value for every cancel produced by
+// context.WithTimeout and can't distinguish instances.
+type jobSlot struct {
+	id     uint64
+	cancel context.CancelFunc
+	// done closes when the slot's goroutine has finished its defer. Used by
+	// CancelHistory to wait out any straggler emission that was already in
+	// flight when cancellation arrived — otherwise that last frame would
+	// reach subscribers via the hub *after* the return-to-live direct push,
+	// snapping the eval bar back to the historical position.
+	done chan struct{}
 }
 
 // EvalSnapshot is what the eval bar UI binds to. Sent as a DataStar signal patch.
@@ -58,7 +72,8 @@ type Runner struct {
 	opts Options
 
 	mu         sync.Mutex
-	jobs       map[string]context.CancelFunc
+	nextID     uint64
+	jobs       map[string]jobSlot
 	fenCache   map[string]EvalSnapshot
 	gameLatest map[string]EvalSnapshot
 }
@@ -76,7 +91,7 @@ func NewRunner(pool *uci.Pool, opts Options) *Runner {
 	return &Runner{
 		pool:       pool,
 		opts:       opts,
-		jobs:       make(map[string]context.CancelFunc),
+		jobs:       make(map[string]jobSlot),
 		fenCache:   make(map[string]EvalSnapshot),
 		gameLatest: make(map[string]EvalSnapshot),
 	}
@@ -89,31 +104,46 @@ func NewRunner(pool *uci.Pool, opts Options) *Runner {
 // call from any goroutine.
 func (r *Runner) Start(jobKey, gameID, fen string, whiteToMove bool, onUpdate func(EvalSnapshot)) {
 	r.mu.Lock()
-	if cancel, ok := r.jobs[jobKey]; ok {
-		cancel()
+	if prev, ok := r.jobs[jobKey]; ok {
+		prev.cancel()
 	}
 	jobCtx, cancel := context.WithTimeout(context.Background(), r.opts.MaxJobAge)
-	r.jobs[jobKey] = cancel
+	r.nextID++
+	myID := r.nextID
+	done := make(chan struct{})
+	r.jobs[jobKey] = jobSlot{id: myID, cancel: cancel, done: done}
 	r.mu.Unlock()
 
-	go r.run(jobCtx, cancel, jobKey, gameID, fen, whiteToMove, onUpdate)
+	go r.run(jobCtx, cancel, done, myID, jobKey, gameID, fen, whiteToMove, onUpdate)
 }
 
-func (r *Runner) run(ctx context.Context, myCancel context.CancelFunc, jobKey, gameID, fen string, whiteToMove bool, onUpdate func(EvalSnapshot)) {
+func (r *Runner) run(ctx context.Context, myCancel context.CancelFunc, done chan struct{}, myID uint64, jobKey, gameID, fen string, whiteToMove bool, onUpdate func(EvalSnapshot)) {
+	defer close(done)
 	defer func() {
-		// Only clear the slot if it still belongs to us. A faster successor
-		// Start() may have already replaced it; clobbering would cancel the
-		// new job (it shares this jobKey) and leave the eval bar stuck until
-		// the *next* move triggered another Start.
+		// Only clear the slot — and only ship the terminal "analyzing=false"
+		// frame — if the slot still belongs to us. Two ways we may no longer
+		// own it: a successor Start replaced the slot, or an explicit
+		// CancelHistory deleted it. In both cases a fresh state has already
+		// been published (new job started, or a return-to-live direct push),
+		// and broadcasting the cancelled job's last fenCache snapshot would
+		// race that newer state on every subscriber's client (e.g. snap the
+		// eval bar back to the historical position right after the user
+		// returns to live).
 		r.mu.Lock()
-		if cur, ok := r.jobs[jobKey]; ok && cur != nil && sameFunc(cur, myCancel) {
+		stillOurs := false
+		if cur, ok := r.jobs[jobKey]; ok && cur.id == myID {
+			stillOurs = true
 			delete(r.jobs, jobKey)
 		}
-		snap, ok := r.fenCache[fen]
+		var snap EvalSnapshot
+		var have bool
+		if stillOurs {
+			snap, have = r.fenCache[fen]
+		}
 		r.mu.Unlock()
 		// Always release this run's own ctx so its timer fires no later than now.
 		myCancel()
-		if ok && snap.EvalAnalyzing {
+		if stillOurs && have && snap.EvalAnalyzing {
 			snap.EvalAnalyzing = false
 			r.cache(gameID, fen, snap)
 			onUpdate(snap)
@@ -184,16 +214,58 @@ func (r *Runner) LatestForGame(gameID string) (EvalSnapshot, bool) {
 	return s, ok
 }
 
-// Forget drops per-game cached state and cancels the live job for gameID.
-// FEN cache entries are kept — they remain valid for history navigation.
+// Forget drops per-game cached state and cancels any in-flight jobs for
+// gameID — both the live slot and the history-navigation slot. FEN cache
+// entries are kept; they remain valid for replay during history navigation.
 func (r *Runner) Forget(gameID string) {
 	r.mu.Lock()
-	if cancel, ok := r.jobs[gameID]; ok {
-		cancel()
+	if slot, ok := r.jobs[gameID]; ok {
+		slot.cancel()
 		delete(r.jobs, gameID)
+	}
+	hk := histKey(gameID)
+	if slot, ok := r.jobs[hk]; ok {
+		slot.cancel()
+		delete(r.jobs, hk)
 	}
 	delete(r.gameLatest, gameID)
 	r.mu.Unlock()
+}
+
+// RecordTerminal cancels any in-flight live job for gameID and records snap
+// as the authoritative final eval for the game. Used when a move ends the
+// game — there's nothing left for the engine to search and the outcome is
+// already known from game state. Cancelling first prevents a still-running
+// pre-terminal job from later broadcasting a stale eval that would overwrite
+// the terminal snapshot on subscribers.
+func (r *Runner) RecordTerminal(gameID, fen string, snap EvalSnapshot) {
+	r.mu.Lock()
+	if slot, ok := r.jobs[gameID]; ok {
+		slot.cancel()
+		delete(r.jobs, gameID)
+	}
+	r.mu.Unlock()
+	r.cache(gameID, fen, snap)
+}
+
+// CancelHistory cancels any in-flight history-navigation analysis for gameID
+// and waits for its goroutine to fully drain (defer included) before
+// returning. The wait matters: a straggler update emitted between the engine
+// loop and the cancel signal would otherwise race past the caller's follow-up
+// state push (e.g. the return-to-live eval) and overwrite it on every
+// subscriber's client.
+func (r *Runner) CancelHistory(gameID string) {
+	r.mu.Lock()
+	hk := histKey(gameID)
+	slot, ok := r.jobs[hk]
+	if ok {
+		slot.cancel()
+		delete(r.jobs, hk)
+	}
+	r.mu.Unlock()
+	if ok && slot.done != nil {
+		<-slot.done
+	}
 }
 
 func (r *Runner) cache(gameID, fen string, snap EvalSnapshot) {

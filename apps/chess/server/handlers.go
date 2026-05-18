@@ -246,15 +246,18 @@ func BoardAtHistoryHandler(c *gin.Context) {
 	if idxParam == "live" {
 		b, _ := json.Marshal(historyNavSignals{HistoryIdx: -1, ViewingHistory: false})
 		sse.PatchSignals(b)
-		// Restore the eval bar to the live game's current evaluation. The
-		// runner cache holds it; if for some reason it's missing, leave the
-		// current client state untouched.
-		liveSnap := g.ReadSignalsSnapshot()
-		pushEvalForFenDirect(ctx, liveSnap.Fen, func(m map[string]any) {
-			if bb, err := json.Marshal(m); err == nil {
-				sse.PatchSignals(bb)
-			}
-		})
+		// Stop any in-flight history analysis before pushing the live eval —
+		// otherwise the lingering hist job's next depth tick would broadcast
+		// the historical eval and overwrite what we just sent.
+		cancelHistoryAnalysis(ctx, g.ID)
+		// Restore the eval bar to the live game's current evaluation. Push
+		// via the hub, not this handler's response — a hist-eval frame may
+		// still be queued in subscribers' hub channels (CancelHistory drains
+		// the producer goroutine but not the per-subscriber buffers), and a
+		// direct response push could be overtaken on the wire by that frame.
+		// Hub-broadcasting orders the live frame after any queued hist
+		// frames on every subscriber's channel.
+		broadcastLiveEval(ctx, g.ID, g.Hub)
 		return
 	}
 
@@ -361,12 +364,8 @@ func NavigateHistoryHandler(c *gin.Context) {
 	if targetIdx >= total {
 		b, _ := json.Marshal(historyNavSignals{HistoryIdx: -1, ViewingHistory: false})
 		sse.PatchSignals(b)
-		liveSnap := g.ReadSignalsSnapshot()
-		pushEvalForFenDirect(ctx, liveSnap.Fen, func(m map[string]any) {
-			if bb, err := json.Marshal(m); err == nil {
-				sse.PatchSignals(bb)
-			}
-		})
+		cancelHistoryAnalysis(ctx, g.ID)
+		broadcastLiveEval(ctx, g.ID, g.Hub)
 		return
 	}
 
